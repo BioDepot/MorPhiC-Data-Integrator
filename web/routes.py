@@ -19,11 +19,13 @@ total_confirmed, total_death, total_recovered, df_pop = utils.load_data()
 final_df = utils.merge_data(grouped_total_confirmed,
                             grouped_total_recovered, grouped_total_death, df_pop)
 
-#for chart_js map
 
-
-
+# for bwb
 @app.route("/")
+def homepage():
+    return render_template('bwb_page.html')
+
+#for chart_js map
 @app.route("/plotly")
 def plot_plotly_global():
     # total confirmed cases globally
