@@ -9,65 +9,20 @@ put your custom script or styling here
 
 {% block my_content %}
 <!-- Confirmed, Recovered, Deaths Card -->
-<div class="row">
-    <div class="col-sm">
-        <!-- small box -->
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3>{{context.total_all_confirmed}}</h3>
-
-                <p>Total Confirmed</p>
-            </div>
-        </div>
-    </div>
-    <!-- ./col -->
-    <div class="col-sm">
-        <!-- small box -->
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>{{context.total_all_recovered}}<sup style="font-size: 20px"></sup></h3>
-
-                <p>Total Recovered</p>
-            </div>
-        </div>
-    </div>
-    <!-- ./col -->
-    <!-- ./col -->
-    <div class="col-sm">
-        <!-- small box -->
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <h3>{{context.total_all_deaths}}</h3>
-
-                <p>Total Deaths</p>
-            </div>
-        </div>
-    </div>
-    <!-- ./col -->
-</div>
 <!-- Plotly plot placeholder -->
 <div class="container-fluid">
     <div class="row">
-        <div class="col">
-        </div>
-            <div class="col-6">
-                <!-- Placeholder for map-->
-                <div class="chart" id="plotly-geo">
+        <div class="col text-center">
+            <!-- Placeholder for Covid Visuals -->
+            <div class="card" style="width: 50%;">
+                <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt="" >
+                <div class="card-body">
+                    <p class="card-text">Setting up a predictive classifier for the most significant genes.</p>
                 </div>
             </div>
-        <div class="col">
         </div>
     </div>
-        <div class="row">
-        <!-- Placeholder for the global-cases plot-->
-            <div class="chart" id="plotly-global">
-            </div>
-        </div>
-        <hr>
-        <div class="row">
-            <!-- Placeholder for global-time series -->
-            <div id="plotly-timeseries"></div>
-        </div>
+
     </div>
 </div>
 <!-- Script to execute the Json ( we can create it also with looping) -->

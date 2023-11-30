@@ -21,11 +21,12 @@ final_df = utils.merge_data(grouped_total_confirmed,
 
 
 # for bwb
-@app.route("/")
+@app.route("/bwb")
 def homepage():
     return render_template('bwb_page.html')
 
 #for chart_js map
+@app.route("/")
 @app.route("/plotly")
 def plot_plotly_global():
     # total confirmed cases globally
@@ -43,8 +44,6 @@ def plot_plotly_global():
             'plot_global_cases_per_country': plot_global_cases_per_country,
             'plot_global_time_series': plot_global_time_series,'plot_geo_analysis': plot_geo_analysis}
     return render_template('plotly.html', context=context)
-
-
 
 @app.route("/altair")
 def plot_altair_global():
