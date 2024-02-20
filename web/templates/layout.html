@@ -99,17 +99,22 @@ scratch. This page gets rid of all links and provides the needed markup only.
                             <ul class="nav nav-treeview">
                                 <li>
                                 <!-- /.Parameter selector -->
-                                <form  method="POST" action="{{url_for('plot_param')}}">
+                                <form  method="POST" action="{{url_for('plot_country')}}">
                                     <div class="form-group mt-2 text-light">
                                         <label for="geo_name">Geo</label>
-                                        <select class="form-control" name="geo_name" id="geo_name" required="required" style="width:200px">
-                                            <option value="" label="eg. GSE169687 ... " selected="selected"> eg. GSE169687 ... </option>
+                                        <!-- <select class="form-control" name="geo_name" id="geo_name" required="required" style="width:200px">
                                                 
                                                 <option value="GSE169687">GSE169687</option>
-                                        </select>
+                                                
+                                        </select> -->
+
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="gse" name="geo_name" value="GSE169687" />
+                                            <label class="form-check-label" for="gse">GSE169687</label>
+                                        </div>
                                     </div>
                                     <div class="form-group mt-2 text-light">
-                                        <label for="alignment_name">Alignment</label>
+                                        <label for="alignment_name">Workflows</label>
                                         <select class="form-control" name="alignment_name" id="alignment_name" required="required" style="width:200px">
                                             <option value="" label="eg. HISAT2 ... " selected="selected">eg. HISAT2 ... </option>
                                                 
@@ -117,12 +122,16 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                         </select>
                                     </div>
                                     <div class="form-group mt-2 text-light">
-                                        <label for="plot_name">Plots</label>
-                                        <select class="form-control" name="plot_name" id="plot_name" required="required" style="width:200px">
+                                        <label for="plot_name">Visualization</label>
+                                        <!-- <select class="form-control" name="plot_name" id="plot_name" required="required" style="width:200px">
                                             <option value="" label="eg. heatmap ... " selected="selected">eg. heatmap ... </option>
                                                 
                                                 <option value="heatmap">heatmap</option>
-                                        </select>
+                                        </select> -->
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="heatmap" name="geo_name" value="heatmap" />
+                                            <label class="form-check-label" for="heatmap">heatmap</label>
+                                        </div>
                                     </div>
                                 </li>
                                 <li>
