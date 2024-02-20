@@ -45,6 +45,13 @@ def plot_plotly_global():
             'plot_global_time_series': plot_global_time_series,'plot_geo_analysis': plot_geo_analysis}
     return render_template('plotly.html', context=context)
 
+@app.route("/covid")
+def plot_covid():
+    # add scritps for converting notebook to images
+    # rename images
+    # maybe pass image names
+    return render_template('covid.html')
+
 @app.route("/altair")
 def plot_altair_global():
     # total confirmed cases globally
@@ -90,31 +97,36 @@ def plot_chartjs():
     return render_template('chartjs.html', context=context)
 
 
-@app.route("/country", methods=['POST'])
-def plot_country():
-    # total confirmed cases globally
-    # take country input from user
-    country_name = request.form['country_name']
-    total_confirmed_per_country, total_death_per_country, total_recovered_per_country=utils.get_per_country_data(
-            total_confirmed, total_death, total_recovered, country_name)
-    #ploting
-    #plotly
-    plotly_country_plot = plotly_plot.plotly_per_country_time_series(total_confirmed, 
-                                                            total_death, total_recovered, country_name)
-    #altair
-    altair_country_plot = altair_plot.altair_per_country_time_series(total_confirmed, 
-                                                            total_death, total_recovered, country_name)
-    #chart.js variable
-    timeseries_country = utils.get_by_country_merged(
-        total_confirmed, total_death, total_recovered, country_name)
+@app.route("/results", methods=['POST'])
+def plot():
+    # 
+    return render_template('covid.html')
+
+# @app.route("/country", methods=['POST'])
+# def plot_country():
+#     # total confirmed cases globally
+#     # take country input from user
+#     country_name = request.form['country_name']
+#     total_confirmed_per_country, total_death_per_country, total_recovered_per_country=utils.get_per_country_data(
+#             total_confirmed, total_death, total_recovered, country_name)
+#     #ploting
+#     #plotly
+#     plotly_country_plot = plotly_plot.plotly_per_country_time_series(total_confirmed, 
+#                                                             total_death, total_recovered, country_name)
+#     #altair
+#     altair_country_plot = altair_plot.altair_per_country_time_series(total_confirmed, 
+#                                                             total_death, total_recovered, country_name)
+#     #chart.js variable
+#     timeseries_country = utils.get_by_country_merged(
+#         total_confirmed, total_death, total_recovered, country_name)
     
-    confirmed_timeseries = timeseries_country["daily_new_confirmed"].values.tolist()
-    death_timeseries = timeseries_country["daily_new_death"].values.tolist()
-    recovered_timeseries = timeseries_country["daily_new_recovered"].values.tolist()
-    timeseries_dates = timeseries_country["date"].values.tolist()
-    context = {"total_confirmed_per_country": total_confirmed_per_country,
-            "total_death_per_country": total_death_per_country, "total_recovered_per_country": total_recovered_per_country,
-            'plotly_country_plot': plotly_country_plot, 'altair_country_plot': altair_country_plot,
-               "confirmed_timeseries": confirmed_timeseries, "death_timeseries": death_timeseries,
-               "recovered_timeseries": recovered_timeseries, "timeseries_dates": timeseries_dates}
-    return render_template('country.html', context=context)
+#     confirmed_timeseries = timeseries_country["daily_new_confirmed"].values.tolist()
+#     death_timeseries = timeseries_country["daily_new_death"].values.tolist()
+#     recovered_timeseries = timeseries_country["daily_new_recovered"].values.tolist()
+#     timeseries_dates = timeseries_country["date"].values.tolist()
+#     context = {"total_confirmed_per_country": total_confirmed_per_country,
+#             "total_death_per_country": total_death_per_country, "total_recovered_per_country": total_recovered_per_country,
+#             'plotly_country_plot': plotly_country_plot, 'altair_country_plot': altair_country_plot,
+#                "confirmed_timeseries": confirmed_timeseries, "death_timeseries": death_timeseries,
+#                "recovered_timeseries": recovered_timeseries, "timeseries_dates": timeseries_dates}
+#     return render_template('country.html', context=context)
