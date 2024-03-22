@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block script %}
+<!-- 
+-->
+{% endblock script %}
+
+
+{% block my_content %}
+<!-- plots -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col text-center">
+            {% if status != 0 %}
+            <p>Error: could not start bwb</p>
+            {% else %}
+            <!-- Placeholder for complex heatmap -->
+            <h1>Heatmap</h1>
+            <div class="card" style="width: 50%;">
+                <iframe
+                        src="http://127.0.0.1:5079"
+                        title="heatmap"
+                        style="width: 70vw;
+                               height: 100vh;"
+                    >
+                    </iframe>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    </div>
+</div>
+{% endblock my_content %}

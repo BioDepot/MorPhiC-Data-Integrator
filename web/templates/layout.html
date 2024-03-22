@@ -99,7 +99,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                             <ul class="nav nav-treeview">
                                 <li>
                                 <!-- /.Parameter selector -->
-                                <form  method="POST" action="{{url_for('plot_country')}}">
+                                <form  method="POST" action="{{url_for('plot_visuals')}}">
                                     <div class="form-group mt-2 text-light">
                                         <label for="geo_name">Geo</label>
                                         <!-- <select class="form-control" name="geo_name" id="geo_name" required="required" style="width:200px">
@@ -118,7 +118,9 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                         <select class="form-control" name="alignment_name" id="alignment_name" required="required" style="width:200px">
                                             <option value="" label="eg. HISAT2 ... " selected="selected">eg. HISAT2 ... </option>
                                                 
-                                                <option value="GSE169687">HISAT2</option>
+                                                <!-- <option value="GSE">HISAT2</option> -->
+                                                <option value="GSE169687">star_salmon_short_yin</option>
+                                                <option value="GSE224615">star_salmon_short_ryan</option>
                                         </select>
                                     </div>
                                     <div class="form-group mt-2 text-light">
