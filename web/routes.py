@@ -1,12 +1,13 @@
 from altair import Chart, X, Y, Axis, Data, DataFormat
 import pandas as pd
 import numpy as np
-from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort
+from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
 import json
 
 import os
+import socket
 
 
 # for bwb page
@@ -33,6 +34,17 @@ def plot_visuals():
         status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_yin/star_salmon_short_yin.ows biodepot/bwb')
     else:
         status = -1
+
+    # Check if port has opened
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('localhost', 6080))
+    if result == 0:
+        print("------------ Port is open --------------")
+        session['bwb_opened'] = True
+    else:
+        print("------------- Port is NOT open ---------")
+        session['bwb_opened'] = False
+    sock.close
 
     return render_template('viz.html', status=status)
 
