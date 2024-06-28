@@ -24,16 +24,13 @@ In the project root directory:
   ```
 
 - Install Docker
-  - Follow the installation proces [here](https://github.com/BioDepot/BioDepot-workflow-builder#installing-and-starting-docker)
-  - I installed for Linux
+  - Follow the installation process [here](https://github.com/BioDepot/BioDepot-workflow-builder#installing-and-starting-docker)
+  - Note:
+    - I installed for Linux
+    - I setup Docker with the option of executing the docker command without Sudo
 
 ### Start the project
-1. Start Bwb
-    - Follow the Starting Bwb process [here](https://github.com/BioDepot/BioDepot-workflow-builder#starting-bwb) 
-    - I am running Bwb on Linux, the following may be different on your setup
-    ```shell
-    $ sudo docker run --rm -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix  --privileged --group-add root biodepot/bwb
-    ```
+1. Activate your python virtual environment
 
 2. Run the web app with
     ```shell
