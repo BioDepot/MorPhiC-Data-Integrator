@@ -6,34 +6,12 @@ from web import app
 from web.utils import utils, altair_plot, plotly_plot
 import json
 
-import subprocess
-import time
 import os
 
-# Loading raw data and clean it
 
-
-
-#loading data
-total_confirmed, total_death, total_recovered, df_pop = utils.load_data()
-
-(grouped_total_confirmed, grouped_total_recovered,
- grouped_total_death, timeseries_final, country_names) = utils.preprocessed_data(total_confirmed, total_death, total_recovered)
-
-final_df = utils.merge_data(grouped_total_confirmed,
-                            grouped_total_recovered, grouped_total_death, df_pop)
-
-
-# for bwb
+# for bwb page
 @app.route("/bwb")
 def homepage():
-    # print(subprocess.run(["sudo docker run --rm -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix  --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb"], 
-    #                  capture_output=True))
-    # print(subprocess.run(["pwd"], 
-    #                  capture_output=True))
-
-    # status = os.system('docker run --rm -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix  --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
-    
     return render_template('bwb_page.html')
 
 # for rendering visualization
@@ -48,6 +26,7 @@ def plot_visuals():
         os.system('docker stop $(cat cidfile)')
         os.remove(cidfile)
 
+    # start  selected  workflow
     if (workflow == 'GSE224615'):
         status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
     elif (workflow == 'GSE169687'):
@@ -57,100 +36,10 @@ def plot_visuals():
 
     return render_template('viz.html', status=status)
 
-#for chart_js map
+#for home page with sample plot
 @app.route("/")
-@app.route("/plotly")
+@app.route("/plot")
 def plot_plotly_global():
-    # total confirmed cases globally
-    total_all_confirmed = total_confirmed[total_confirmed.columns[-1]].sum()
-    total_all_recovered = total_recovered[total_recovered.columns[-1]].sum()
-    total_all_deaths = total_death[total_death.columns[-1]].sum()
-    #ploting
-    plot_global_cases_per_country = plotly_plot.plotly_global_cases_per_country(
-        final_df)
-    plot_global_time_series = plotly_plot.plotly_global_timeseries(
-        timeseries_final)
-    plot_geo_analysis = plotly_plot.plotly_geo_analysis(final_df)
-    context = {"total_all_confirmed": total_all_confirmed,
-               "total_all_recovered": total_all_recovered, "total_all_deaths": total_all_deaths,
-            'plot_global_cases_per_country': plot_global_cases_per_country,
-            'plot_global_time_series': plot_global_time_series,'plot_geo_analysis': plot_geo_analysis}
-    return render_template('plotly.html', context=context)
+    return render_template('plot.html')
 
-@app.route("/altair")
-def plot_altair_global():
-    # total confirmed cases globally
-    total_all_confirmed = total_confirmed[total_confirmed.columns[-1]].sum()
-    total_all_recovered = total_recovered[total_recovered.columns[-1]].sum()
-    total_all_deaths = total_death[total_death.columns[-1]].sum()
-    #ploting
-    plot_global_cases_per_country = altair_plot.altair_global_cases_per_country(final_df)
-    plot_global_time_series = altair_plot.altair_global_time_series(
-        timeseries_final)
-    plot_geo_analysis = altair_plot.altair_geo_analysis(final_df)
-    context = {"total_all_confirmed": total_all_confirmed,
-               "total_all_recovered": total_all_recovered, "total_all_deaths": total_all_deaths,
-               'plot_global_cases_per_country': plot_global_cases_per_country,
-               'plot_global_time_series': plot_global_time_series, 'plot_geo_analysis': plot_geo_analysis}
-    return render_template('altair.html', context=context)
 
-    
-@app.route("/chartjs")
-def plot_chartjs():
-    # total confirmed cases globally
-    total_all_confirmed = total_confirmed[total_confirmed.columns[-1]].sum()
-    total_all_recovered = total_recovered[total_recovered.columns[-1]].sum()
-    total_all_deaths = total_death[total_death.columns[-1]].sum()
-    countries = final_df['Country/Region'].values.tolist()
-    total_values = final_df['confirmed'].values.tolist()
-    cases_per_million = final_df['cases/million'].values.round(2).tolist()
-    
-    #  time series for each cases
-    confirmed_timeseries = timeseries_final["daily new cases"].values.tolist()
-    death_timeseries = timeseries_final["daily new deaths"].values.tolist()
-    recovered_timeseries = timeseries_final["daily new recovered"].values.tolist()
-    timeseries_dates = timeseries_final["date"].values.tolist()
-    #load json file for highchart map
-    datamap = utils.load_chartjs_map_data(final_df, df_pop)
-
-    context = {"total_all_confirmed": total_all_confirmed,
-               "total_all_recovered": total_all_recovered, "total_all_deaths": total_all_deaths,
-               "confirmed_timeseries": confirmed_timeseries, "death_timeseries": death_timeseries,
-               "recovered_timeseries": recovered_timeseries, 'timeseries_dates': timeseries_dates,
-               'countries': countries, 'total_values': total_values,
-               'cases_per_million': cases_per_million, 'datamap': datamap}
-    return render_template('chartjs.html', context=context)
-
-@app.route("/country", methods=['POST'])
-def plot_country():
-    request.form['country_name']
-    return render_template('bwb_page.html')
-
-# @app.route("/country", methods=['POST'])
-# def plot_country():
-#     # total confirmed cases globally
-#     # take country input from user
-#     country_name = request.form['country_name']
-#     total_confirmed_per_country, total_death_per_country, total_recovered_per_country=utils.get_per_country_data(
-#             total_confirmed, total_death, total_recovered, country_name)
-#     #ploting
-#     #plotly
-#     plotly_country_plot = plotly_plot.plotly_per_country_time_series(total_confirmed, 
-#                                                             total_death, total_recovered, country_name)
-#     #altair
-#     altair_country_plot = altair_plot.altair_per_country_time_series(total_confirmed, 
-#                                                             total_death, total_recovered, country_name)
-#     #chart.js variable
-#     timeseries_country = utils.get_by_country_merged(
-#         total_confirmed, total_death, total_recovered, country_name)
-    
-#     confirmed_timeseries = timeseries_country["daily_new_confirmed"].values.tolist()
-#     death_timeseries = timeseries_country["daily_new_death"].values.tolist()
-#     recovered_timeseries = timeseries_country["daily_new_recovered"].values.tolist()
-#     timeseries_dates = timeseries_country["date"].values.tolist()
-#     context = {"total_confirmed_per_country": total_confirmed_per_country,
-#             "total_death_per_country": total_death_per_country, "total_recovered_per_country": total_recovered_per_country,
-#             'plotly_country_plot': plotly_country_plot, 'altair_country_plot': altair_country_plot,
-#                "confirmed_timeseries": confirmed_timeseries, "death_timeseries": death_timeseries,
-#                "recovered_timeseries": recovered_timeseries, "timeseries_dates": timeseries_dates}
-#     return render_template('country.html', context=context)

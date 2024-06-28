@@ -24,20 +24,4 @@ put your custom script or styling here
 
     </div>
 </div>
-<!-- Script to execute the Json ( we can create it also with looping) -->
-<script>
-    //Parse your Json variable here
-    var graphs = {{ context.plot_geo_analysis | safe }};
-    Plotly.plot('plotly-geo', graphs, {});
-</script>
-<script>
-    //Parse your Json variable here
-    var graphs = {{ context.plot_global_cases_per_country | safe }};
-    Plotly.plot('plotly-global', graphs, {});
-</script>
-<script>
-    //Parse your Json variable here
-    var graphs = {{ context.plot_global_time_series | safe }};
-    Plotly.plot('plotly-timeseries', graphs, {});
-</script>
 {% endblock my_content %}
