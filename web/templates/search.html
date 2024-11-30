@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!--
+This is a starter template page. Use this page to start your new project from
+scratch. This page gets rid of all links and provides the needed markup only.
+-->
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>Bwb</title>
+
+    <!-- Font Awesome Icons -->
+    <!-- You can use href="/path/to/your/file.format", but I prefer this way to make it looks Flask-like-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='plugins/fontawesome-free/css/all.min.css') }}">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+
+    <link rel="stlesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/vega-tooltip@0.16.0/vega-tooltip.scss">
+
+    <!-- Import Vega 3 & Vega-Lite 2 (does not have to be from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.16.0/build/vega-tooltip.min.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@3.0.0-rc12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@3"></script>
+    <script src="https://vega.github.io/datalib/datalib.min.js"></script>
+
+    <!-- Import Plotly (does not have to be from CDN) -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <!-- Import chart.js (does not have to be from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"
+        integrity="sha512-d9xgZrVZpmmQlfonhQUvTR7lMPtO7NkZMkA0ABN3PHCbKA5nqylQ/yWlFAyY6hYgdF1Qh6nYiuADWwKB4C2WSw=="
+        crossorigin="anonymous"></script>
+    <!-- Import moment.js for time series (does not have to be from CDN) -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js'></script>
+    {% block script %}
+    {% endblock script %}
+    <script>
+        function startCheckQueuePosition(uuid, lines) {
+            setTimeout(function () {
+                checkQueuePosition(uuid, lines);
+
+                setInterval(function () {
+                    checkQueuePosition(uuid, lines);
+                }, 30000);
+            }, 30000);
+            setTimeout
+        }
+
+        // Make request to check the queue position
+        async function checkQueuePosition(uuid, lines) {
+            const queueElement = document.getElementById('queue-position');
+
+            try {
+                const response = await fetch('/queue_position', {
+                    method: 'POST',
+                    body: JSON.stringify({ uuid: uuid })
+                })
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`)
+                }
+                result = await response.json();
+                console.log(result)
+
+                queueElement.textContent = JSON.stringify(result, null, 2);
+
+                if (result && result.status === "complete") {
+                    window.location.href = 'search-results?uuid=' + uuid + '&lines=' + lines;
+                }
+
+            }
+            catch (error) {
+                queueElement.textContent = "error";
+                console.error('Error fetching data:', error);
+            }
+        }
+    </script>
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+
+        <!-- Navbar -->
+
+        <!-- /.navbar -->
+
+        <!-- Main Sidebar Container -->
+
+
+        <!-- Content Wrapper. Contains page content -->
+        <div>
+            <!-- Content Header (Page header) -->
+            {% block my_content %}
+            {% endblock my_content %}
+            <!-- /.content-header -->
+
+            <div class="container">
+                <h1>Search using BioRAG</h1>
+
+                <!-- Input -->
+                <div class="row mb-5">
+                    <div>
+                        <form method="POST" action="{{url_for('search')}}">
+
+                            <div>
+
+                                <fieldset>
+                                    <legend>Strategy</legend>
+
+                                    <div class="form-group">
+                                        <input type="checkbox" id="question" name="question"
+                                            oninput="document.getElementById('query').disabled = !document.getElementById('query').disabled;" />
+                                        <label for="question">Question</label>
+
+                                        <input type="text" name="query" id="query"
+                                            placeholder="This text query usually describes the experiment"
+                                            class="form-control" disabled="disabled">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <input type="checkbox" id="genes-option" name="genes-option"
+                                            oninput="document.getElementById('genes').disabled = !document.getElementById('genes').disabled;" />
+                                        <label for="genes-option">Genes</label>
+
+                                        <div>
+                                            <label for="genes">Paste a set of Entrez gene symbols on each row in the
+                                                textbox below.</label>
+                                            <textarea class="form-control" id="genes" name="genes" rows="3"
+                                                disabled></textarea>
+                                        </div>
+                                    </div>
+
+                                    <legend>Optional Parameters</legend>
+                                    <div class="form-group">
+                                        <input type="checkbox" id="ssGSEA" name="ssGSEA" />
+                                        <label for="scales">ssGSEA</label>
+                                    </div>
+                                </fieldset>
+
+                                <div class="form-group">
+                                    <label id="rangeValLabel" for="formControlRange">View top 20 results</label>
+                                    <input type="range" class="form-control-range" id="formControlRange"
+                                        name="resultSize" min="10" max="50" value="20"
+                                        oninput="document.getElementById('rangeValLabel').innerHTML = 'View top ' + this.value + ' results';">
+                                </div>
+
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-dark">Query</button>
+                                </div>
+
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Output -->
+                <div class="">
+
+                    <h2>Results</h2>
+                    {% if result %}
+                    <pre>{{ result | tojson(indent=2)}}</pre>
+                    {% endif %}
+
+                    {% if result %}
+                    <!-- <pre>{{ data | tojson(indent=2)}}</pre> -->
+                    <div class="card">
+                        <h5 class="card-header">Search in queue</h5>
+                        <div class="card-body">
+                            <p class="card-text">
+                                Queue position: <strong id="queue-position">1</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <script>
+                        startCheckQueuePosition("{{uuid}}", "{{lines}}");
+                    </script>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+    </div>
+    <!-- ./wrapper -->
+
+
+    <!-- Custom script for fetching queue position -->
+    <!-- <script>
+        console.log("checking");
+        let btn = document.getElementById('loading');
+        btn.textContent = "checking";
+        document.getElementById('loading').addEventListener('click', async function (event) {
+            event.preventDefault();
+
+            try {
+                const response = await fetch('/qu', {
+                    method: 'POST',
+                })
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`)
+                }
+                result = await response.json();
+                console.log(result)
+                btn.textContent = JSON.stringify(result, null, 2);
+            }
+            catch (error) {
+                btn.textContent = "error";
+                console.error('Error fetching data:', error);
+            }
+        })
+        function checkStatus(){
+            fetch('/get_data')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.status);
+            });
+        }
+        checkStatus();
+        setInterval(function(){
+            checkStatus()
+        }, 30000);
+
+    </script> -->
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{{ url_for('static', filename='plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- AdminLTE App -->
+    <script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
+</body>
+
+</html>

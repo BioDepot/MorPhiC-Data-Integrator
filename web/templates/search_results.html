@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!--
+This is a starter template page. Use this page to start your new project from
+scratch. This page gets rid of all links and provides the needed markup only.
+-->
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>Bwb</title>
+
+    <!-- Font Awesome Icons -->
+    <!-- You can use href="/path/to/your/file.format", but I prefer this way to make it looks Flask-like-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='plugins/fontawesome-free/css/all.min.css') }}">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+
+    <link rel="stlesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/vega-tooltip@0.16.0/vega-tooltip.scss">
+
+    <!-- Import Vega 3 & Vega-Lite 2 (does not have to be from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.16.0/build/vega-tooltip.min.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@3.0.0-rc12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@3"></script>
+    <script src="https://vega.github.io/datalib/datalib.min.js"></script>
+
+    <!-- Import Plotly (does not have to be from CDN) -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <!-- Import chart.js (does not have to be from CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"
+        integrity="sha512-d9xgZrVZpmmQlfonhQUvTR7lMPtO7NkZMkA0ABN3PHCbKA5nqylQ/yWlFAyY6hYgdF1Qh6nYiuADWwKB4C2WSw=="
+        crossorigin="anonymous"></script>
+    <!-- Import moment.js for time series (does not have to be from CDN) -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js'></script>
+    {% block script %}
+    {% endblock script %}
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+        <!-- Content Wrapper. Contains page content -->
+        <div >
+            <!-- Content Header (Page header) -->
+            {% block my_content %}
+            {% endblock my_content %}
+
+            <!-- Main content -->
+
+            <div class="container">
+                <h1>Search using BioRAG</h1>
+
+                <!-- Return to search -->
+                 
+
+                <!-- Output -->
+                <div>
+                    
+                    <h2>Results</h2>
+                    <a href="{{ url_for('search_results') }}" class="btn btn-dark">Make a search</a>
+                    
+                    {% if data %}
+                    <!-- <pre>{{ data | tojson(indent=2)}}</pre> -->
+                    <div class="">
+                      <button class="btn btn-secondary">Download</button>
+                      <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item">
+                          <a class="nav-link active" id="expansion-tab" data-toggle="tab" href="#expansion" role="tab" aria-controls="expansion" aria-selected="true">Revelevant Expansion Studies</a>
+                        </li>
+                        <li class="nav-item">
+                          <a class="nav-link" id="samples-tab" data-toggle="tab" href="#samples" role="tab" aria-controls="samples" aria-selected="false">Revelevant Samples</a>
+                        </li>
+                        <li class="nav-item">
+                          <a class="nav-link" id="seed-tab" data-toggle="tab" href="#seed" role="tab" aria-controls="contact" aria-selected="false">Relevant Seed Studies</a>
+                        </li>
+                      </ul>
+                      
+                    </div>
+                    <div class="">
+                        <div class="tab-content" id="myTabContent">
+                            <div class="tab-pane fade show active" id="expansion" role="tabpanel" aria-labelledby="expansion-tab">
+                                <table class="table table-striped">
+                                    <caption>
+                                        Expansion Studies
+                                    </caption>
+                                    <thead>
+                                      <tr>
+                                        <th scope="col">gse_id</th>
+                                        <th scope="col">gse_id_text</th>
+                                        <th scope="col">index</th>
+                                        <th scope="col">similarity score</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for study in data["data"]["expansion_studies"] %}
+                                      <tr>
+                                        
+                                        <th scope="row"><a href="{{ url_for('dash_gse', gse=study['gse_id']) }}" target="_blank" rel="noopener noreferrer">{{ study["gse_id"] }}</a></th>
+                                        <td>{{ study["gse_id_text"] }}</td>
+                                        <td>{{ study["index"] }}</td>
+                                        <td>{{ study["similarity_score"] }}</td>
+                                      </tr>
+                                      {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tab-pane fade" id="samples" role="tabpanel" aria-labelledby="samples-tab">
+                                <table class="table table-striped">
+                                    <caption>
+                                        Samples
+                                    </caption>
+                                    <thead>
+                                      <tr>
+                                        <th scope="col">characteristics_ch1</th>
+                                        <th scope="col">extract_protocol_ch1</th>
+                                        <th scope="col">series_id</th>
+                                        <th scope="col">source_name_ch1</th>
+                                        <th scope="col">title</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for sample in data["data"]["samples"] %}
+                                      <tr>
+                                        
+                                        <th scope="row">{{ sample["characteristics_ch1"] }}</th>
+                                        <td>{{ sample["extract_protocol_ch1"] }}</td>
+                                        <td>{{ sample["series_id"] }}</td>
+                                        <td>{{ sample["source_name_ch1"] }}</td>
+                                        <td>{{ sample["title"] }}</td>
+                                      </tr>
+                                      {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tab-pane fade" id="seed" role="tabpanel" aria-labelledby="seed-tab">
+                                <table class="table table-striped">
+                                    <caption>
+                                        Seed Studies
+                                    </caption>
+                                    <thead>
+                                      <tr>
+                                        <th scope="col">gse_id</th>
+                                        <th scope="col">gse_id_text</th>
+                                        <th scope="col">similarity_score</th>
+                                        <th scope="col">similarity_source</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for sample in data["data"]["seed_studies"] %}
+                                      <tr>
+                                        <th scope="row">{{ sample["gse_id"] }}</th>
+                                        <td>{{ sample["gse_id_text"] }}</td>
+                                        <td>{{ sample["similarity_score"] }}</td>
+                                        <td>{{ sample["similarity_source"] }}</td>
+                                      </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                          </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+
+        <!-- Control Sidebar -->
+        <!-- /.control-sidebar -->
+
+        <!-- Main Footer -->
+        <footer class="main-footer">
+            <!-- To the right -->
+            <div class="float-right d-none d-sm-inline">
+            </div>
+            <!-- Default to the left -->
+        </footer>
+    </div>
+    <!-- ./wrapper -->
+
+
+    <!-- Custom -->
+    <script>
+        console.log("checking");
+        let btn = document.getElementById('loading');
+        btn.textContent = "checking";
+        document.getElementById('loading').addEventListener('click', async function(event) {
+            event.preventDefault();
+
+            try {
+                const response = await fetch('/qu', {
+                    method:  'POST',
+                })
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`)
+                }
+                result = await response.json();
+                console.log(result)
+                btn.textContent = JSON.stringify(result, null, 2);
+            }
+            catch (error) {
+                btn.textContent = "error";
+                console.error('Error fetching data:', error);
+            }
+        })
+        // function checkStatus(){
+        //     fetch('/get_data')
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         console.log(data.status);
+        //     });
+        // }
+        // checkStatus();
+        // setInterval(function(){
+        //     checkStatus()
+        // }, 30000);
+
+    </script>
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{{ url_for('static', filename='plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- AdminLTE App -->
+    <script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
+</body>
+
+</html>
