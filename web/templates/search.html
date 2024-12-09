@@ -44,36 +44,35 @@ scratch. This page gets rid of all links and provides the needed markup only.
     {% block script %}
     {% endblock script %}
     <script>
-        function startCheckQueuePosition(uuid, lines) {
+        // Start time to check position
+        function startCheckQueuePosition() {
             setTimeout(function () {
-                checkQueuePosition(uuid, lines);
+                checkQueuePosition();
 
                 setInterval(function () {
-                    checkQueuePosition(uuid, lines);
-                }, 30000);
-            }, 30000);
-            setTimeout
+                    checkQueuePosition();
+                }, 5000);
+            }, 1000);
+            setTimeout;
         }
 
         // Make request to check the queue position
-        async function checkQueuePosition(uuid, lines) {
-            const queueElement = document.getElementById('queue-position');
-
+        async function checkQueuePosition() {
             try {
-                const response = await fetch('/queue_position', {
-                    method: 'POST',
-                    body: JSON.stringify({ uuid: uuid })
-                })
+                const response = await fetch('/queue_position')
+
                 if (!response.ok) {
                     throw new Error(`Error: ${response.statusText}`)
                 }
                 result = await response.json();
-                console.log(result)
-
-                queueElement.textContent = JSON.stringify(result, null, 2);
 
                 if (result && result.status === "complete") {
-                    window.location.href = 'search-results?uuid=' + uuid + '&lines=' + lines;
+                    // redirect to search results on complete
+                    window.location.href = 'search-results';
+                }
+                if (result && result.status.startsWith("in_queue")) {
+                    const queueElement = document.getElementById('queue-position');
+                    queueElement.textContent = result.data.position;
                 }
 
             }
@@ -81,6 +80,24 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 queueElement.textContent = "error";
                 console.error('Error fetching data:', error);
             }
+        }
+
+        // Apply Expansion Strategy Rules for Search and Expand
+        function applyExpansionStrategyRules(row, column) {
+            // For the following rows and columns
+            const strategyTable = [
+                ["search_semantic", "search_transcriptome"],
+                ["expand_semantic", "expand_transcriptome"]
+            ]
+
+            // Only one radio button can be selected for each row
+            if (row - 1 >= 0) document.getElementById(strategyTable[row - 1][column]).checked = false;
+            if (row + 1 < 2) document.getElementById(strategyTable[row + 1][column]).checked = false;
+
+            // Only one radio button can be selected for each column
+            if (column - 1 >= 0) document.getElementById(strategyTable[row][column - 1]).checked = false;
+            if (column + 1 < 2) document.getElementById(strategyTable[row][column + 1]).checked = false;
+            
         }
     </script>
 </head>
@@ -103,7 +120,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
             <!-- /.content-header -->
 
             <div class="container">
-                <h1>Search using BioRAG</h1>
+                <h1 class="mt-3 mb-5">Search using BioRAG</h1>
 
                 <!-- Input -->
                 <div class="row mb-5">
@@ -116,32 +133,55 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                     <legend>Strategy</legend>
 
                                     <div class="form-group">
-                                        <input type="checkbox" id="question" name="question"
-                                            oninput="document.getElementById('query').disabled = !document.getElementById('query').disabled;" />
                                         <label for="question">Question</label>
-
                                         <input type="text" name="query" id="query"
                                             placeholder="This text query usually describes the experiment"
-                                            class="form-control" disabled="disabled">
+                                            class="form-control"
+                                            required="true"
+                                            onchange="this.value.trim() !== '' ? document.getElementById('genes').required = false : document.getElementById('genes').required = true">
                                     </div>
 
                                     <div class="form-group">
-                                        <input type="checkbox" id="genes-option" name="genes-option"
-                                            oninput="document.getElementById('genes').disabled = !document.getElementById('genes').disabled;" />
-                                        <label for="genes-option">Genes</label>
+                                        <label for="genes">Genes</label>
+                                        <p>Paste a set of gene symbols on each row in the
+                                            textbox below.</p>
+                                        <textarea class="form-control" id="genes" name="genes" rows="3"
+                                            onchange="this.value.trim() !== '' ? document.getElementById('query').required = false : document.getElementById('query').required = true"></textarea>
+                                    </div>
+                                </fieldset>
 
-                                        <div>
-                                            <label for="genes">Paste a set of Entrez gene symbols on each row in the
-                                                textbox below.</label>
-                                            <textarea class="form-control" id="genes" name="genes" rows="3"
-                                                disabled></textarea>
+                                <fieldset class="form-group">
+                                    <legend>Optional Parameters</legend>
+                                    <div class="row form-group">
+                                        <legend class="col-form-label col-sm-2 pt-0">Search</legend>
+                                        <div class="col-sm-10">
+                                            <div class="form-check form-check-inline">
+                                                <input type="checkbox" name="search_semantic" id="search_semantic" value="semantic" class="form-check-inline"
+                                                    onclick="applyExpansionStrategyRules(0,0)">
+                                                <label class="form-check-inline mb-0" for="search_semantic">Semantic</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input type="checkbox" name="search_transcriptome" id="search_transcriptome" value="transcriptome"
+                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(0,1)">
+                                                <label class="form-check-inline mb-0" for="search_transcriptome">Transcriptome</label>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <legend>Optional Parameters</legend>
-                                    <div class="form-group">
-                                        <input type="checkbox" id="ssGSEA" name="ssGSEA" />
-                                        <label for="scales">ssGSEA</label>
+                                    <div class="row form-group">
+                                        <legend class="col-form-label col-sm-2 pt-0">Expand</legend>
+                                        <div class="col-sm-10">
+                                            <div class="form-check form-check-inline">
+                                                <input type="checkbox" name="expand_semantic" id="expand_semantic" value="semantic"
+                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(1,0)">
+                                                <label class="form-check-inline mb-0" for="expand_semantic">Semantic</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input type="checkbox" name="expand_transcriptome" id="expand_transcriptome" value="transcriptome"
+                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(1,1)">
+                                                <label class="form-check-inline mb-0" for="expand_transcriptome">Transcriptome</label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </fieldset>
 
@@ -154,6 +194,11 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-dark">Query</button>
+                                    {% if success %}
+                                    <div class="alert alert-warning" role="alert">
+                                        Warning: Making a new search will requeue you.
+                                    </div>
+                                    {% endif %}
                                 </div>
 
                             </div>
@@ -162,26 +207,29 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 </div>
 
                 <!-- Output -->
-                <div class="">
-
-                    <h2>Results</h2>
-                    {% if result %}
-                    <pre>{{ result | tojson(indent=2)}}</pre>
-                    {% endif %}
-
-                    {% if result %}
-                    <!-- <pre>{{ data | tojson(indent=2)}}</pre> -->
-                    <div class="card">
+                <div>
+                    {% if success %}
+                    <div class="card" style="width: 50%;">
                         <h5 class="card-header">Search in queue</h5>
                         <div class="card-body">
                             <p class="card-text">
-                                Queue position: <strong id="queue-position">1</strong>
+                                <div class="spinner-border text-info px-1" role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                                <strong id="queue-position"></strong>
                             </p>
                         </div>
                     </div>
                     <script>
-                        startCheckQueuePosition("{{uuid}}", "{{lines}}");
+                        startCheckQueuePosition();
                     </script>
+                    {% else %}
+                        {% if result %}
+                        <div class="alert alert-danger" style="width: 50%;">
+                            <h4 class="alert-heading">Error</h4>
+                            <p>{{ result["data"]["error"] }}</p>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -191,44 +239,6 @@ scratch. This page gets rid of all links and provides the needed markup only.
     </div>
     <!-- ./wrapper -->
 
-
-    <!-- Custom script for fetching queue position -->
-    <!-- <script>
-        console.log("checking");
-        let btn = document.getElementById('loading');
-        btn.textContent = "checking";
-        document.getElementById('loading').addEventListener('click', async function (event) {
-            event.preventDefault();
-
-            try {
-                const response = await fetch('/qu', {
-                    method: 'POST',
-                })
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`)
-                }
-                result = await response.json();
-                console.log(result)
-                btn.textContent = JSON.stringify(result, null, 2);
-            }
-            catch (error) {
-                btn.textContent = "error";
-                console.error('Error fetching data:', error);
-            }
-        })
-        function checkStatus(){
-            fetch('/get_data')
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.status);
-            });
-        }
-        checkStatus();
-        setInterval(function(){
-            checkStatus()
-        }, 30000);
-
-    </script> -->
     <!-- jQuery -->
     <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
     <!-- Bootstrap 4 -->

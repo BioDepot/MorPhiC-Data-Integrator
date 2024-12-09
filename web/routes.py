@@ -5,9 +5,12 @@ from flask import render_template, url_for, flash, redirect, request, make_respo
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
 import json
+import requests
 
+import uuid
 import os
 import socket
+import io
 
 
 # for bwb page
@@ -15,124 +18,178 @@ import socket
 def homepage():
     return render_template('bwb_page.html')
 
-def query_rag(uuid):
-    # g.uuid = '123'
+def query_rag(user_uuid, text_query_used, query, gene_set_used, gene_set, search, expand):
+    # ssgsea = True
+    # “uuid”: “<id_goes_here>”,
+    # “text_query_used”: “True”,  //Should only be True or False
+    # “text_query”: “<text_goes_here>”,
+    # “gene_set_used”: “True”,  //Should only be True or False
+    # “gene_set”: [‘gene1”, “gene2”, … ],  //There should be at least 5
+    # “search”: “<value>”, //Should only be semantic or transcriptome
+    # “expand”: “<value>” //Should only be semantic or transcriptome
+    try:
+        url = 'http://127.0.0.1:5001/query_rag'
+        input_data = {'uuid': user_uuid,
+                    'text_query_used': text_query_used,
+                    'text_query': query,
+                    'gene_set_used': gene_set_used,
+                    'gene_set': gene_set,
+                    'search': search,
+                    'expand': expand}
+        res = requests.post(url, json=input_data)
+        print('response from server:', res.text)
 
-    if uuid:
-        try:
-            dictToSend = {'uuid': uuid,
-                        'gene_set': ['MMP8', 'LTF', 'CAMP', 'HP', 'DCLK2', 'GOLGA8R','KIR3DL2', 'PTPRN2-AS1', 'SERPINB9', 'B3GAT1'],
-                        'text_query_used': 'Dataset used: Ryan Et al (GSE169687).  Groups compared: C (all patients with mild LC symptoms) vs E & F (all patients with severe or critical LC symptoms).  What are the ranges of differential expression for each gene provided in the gene-signature list for the group labelled "mild"?',
-                        'text_query': 'Dataset used: Ryan Et al (GSE169687).  Groups compared: C (all patients with mild LC symptoms) vs E & F (all patients with severe or critical LC symptoms).  What are the ranges of differential expression for each gene provided in the gene-signature list for the group labelled "mild"?',
-                        'gene_set_used': ['MMP8', 'LTF', 'CAMP', 'HP', 'DCLK2', 'GOLGA8R','KIR3DL2', 'PTPRN2-AS1', 'SERPINB9', 'B3GAT1'],
-                        'ss_gesa': False}
-            res = requests.post('http://127.0.0.1:5001/query_rag', json=dictToSend)
-            print('response from server:', res.text)
-            # return jsonify(res.json), 200
-            return res
-        except requests.exceptions.RequestException as e:
-            print({'error': f'post error: {str(e)}'})
-            jsonify({"error": "Fail to make search"}), 500
-            return None
-    else:
-        return {'error': 'No uuid for query'}
+        return res.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
 
-@app.route('/queue_position', methods=['POST'])
+@app.route('/queue_position', methods=['GET'])
 def get_queue():
     # get user uuid
-    uuid = request.json.get('uuid')
+    uuid = session.get('uuid')
 
-    dictToSend = {'uuid': '001'}
-    try:
-        #fetch
-        res = requests.post('http://127.0.0.1:5001/queue_position', json=dictToSend)
-        print('get queue position, response from server:', res.text)
-        data = res.json()
-        return jsonify(res)
-    except requests.RequestException as e:
-        # failed
-        return f"Error getting queue position: {e}"
-
-# @app.route('/data_output', methods=['POST'])
-def get_response_data(uuid, lines):
-    # get user uuid
-    uuid = request.json.get('uuid')
-    lines = request.json.get('lines')
+    if not uuid:
+        return jsonify({'error: search query is required'}), 400
     
-    dictToSend = {'uuid': uuid,
-                    'amount_of_lines': lines}
+    # make request to check queue position
+    url = 'http://127.0.0.1:5001/queue_position'
+    input_data = {'uuid': uuid}
     try:
         # fetch
-        res = requests.post('http://127.0.0.1:5001/data_output', json=dictToSend)
-        print('data_output, response from server:', str(res.text)[:200])
-        # res = res.json()
+        res = requests.post(url, json=input_data)
+        print('get queue position, response from server:', res.text)
 
-        # with open('query_data_output2.json', 'w') as f:
-        #     json.dump(dictFromServer, f)
+        return jsonify(res.json()), 200
+    except requests.RequestException as e:
+        # failed
+        print(f"Error getting queue position: {e}")
+        return jsonify({'error': 'error getting queue position'}), 500
 
-        return jsonify(res)
+def get_data_output(uuid, lines):
+    uuid = session.get('uuid')
+    if not uuid or not lines:
+        return jsonify({'error: A search with amount of lines is required'}), 400
+    
+    url = 'http://127.0.0.1:5001/data_output'
+    input_data = {'uuid': uuid,
+                    'amount_of_lines': int(lines)}
+    try:
+        # fetch
+        res = requests.post(url, json=input_data)
+        print('data_output, response from server:', str(res.text)[:100])
+
+        return res.json()
     except requests.RequestException as e:
         # failed
         print(f"Error getting data output: {e}")
         return None
 
-@app.route('/download_data', methods=['POST'])
-def get_download_data(uuid):
-    # get user uuid
-    uuid = request.json.get('uuid')
-    lines = request.json.get('lines')
+@app.route('/download_data', methods=['GET'])
+def get_download_data():
+    # retrieve uuid and amount of lines
+    uuid = session.get('uuid')
+    lines = session.get('lines')
 
-    dictToSend = {'uuid': uuid,
+    if not uuid or not lines:
+        return jsonify({'error: A search with amount of lines is required'}), 400
+
+    url = 'http://127.0.0.1:5001/file_download'
+    input_data = {'uuid': uuid,
                     'amount_of_lines': lines}
     try:
         # fetch
-        res_file = requests.post('http://127.0.0.1:5001/file_download', json=dictToSend)
-        # res = res.json()
+        res_file = requests.post(url, json=input_data)
 
-        # if res_file.status_code == 200:
-        #     with open("query_result2.zip","wb") as f:
-        #         f.write(res_file.content)
-        # else:
-        #     print('response from server:', res_file.text)
-
-        return jsonify(res_file)
+        if res_file.status_code == 400:
+            print(res_file.text)
+            return jsonify({'error': res_file.text}), 400
+        
+        zip_file = io.BytesIO(res_file.content)
+        return send_file(zip_file, as_attachment=True, download_name='search-results.zip', mimetype='application/zip')
     except requests.RequestException as e:
         # failed
-        return f"Error getting data output: {e}"
+        print(f"Error getting data output: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+def extract_genes(input_genes):
+    # filter out genes, save and return as a list of genes
+    genes = input_genes.split()
+    genes = [gene.strip() for gene in genes if gene.strip()]
+
+    return genes
 
 # BioRAG search
 @app.route("/search", methods=['GET','POST'])
 def search():
     if request.method == 'POST':
-        g.uuid = '001'
-        print('/query ', g.uuid)
+        # generate uuid
+        session['uuid'] = str(uuid.uuid4())
+        user_uuid = session.get('uuid')
+
+        # for key, value in request.form.items():
+        #     print(f"{key}: {value}")
 
         # user inputs
-        query = request.form['query']
-        genes = request.form['genes']
-        ssgsea = 'ssGSEA' in request.form
+        query = request.form.get('query', '').strip()
+        has_query = len(query) > 0
+        genes = request.form.get('genes', '').strip()
+        has_genes = len(genes) > 0
         size = request.form['resultSize']
 
-        print("QUERY INPUT: \n", query, 
-            "\n GENES: ", genes.split(), 
-            "\n ssGSEA: ", ssgsea,
-            "\n SIZE: ", size)
+        # optional parameters
+        ssgsea = 'ssGSEA' in request.form
+        search_semantic = 'search_semantic' in request.form
+        search_transcriptome = 'search_transcriptome' in request.form
+        expand_semantic = 'expand_semantic' in request.form
+        expand_transcriptome = 'expand_transcriptome' in request.form
+        if 'search_semantic' in request.form:
+            search = request.form.get('search_semantic')
+        elif 'search_transcriptome' in request.form:
+            search = request.form.get('search_transcriptome')
+        else:
+            search = False
+        if 'expand_semantic' in request.form:
+            expand = request.form.get('expand_semantic')
+        elif 'expand_transcriptome' in request.form:
+            expand = request.form.get('expand_transcriptome')
+        else:
+            expand = False
 
-        q_response = query_rag(g.uuid)
-        print("q_responnse")
-        print(q_response.text)
-        
-        return render_template('search.html', result=q_response, uuid=g.uuid, lines=int(size))
+        # Keep lines for future use
+        if size:
+            session['lines'] = int(size)
+        # Create a gene set from input genes
+        if genes:
+            genes = extract_genes(genes)
+
+        # make a query
+        q_response = query_rag(user_uuid, has_query, query, has_genes, genes, search, expand)
+        print("q_responnse:")
+        print(q_response)
+
+        # check for query status
+        if "status" in q_response:
+            print("status:")
+            print(q_response["status"])
+        if "status" in q_response and q_response["status"] == "queued":
+            return render_template('search.html', result=q_response, success=True)
+        if "status" in q_response:
+            return render_template('search.html', result=q_response, success=False)
+
+        return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False)
     return render_template('search.html')
 
 # BioRAG search results
 @app.route("/search-results")
 def search_results():
-    uuid = request.args.get('uuid')
-    lines = request.args.get('lines')
-    res = get_response_data(uuid, lines)
+    uuid = session.get('uuid')
+    lines = session.get('lines')
 
-    return render_template('search-results.html', data=res)
+    res = get_data_output(uuid, lines)
+    if not res:
+        return render_template('search_results.html')
+
+    return render_template('search_results.html', data=res)
 
 @app.route('/plots/p1.html')
 def get_plot():
