@@ -49,8 +49,9 @@ scratch. This page gets rid of all links and provides the needed markup only.
             setTimeout(function () {
                 checkQueuePosition();
 
-                setInterval(function () {
-                    checkQueuePosition();
+                const intervalId = setInterval(async function () {
+                    let queueStatus = await checkQueuePosition();
+                    if (queueStatus) clearInterval(intervalId);
                 }, 5000);
             }, 1000);
             setTimeout;
@@ -73,6 +74,40 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 if (result && result.status.startsWith("in_queue")) {
                     const queueElement = document.getElementById('queue-position');
                     queueElement.textContent = result.data.position;
+                }
+                else if (result && result.status.startsWith("value_error")) {
+                    errorMessage = result.data.error;
+
+                    // Create elements for displaying the alert message
+                    let alertDiv = document.createElement('div');
+                    let alertHeading = document.createElement('h4');
+                    let alertDescription = document.createElement('p');
+                    let separatingLine = document.createElement('hr');
+                    let alertSuggestion = document.createElement('p');
+
+                    alertDiv.classList.add('alert', 'alert-danger');
+                    alertHeading.classList.add('alert-heading');
+                    alertSuggestion.classList.add('mb-0');
+
+                    // Add title, error message, and suggestion
+                    alertHeading.textContent = 'Error';
+                    alertDescription.textContent = errorMessage;
+                    alertSuggestion.textContent = 'Please make a new search';
+
+                    // Add all elements to page
+                    alertDiv.appendChild(alertHeading);
+                    alertDiv.appendChild(alertDescription);
+                    alertDiv.appendChild(separatingLine);
+                    alertDiv.appendChild(alertSuggestion);
+
+                    let statusBox = document.getElementById("status-queue");
+                    if (statusBox) {
+                        statusBox.innerHTML = '';
+                        statusBox.appendChild(alertDiv);
+                    }
+
+                    // Stop checking for queue position
+                    return errorMessage;
                 }
 
             }
@@ -165,7 +200,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 <!-- Output -->
                 <div>
                     {% if success %}
-                    <div class="card" style="width: 50%;">
+                    <div id="status-queue" class="card" style="width: 50%;">
                         <h5 class="card-header">Search in queue</h5>
                         <div class="card-body">
                             <p class="card-text">
