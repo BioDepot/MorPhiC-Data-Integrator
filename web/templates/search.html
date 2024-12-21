@@ -81,24 +81,6 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 console.error('Error fetching data:', error);
             }
         }
-
-        // Apply Expansion Strategy Rules for Search and Expand
-        function applyExpansionStrategyRules(row, column) {
-            // For the following rows and columns
-            const strategyTable = [
-                ["search_semantic", "search_transcriptome"],
-                ["expand_semantic", "expand_transcriptome"]
-            ]
-
-            // Only one radio button can be selected for each row
-            if (row - 1 >= 0) document.getElementById(strategyTable[row - 1][column]).checked = false;
-            if (row + 1 < 2) document.getElementById(strategyTable[row + 1][column]).checked = false;
-
-            // Only one radio button can be selected for each column
-            if (column - 1 >= 0) document.getElementById(strategyTable[row][column - 1]).checked = false;
-            if (column + 1 < 2) document.getElementById(strategyTable[row][column + 1]).checked = false;
-            
-        }
     </script>
 </head>
 
@@ -152,37 +134,11 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
                                 <fieldset class="form-group">
                                     <legend>Optional Parameters</legend>
-                                    <div class="row form-group">
-                                        <legend class="col-form-label col-sm-2 pt-0">Search</legend>
-                                        <div class="col-sm-10">
-                                            <div class="form-check form-check-inline">
-                                                <input type="checkbox" name="search_semantic" id="search_semantic" value="semantic" class="form-check-inline"
-                                                    onclick="applyExpansionStrategyRules(0,0)">
-                                                <label class="form-check-inline mb-0" for="search_semantic">Semantic</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input type="checkbox" name="search_transcriptome" id="search_transcriptome" value="transcriptome"
-                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(0,1)">
-                                                <label class="form-check-inline mb-0" for="search_transcriptome">Transcriptome</label>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div class="row form-group">
-                                        <legend class="col-form-label col-sm-2 pt-0">Expand</legend>
-                                        <div class="col-sm-10">
-                                            <div class="form-check form-check-inline">
-                                                <input type="checkbox" name="expand_semantic" id="expand_semantic" value="semantic"
-                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(1,0)">
-                                                <label class="form-check-inline mb-0" for="expand_semantic">Semantic</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input type="checkbox" name="expand_transcriptome" id="expand_transcriptome" value="transcriptome"
-                                                    class="form-check-inline" onclick="applyExpansionStrategyRules(1,1)">
-                                                <label class="form-check-inline mb-0" for="expand_transcriptome">Transcriptome</label>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <select class="form-control" name="expansion-strategy" id="expansion-strategy">
+                                        <option  value="semantic_transcriptome">Semantic/Transcriptome</option>
+                                        <option value="semantic_semantic">Semantic/Semantic</option>
+                                    </select>
                                 </fieldset>
 
                                 <div class="form-group">

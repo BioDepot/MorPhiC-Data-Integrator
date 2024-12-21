@@ -36,6 +36,7 @@ def query_rag(user_uuid, text_query_used, query, gene_set_used, gene_set, search
                     'gene_set': gene_set,
                     'search': search,
                     'expand': expand}
+        # print(input_data)
         res = requests.post(url, json=input_data)
         print('response from server:', res.text)
 
@@ -126,8 +127,10 @@ def search():
         session['uuid'] = str(uuid.uuid4())
         user_uuid = session.get('uuid')
 
+        # print("------ Input Parameters ------")
         # for key, value in request.form.items():
         #     print(f"{key}: {value}")
+        # print("------- end -------")
 
         # user inputs
         query = request.form.get('query', '').strip()
@@ -137,23 +140,18 @@ def search():
         size = request.form['resultSize']
 
         # optional parameters
-        ssgsea = 'ssGSEA' in request.form
-        search_semantic = 'search_semantic' in request.form
-        search_transcriptome = 'search_transcriptome' in request.form
-        expand_semantic = 'expand_semantic' in request.form
-        expand_transcriptome = 'expand_transcriptome' in request.form
-        if 'search_semantic' in request.form:
-            search = request.form.get('search_semantic')
-        elif 'search_transcriptome' in request.form:
-            search = request.form.get('search_transcriptome')
-        else:
-            search = False
-        if 'expand_semantic' in request.form:
-            expand = request.form.get('expand_semantic')
-        elif 'expand_transcriptome' in request.form:
-            expand = request.form.get('expand_transcriptome')
-        else:
-            expand = False
+        semantic_transcriptome = 'semantic_transcriptome' in request.form
+        semantic_semantic = 'semantic_semantic' in request.form
+        has_expansion_strategy = 'expansion-strategy' in request.form
+        print('has_expansion_strategy: ', has_expansion_strategy)
+        if 'expansion-strategy' in request.form:
+            expansion_strategy = request.form.get('expansion-strategy')
+            if expansion_strategy == 'semantic_transcriptome':
+                search = 'semantic'
+                expand = 'transcriptome'
+            else:
+                search = 'semantic'
+                expand = 'semantic'
 
         # Keep lines for future use
         if size:
