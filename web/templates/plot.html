@@ -2,26 +2,160 @@
 {% block script %}
 <!-- 
 put your custom script or styling here
-
 -->
 {% endblock script %}
 
 
 {% block my_content %}
 <!-- Sample Visuals -->
-<div class="container-fluid">
-    <div class="row">
-        <div class="col text-center">
-            <!-- Placeholder for Covid Visuals -->
-            <div class="card" style="width: 50%;">
-                <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt="" >
-                <div class="card-body">
-                    <p class="card-text">Setting up a predictive classifier for the most significant genes.</p>
-                </div>
+<div class="content container">
+  <h1 class="mb-5">Bwb Dashboard</h1>
+
+  <ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="parameter-tab" data-toggle="tab" href="#parameter" role="tab"
+        aria-controls="parameter" aria-selected="true">Run</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="visuals-tab" data-toggle="tab" href="#visuals" role="tab" aria-controls="visuals"
+        aria-selected="false">Visuals</a>
+    </li>
+    <!-- <li class="nav-item">
+      <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Visuals</a>
+    </li> -->
+  </ul>
+
+  <div class="tab-content mt-4 mb-4" id="myTabContent">
+    <div class="tab-pane fade show active" id="parameter" role="tabpanel" aria-labelledby="home-tab">
+
+      <section class="container mb-5">
+        <h2 class="text-left mb-3">Select subset sample</h2>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">GSE Datasets</h3>
+            <div class="card-tools">
+              <!-- Buttons, labels, and many other things can be placed here! -->
+              <!-- Here is a label for example -->
+              <span class="badge badge-primary"></span>
             </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body">
+            <form>
+              <div class="form-group">
+
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                  <label class="form-check-label" for="defaultCheck1">
+                    Option
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                  <label class="form-check-label" for="defaultCheck1">
+                    Option
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                  <label class="form-check-label" for="defaultCheck1">
+                    Option
+                  </label>
+                </div>
+
+              </div>
+            </form>
+          </div>
+          <!-- /.card-body -->
+          <!-- <div class="card-footer">
+            </div> -->
+          <!-- /.card-footer -->
         </div>
+        <!-- /.card -->
+      </section>
+
+      <section class="container mb-5">
+        <h2 class="text-left mt-4 mb-3">Upload your data</h2>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Upload a FASTQ file</h3>
+            <div class="card-tools">
+              <!-- Buttons, labels, and many other things can be placed here! -->
+              <!-- Here is a label for example -->
+              <span class="badge badge-primary"></span>
+            </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body">
+            <div class="rounded bg-light d-flex align-items-end mb-3" style="height: 200px; border: 1px dashed black;">
+              <!-- <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="customFile">
+                    <label class="custom-file-label" for="customFile">Choose file</label>
+                  </div> -->
+              <div class="custom-file text-center">
+                <span>Drag your file(s) or </span> <span class="text-primary"><u>Upload</u></span>
+              </div>
+            </div>
+            <p>File types: .fastq</p>
+          </div>
+          <!-- /.card-body -->
+          <!-- <div class="card-footer">
+              </div> -->
+          <!-- /.card-footer -->
+        </div>
+        <!-- /.card -->
+      </section>
+
+      <section class="container mb-5">
+        <h2 class="text-left mt-4 mb-3">Select a Workflow</h2>
+        <div class="card">
+          <div class="card-body">
+            <form>
+              <div class="form-group">
+                <label for="alignment_name">Workflows</label>
+                <select class="form-control" name="alignment_name" id="alignment_name" required="required">
+                  <!-- <option value="GSE">HISAT2</option> -->
+                  <option value="GSE169687">star_salmon_short_yin</option>
+                  <option value="GSE224615">star_salmon_short_ryan</option>
+                  <!-- test: slecting this option will stop bwb -->
+                  <option value="TEST">test</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <!-- /.card-body -->
+          <!-- <div class="card-footer">
+            </div> -->
+          <!-- /.card-footer -->
+        </div>
+        <!-- /.card -->
+      </section>
+
+      <section class="container mb-5">
+        <hr />
+
+        <div class="row justify-content-end">
+          <div class="col">
+            <button type="button" class="btn btn-primary">Run</button>
+            <a class="btn btn-primary {% if not session['bwb_opened'] %} disabled {% endif %}"
+              href="http://127.0.0.1:5000/bwb" target="_blank" rel="noopener noreferrer">
+              <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="" width="15" height="20">
+              Customize
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
 
+    <div class="tab-pane fade" id="visuals" role="tabpanel" aria-labelledby="profile-tab">
+      <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt="">
+      <p>Setting up a predictive classifier for the most significant genes.</p>
     </div>
+  </div>
+
 </div>
+<!-- /.card -->
+
 {% endblock my_content %}

@@ -73,90 +73,51 @@ scratch. This page gets rid of all links and provides the needed markup only.
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
+            <a href="index3.html" class="brand-link">
+                <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="Bwb" class="brand-image img-circle elevation-3"
+                    style="opacity: .8">
+                <span class="brand-text font-weight-light">Bwb Dash</span>
+            </a>
 
             <!-- Sidebar -->
-            <div class="sidebar">
+            <div class="mt-2">
                 <!-- Sidebar user panel (optional) -->
-
+            
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
-                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
-                        data-accordion="false">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
                         <!-- Add icons to the links using the .nav-icon class
-               with font-awesome or any other icon font library -->
-                            <li class="nav-item has-treeview mb-2">
-                                <button class="btn btn-primary disabled" type="button">Reload</button>
-                            </li>
-                    <!-- Altair -->
-                        <li class="nav-item has-treeview menu-open">
-                            <a href="#" class="nav-link">
+                                        with font-awesome or any other icon font library -->
+                        
+                        <li class="nav-item">
+                            <a href="/" class="nav-link {{ 'active' if request.path == '/'  else '' }}">
                                 <i class="nav-icon fas fa-th"></i>
                                 <p>
-                                    Input Parameters
+                                    Dashboard
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item has-treeview menu-open">
+                            <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
+                                <i class="nav-icon fas fa-search"></i>
+                                <p>
+                                    Search
                                     <i class="right fas fa-angle-left"></i>
                                 </p>
                             </a>
                             <ul class="nav nav-treeview">
-                                <li>
-                                <!-- /.Parameter selector -->
-                                <form  method="POST" action="{{url_for('plot_visuals')}}">
-                                    <div class="form-group mt-2 text-light">
-                                        <label for="geo_name">Geo</label>
-                                        <!-- <select class="form-control" name="geo_name" id="geo_name" required="required" style="width:200px">
-                                                
-                                                <option value="GSE169687">GSE169687</option>
-                                                
-                                        </select> -->
-
-                                        <!-- <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gse" name="geo_name" value="GSE169687" />
-                                            <label class="form-check-label" for="gse">GSE169687</label>
-                                            <label for="geo_name">Geo</label>
-                                            <input class="form-control" type="text" name="geo_name" id="gse">
-                                        </div> -->
-                                        {% if gse %}
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gse" name="geo_name" value="GSE169687" />
-                                            <label class="form-check-label" for="gse">{{ gse }}</label>
-                                        </div>
-                                        {% endif %}
-                                        <div class="form-group">
-                                            <input class="form-control" placeholder="Geo ID" type="text" name="geo_name" id="gse" style="width:200px">
-                                            
-                                        </div>
-                                    </div>
-                                    <div class="form-group mt-2 text-light">
-                                        <label for="alignment_name">Workflows</label>
-                                        <select class="form-control" name="alignment_name" id="alignment_name" required="required" style="width:200px">
-                                            <option value="" label="eg. HISAT2 ... " selected="selected">eg. HISAT2 ... </option>
-                                                
-                                                <!-- <option value="GSE">HISAT2</option> -->
-                                                <option value="GSE169687">star_salmon_short_yin</option>
-                                                <option value="GSE224615">star_salmon_short_ryan</option>
-                                                <!-- test: slecting this option will stop bwb -->
-                                                <option value="TEST">test</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group mt-2 text-light">
-                                        <label for="plot_name">Visualization</label>
-                                        <!-- <select class="form-control" name="plot_name" id="plot_name" required="required" style="width:200px">
-                                            <option value="" label="eg. heatmap ... " selected="selected">eg. heatmap ... </option>
-                                                
-                                                <option value="heatmap">heatmap</option>
-                                        </select> -->
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="heatmap" name="geo_name" value="heatmap" />
-                                            <label class="form-check-label" for="heatmap">heatmap</label>
-                                        </div>
-                                    </div>
+                                <li class="nav-item">
+                                    <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Sample Explorer</p>
+                                    </a>
                                 </li>
-                                <li>
-                                    <input  type="submit" value="Update" class="btn btn-primary"></input>
-                                    <a class="btn btn-primary {% if not session['bwb_opened'] %} disabled {% endif %}" href="http://127.0.0.1:5000/bwb" target="_blank" rel="noopener noreferrer">
-                                        <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="" width="15" height="20" >
-                                        Customize</a>
+                                <li class="nav-item">
+                                    <a href="/search-results" class="nav-link {{ 'active' if request.path == '/search-results'  else '' }}">
+                                        <i class="fa fa-table nav-icon"></i>
+                                        <p>Results</p>
+                                    </a>
                                 </li>
-                                </form>
                             </ul>
                         </li>
                     </ul>
@@ -168,19 +129,9 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
         <!-- Content Wrapper. Contains page content -->
         <div class="content-wrapper">
-            <!-- Content Header (Page header) -->
+            <!-- Main content -->
             {% block my_content %}
             {% endblock my_content %}
-            <!-- /.content-header -->
-            <!-- Main content -->
-            <div class="content">
-                <div class="container-fluid">
-                    <div class="row">
-                        <!-- /.col-md-6 -->
-                    </div>
-                    <!-- /.row -->
-                </div><!-- /.container-fluid -->
-            </div>
             <!-- /.content -->
         </div>
         <!-- /.content-wrapper -->

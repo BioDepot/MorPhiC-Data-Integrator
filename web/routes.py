@@ -180,14 +180,16 @@ def search():
 # BioRAG search results
 @app.route("/search-results")
 def search_results():
-    uuid = session.get('uuid')
-    lines = session.get('lines')
+    if 'uuid' in session and 'lines' in session:
+        uuid = session.get('uuid')
+        lines = session.get('lines')
 
-    res = get_data_output(uuid, lines)
-    if not res:
-        return render_template('search_results.html')
+        res = get_data_output(uuid, lines)
+        if not res:
+            return render_template('search_results.html')
 
-    return render_template('search_results.html', data=res)
+        return render_template('search_results.html', data=res)
+    return render_template('search_results.html')
 
 @app.route('/plots/p1.html')
 def get_plot():
