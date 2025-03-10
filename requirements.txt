@@ -8,5 +8,4 @@ Flask>=2.2.2
 plotly==4.9.0
 pyLDAvis==2.1.2
 python-dotenv
-# junix
 requests
