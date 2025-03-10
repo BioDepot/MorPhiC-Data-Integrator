@@ -2,178 +2,206 @@
 
 {% block script %}
 <!-- 
-put your custom script or styling here
-
+Custom script or styling
 -->
-    <script>
-        // Start time to check position
-        function startCheckQueuePosition() {
-            setTimeout(function () {
-                checkQueuePosition();
+<script>
+    // Start time to check position
+    function startCheckQueuePosition() {
+        setTimeout(function () {
+            checkQueuePosition();
 
-                const intervalId = setInterval(async function () {
-                    let queueStatus = await checkQueuePosition();
-                    if (queueStatus) clearInterval(intervalId);
-                }, 5000);
-            }, 1000);
-            setTimeout;
-        }
+            const intervalId = setInterval(async function () {
+                let queueStatus = await checkQueuePosition();
+                if (queueStatus) clearInterval(intervalId);
+            }, 5000);
+        }, 1000);
+        setTimeout;
+    }
 
-        // Make request to check the queue position
-        async function checkQueuePosition() {
-            try {
-                const response = await fetch('/queue_position')
+    // Make request to check the queue position
+    async function checkQueuePosition() {
+        try {
+            const response = await fetch('/queue_position')
 
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`)
-                }
-                result = await response.json();
-
-                if (result && result.status === "complete") {
-                    // redirect to search results on complete
-                    window.location.href = 'search-results';
-                }
-                if (result && result.status.startsWith("in_queue")) {
-                    const queueElement = document.getElementById('queue-position');
-                    queueElement.textContent = result.data.position;
-                }
-                else if (result && result.status.startsWith("value_error")) {
-                    errorMessage = result.data.error;
-
-                    // Create elements for displaying the alert message
-                    let alertDiv = document.createElement('div');
-                    let alertHeading = document.createElement('h4');
-                    let alertDescription = document.createElement('p');
-                    let separatingLine = document.createElement('hr');
-                    let alertSuggestion = document.createElement('p');
-
-                    alertDiv.classList.add('alert', 'alert-danger');
-                    alertHeading.classList.add('alert-heading');
-                    alertSuggestion.classList.add('mb-0');
-
-                    // Add title, error message, and suggestion
-                    alertHeading.textContent = 'Error';
-                    alertDescription.textContent = errorMessage;
-                    alertSuggestion.textContent = 'Please make a new search';
-
-                    // Add all elements to page
-                    alertDiv.appendChild(alertHeading);
-                    alertDiv.appendChild(alertDescription);
-                    alertDiv.appendChild(separatingLine);
-                    alertDiv.appendChild(alertSuggestion);
-
-                    let statusBox = document.getElementById("status-queue");
-                    if (statusBox) {
-                        statusBox.innerHTML = '';
-                        statusBox.appendChild(alertDiv);
-                    }
-
-                    // Stop checking for queue position
-                    return errorMessage;
-                }
-
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`)
             }
-            catch (error) {
-                queueElement.textContent = "error";
-                console.error('Error fetching data:', error);
+            result = await response.json();
+
+            if (result && result.status === "complete") {
+                // redirect to search results on complete
+                window.location.href = 'search-results';
+            }
+            if (result && result.status.startsWith("in_queue")) {
+                const queueElement = document.getElementById('queue-position');
+                queueElement.textContent = result.data.position;
+            }
+            else if (result && result.status.startsWith("value_error")) {
+                errorMessage = result.data.error;
+
+                // Create elements for displaying the alert message
+                let alertDiv = document.createElement('div');
+                let alertHeading = document.createElement('h4');
+                let alertDescription = document.createElement('p');
+                let separatingLine = document.createElement('hr');
+                let alertSuggestion = document.createElement('p');
+
+                alertDiv.classList.add('alert', 'alert-danger');
+                alertHeading.classList.add('alert-heading');
+                alertSuggestion.classList.add('mb-0');
+
+                // Add title, error message, and suggestion
+                alertHeading.textContent = 'Error';
+                alertDescription.textContent = errorMessage;
+                alertSuggestion.textContent = 'Please make a new search';
+
+                // Add all elements to page
+                alertDiv.appendChild(alertHeading);
+                alertDiv.appendChild(alertDescription);
+                alertDiv.appendChild(separatingLine);
+                alertDiv.appendChild(alertSuggestion);
+
+                let statusBox = document.getElementById("status-queue");
+                if (statusBox) {
+                    statusBox.innerHTML = '';
+                    statusBox.appendChild(alertDiv);
+                }
+
+                // Stop checking for queue position
+                return errorMessage;
+            }
+
+        }
+        catch (error) {
+            queueElement.textContent = "error";
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    // Remove validation error message
+    function removeStrategyErrorMessage(e) {
+        queryElement = document.getElementById('query');
+        genesElement = document.getElementById('genes');
+        if (e.value.trim() !== '') {
+            if ((queryElement.value == '' || genesElement.value == '') && queryElement.classList.contains("is-invalid") && genesElement.classList.contains("is-invalid")) {
+                queryElement.classList.remove("is-invalid");
+                genesElement.classList.remove("is-invalid");
+            } else {
+                e.classList.remove("is-invalid");
             }
         }
-    </script>
+    }
+</script>
 {% endblock script %}
 
 
-            {% block my_content %}
-            <!-- /.content-header -->
+{% block my_content %}
+<!-- /.content-header -->
 
-            <!-- Search -->
-            <div class="container">
-                <h1 class="mb-5">Search using Sample Explorer</h1>
+<!-- Search -->
+<div class="container">
+    <h1 class="mb-5">Search using Sample Explorer</h1>
 
-                <!-- Input -->
-                <div class="card mb-5">
-                    <div class="card-body">
-                        <form method="POST" action="{{url_for('search')}}">
+    <!-- Input -->
+    <div class="card mb-5">
+        <div class="card-body">
+            <form method="POST" action="{{url_for('search')}}">
+                {{ form.hidden_tag() }}
 
-                            <div>
-
-                                <fieldset class="form-group">
-                                    <legend>Strategy</legend>
-
-                                    <div class="form-group">
-                                        <label for="question">Question</label>
-                                        <input type="text" name="query" id="query"
-                                            placeholder="This text query usually describes the experiment"
-                                            class="form-control"
-                                            required="true"
-                                            onchange="this.value.trim() !== '' ? document.getElementById('genes').required = false : document.getElementById('genes').required = true">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="genes">Genes</label>
-                                        <p>Paste a set of gene symbols on each row in the
-                                            textbox below.</p>
-                                        <textarea class="form-control" id="genes" name="genes" rows="3"
-                                            onchange="this.value.trim() !== '' ? document.getElementById('query').required = false : document.getElementById('query').required = true"></textarea>
-                                    </div>
-                                </fieldset>
-
-                                <fieldset class="form-group">
-                                    <legend>Optional Parameters</legend>
-
-                                    <select class="form-control" name="expansion-strategy" id="expansion-strategy">
-                                        <option  value="semantic_transcriptome">Semantic/Transcriptome</option>
-                                        <option value="semantic_semantic">Semantic/Semantic</option>
-                                    </select>
-                                </fieldset>
-
-                                <div class="form-group">
-                                    <label id="rangeValLabel" for="formControlRange">View top 20 results</label>
-                                    <input type="range" class="form-control-range" id="formControlRange"
-                                        name="resultSize" min="10" max="50" value="20"
-                                        oninput="document.getElementById('rangeValLabel').innerHTML = 'View top ' + this.value + ' results';">
-                                </div>
-
-                                <div class="form-group">
-                                    <button type="submit" class="btn btn-dark">Query</button>
-                                    {% if success %}
-                                    <div class="alert alert-warning" role="alert">
-                                        Warning: Making a new search will requeue you.
-                                    </div>
-                                    {% endif %}
-                                </div>
-
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Output -->
                 <div>
-                    {% if success %}
-                    <div id="status-queue" class="card" style="width: 50%;">
-                        <h5 class="card-header">Search in queue</h5>
-                        <div class="card-body">
-                            <p class="card-text">
-                                <div class="spinner-border text-info px-1" role="status">
-                                    <span class="sr-only">Loading...</span>
-                                </div>
-                                <strong id="queue-position"></strong>
-                            </p>
+                    <fieldset class="form-group">
+                        <legend>Strategy</legend>
+
+                        <div class="form-group">
+                            <label for="question">Question</label>
+                            {% if form.query.errors %}
+                                {{ form.query(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
+
+                                {% for error in form.query.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.query(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
+                            {% endif %}
                         </div>
-                    </div>
-                    <script>
-                        startCheckQueuePosition();
-                    </script>
-                    {% else %}
-                        {% if result %}
-                        <div class="alert alert-danger" style="width: 50%;">
-                            <h4 class="alert-heading">Error</h4>
-                            <p>{{ result["data"]["error"] }}</p>
+
+                        <div class="form-group">
+                            <label for="genes">Genes</label>
+                            <p>Paste a set of gene symbols on each row in the
+                                textbox below.</p>
+                            <!-- <textarea class="form-control" id="genes" name="genes" rows="3"
+                                onchange="this.value.trim() !== '' ? document.getElementById('query').required = false : document.getElementById('query').required = true"></textarea> -->
+
+                            {% if form.genes.errors %}
+                                {{ form.genes(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
+
+                                {% for error in form.genes.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.genes(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
+                            {% endif %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-group">
+                        <legend>Expansion Strategies</legend>
+
+                        {{ form.expansion_strategy(class="form-control") }}
+                    </fieldset>
+
+                    <fieldset class="form-group">
+                        <legend>Result Size</legend>
+
+                        <label id="rangeValLabel" for="formControlRange">
+                            View top {{ form.size.data }} results
+                        </label>
+                        {{ form.size(class="form-control-range",
+                        oninput="document.getElementById('rangeValLabel').innerHTML = 'View top ' + this.value + '
+                        results';") }}
+                    </fieldset>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-dark">Query</button>
+                        {% if success %}
+                        <div class="alert alert-warning" role="alert">
+                            Warning: Making a new search will requeue you.
                         </div>
                         {% endif %}
-                    {% endif %}
-                </div>
-            </div>
-            <!-- /.content -->
+                    </div>
 
-            {% endblock my_content %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Output -->
+    <div>
+        {% if success %}
+        <div id="status-queue" class="card" style="width: 50%;">
+            <h5 class="card-header">Search in queue</h5>
+            <div class="card-body">
+                <p class="card-text">
+                <div class="spinner-border text-info px-1" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <strong id="queue-position"></strong>
+                </p>
+            </div>
+        </div>
+        <script>
+            startCheckQueuePosition();
+        </script>
+        {% else %}
+        {% if result %}
+        <div class="alert alert-danger" style="width: 50%;">
+            <h4 class="alert-heading">Error</h4>
+            <p>{{ result["data"]["error"] }}</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+<!-- /.content -->
+
+{% endblock my_content %}

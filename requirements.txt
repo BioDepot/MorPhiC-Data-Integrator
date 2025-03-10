@@ -9,3 +9,4 @@ plotly==4.9.0
 pyLDAvis==2.1.2
 python-dotenv
 requests
+Flask-WTF==1.2.2

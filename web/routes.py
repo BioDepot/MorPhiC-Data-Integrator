@@ -4,6 +4,7 @@ import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
+from .forms import SearchForm
 import json
 import requests
 
@@ -122,38 +123,32 @@ def extract_genes(input_genes):
 # BioRAG search
 @app.route("/search", methods=['GET','POST'])
 def search():
-    if request.method == 'POST':
-        # generate uuid
-        session['uuid'] = str(uuid.uuid4())
-        user_uuid = session.get('uuid')
+    form = SearchForm()
+    # generate uuid
+    session['uuid'] = str(uuid.uuid4())
+    user_uuid = session.get('uuid')
 
-        # print("------ Input Parameters ------")
-        # for key, value in request.form.items():
-        #     print(f"{key}: {value}")
-        # print("------- end -------")
-
+    if form.validate_on_submit():
         # user inputs
-        query = request.form.get('query', '').strip()
-        has_query = len(query) > 0
-        genes = request.form.get('genes', '').strip()
-        has_genes = len(genes) > 0
-        size = request.form['resultSize']
+        query = form.query.data
+        genes = form.genes.data
+        expansion_strategy = form.expansion_strategy.data
+        size = form.size.data
+        print("INPUT SIZE:")
+        print(size)
 
-        # optional parameters
-        semantic_transcriptome = 'semantic_transcriptome' in request.form
-        semantic_semantic = 'semantic_semantic' in request.form
-        has_expansion_strategy = 'expansion-strategy' in request.form
-        print('has_expansion_strategy: ', has_expansion_strategy)
-        if 'expansion-strategy' in request.form:
-            expansion_strategy = request.form.get('expansion-strategy')
-            if expansion_strategy == 'semantic_transcriptome':
-                search = 'semantic'
-                expand = 'transcriptome'
-            else:
-                search = 'semantic'
-                expand = 'semantic'
+        # set search and expand from selected expansion strategy
+        if expansion_strategy == 'semantic_transcriptome':
+            search = 'semantic'
+            expand = 'transcriptome'
+        else:
+            search = 'semantic'
+            expand = 'semantic'
 
-        # Keep lines for future use
+        # Check if search query and genes list was inputed
+        has_query = bool(query)
+        has_genes = bool(genes)
+        # Save lines for future use
         if size:
             session['lines'] = int(size)
         # Create a gene set from input genes
@@ -162,20 +157,19 @@ def search():
 
         # make a query
         q_response = query_rag(user_uuid, has_query, query, has_genes, genes, search, expand)
-        print("q_responnse:")
-        print(q_response)
 
         # check for query status
         if "status" in q_response:
             print("status:")
             print(q_response["status"])
         if "status" in q_response and q_response["status"] == "queued":
-            return render_template('search.html', result=q_response, success=True)
+            return render_template('search.html', result=q_response, success=True, form=form)
         if "status" in q_response:
-            return render_template('search.html', result=q_response, success=False)
+            return render_template('search.html', result=q_response, success=False, form=form)
 
-        return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False)
-    return render_template('search.html')
+        # error after attempting to make a request
+        return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
+    return render_template('search.html', form=form)
 
 # BioRAG search results
 @app.route("/search-results")
@@ -238,5 +232,4 @@ def dash_gse(gse):
 @app.route("/plot")
 def plot_plotly_global():
     return render_template('plot.html')
-
 
