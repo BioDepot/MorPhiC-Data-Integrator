@@ -57,3 +57,17 @@ class SearchForm(FlaskForm):
         else:
             return True
 
+
+class BwbForm(FlaskForm):
+    """
+    Form for choosing the ;arameters for Bwb
+    
+    Attributes:
+        workflow (SelectField): A select field for a choice of different workflows available
+    """
+    workflow = SelectField(
+        'alignment_name',
+        choices=[('GSE169687', 'star_salmon_short_yin'), ('GSE224615', 'star_salmon_short_ryan'), ('TEST', 'test')], 
+        default='GSE169687',
+        validators=[DataRequired()]
+    )

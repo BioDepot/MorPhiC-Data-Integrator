@@ -4,7 +4,7 @@ import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
-from .forms import SearchForm
+from .forms import SearchForm, BwbForm
 import json
 import requests
 
@@ -68,7 +68,7 @@ def get_queue():
         return jsonify({'error': 'error getting queue position'}), 500
 
 def get_data_output(uuid, lines):
-    uuid = session.get('uuid')
+    # uuid = session.get('uuid')
     if not uuid or not lines:
         return jsonify({'error: A search with amount of lines is required'}), 400
     
@@ -124,11 +124,12 @@ def extract_genes(input_genes):
 @app.route("/search", methods=['GET','POST'])
 def search():
     form = SearchForm()
-    # generate uuid
-    session['uuid'] = str(uuid.uuid4())
-    user_uuid = session.get('uuid')
 
     if form.validate_on_submit():
+        # generate uuid
+        session['uuid'] = str(uuid.uuid4())
+        user_uuid = session.get('uuid')
+
         # user inputs
         query = form.query.data
         genes = form.genes.data
@@ -192,37 +193,44 @@ def get_plot():
 # for rendering visualization
 @app.route("/view", methods=['POST'])
 def plot_visuals():
-    gse = request.form['geo_name']
+    form = BwbForm()
 
-    workflow = request.form.get('alignment_name')
-    # Stop docker container and delete cidfile
-    cidfile = 'cidfile'
-    if os.path.isfile(cidfile):
-        os.system('docker stop $(cat cidfile)')
-        os.remove(cidfile)
+    if form.validate_on_submit():
 
-    # start  selected  workflow
-    if (workflow == 'GSE224615'):
-        status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
-    elif (workflow == 'GSE169687'):
-        status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_yin/star_salmon_short_yin.ows biodepot/bwb')
-    elif (workflow == 'notebook'):
-        status = 0
-    else:
-        status = -1
+        # gse
 
-    # Check if port has opened
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('localhost', 6080))
-    if result == 0:
-        print("------------ Port is open --------------")
-        session['bwb_opened'] = True
-    else:
-        print("------------- Port is NOT open ---------")
-        session['bwb_opened'] = False
-    sock.close
+        # workflow based on aligment name
+        workflow = form.workflow.data
 
-    return render_template('viz.html', status=status)
+        # Stop docker container and delete cidfile
+        cidfile = 'cidfile'
+        if os.path.isfile(cidfile):
+            os.system('docker stop $(cat cidfile)')
+            os.remove(cidfile)
+
+        # start  selected  workflow
+        if (workflow == 'GSE224615'):
+            status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
+        elif (workflow == 'GSE169687'):
+            status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_yin/star_salmon_short_yin.ows biodepot/bwb')
+        elif (workflow == 'notebook'):
+            status = 0
+        else:
+            status = -1
+
+        # Check if port has opened
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('localhost', 6080))
+        if result == 0:
+            print("------------ Port is open --------------")
+            session['bwb_opened'] = True
+        else:
+            print("------------- Port is NOT open ---------")
+            session['bwb_opened'] = False
+        sock.close
+        
+        return render_template('viz.html', status=status)
+    return render_template('viz.html', status=-1)
 
 @app.route("/dashboard/gse/<gse>")
 def dash_gse(gse):
@@ -231,5 +239,5 @@ def dash_gse(gse):
 @app.route("/")
 @app.route("/plot")
 def plot_plotly_global():
-    return render_template('plot.html')
-
+    form = BwbForm()
+    return render_template('plot.html', form=form)
