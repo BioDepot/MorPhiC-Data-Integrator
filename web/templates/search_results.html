@@ -58,7 +58,7 @@ put your custom script or styling here
       <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item">
           <a class="nav-link active" id="expansion-tab" data-toggle="tab" href="#expansion" role="tab"
-            aria-controls="expansion" aria-selected="true">Revelevant Expansion Studies</a>
+            aria-controls="expansion" aria-selected="true">Relevant Expansion Studies</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" id="samples-tab" data-toggle="tab" href="#samples" role="tab" aria-controls="samples"
@@ -72,6 +72,7 @@ put your custom script or styling here
 
     </div>
     <div class="">
+      <!-- Tab Content: Expansion Studies -->
       <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="expansion" role="tabpanel" aria-labelledby="expansion-tab">
           <table class="table table-striped">
@@ -84,22 +85,29 @@ put your custom script or styling here
                 <th scope="col">gse_id_text</th>
                 <th scope="col">index</th>
                 <th scope="col">similarity score</th>
+                <th scope="col">sample type</th>
               </tr>
             </thead>
             <tbody>
               {% for study in data["data"]["expansion_studies"] %}
               <tr>
-
-                <th scope="row"><a href="{{ url_for('dash_gse', gse=study['gse_id']) }}" target="_blank"
-                    rel="noopener noreferrer">{{ study["gse_id"] }}</a></th>
+                <th scope="row">
+                  <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ study['gse_id'] }}" target="_blank"
+                    rel="noopener noreferrer">
+                    {{ study["gse_id"] }}
+                  </a>
+                </th>
                 <td>{{ study["gse_id_text"] }}</td>
                 <td>{{ study["index"] }}</td>
                 <td>{{ study["similarity_score"] }}</td>
+                <td>{{ study["sample_type"] }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Tab Content: Samples -->
         <div class="tab-pane fade" id="samples" role="tabpanel" aria-labelledby="samples-tab">
           <table class="table table-striped">
             <caption>
@@ -107,27 +115,41 @@ put your custom script or styling here
             </caption>
             <thead>
               <tr>
-                <th scope="col">characteristics_ch1</th>
-                <th scope="col">extract_protocol_ch1</th>
-                <th scope="col">series_id</th>
-                <th scope="col">source_name_ch1</th>
                 <th scope="col">title</th>
+                <th scope="col">source_name_ch1</th>
+                <th scope="col">extract_protocol_ch1</th>
+                <th scope="col">characteristics_ch1</th>
+                <th scope="col">series_id</th>
+                <th scope="col">sample type</th>
               </tr>
             </thead>
             <tbody>
               {% for sample in data["data"]["samples"] %}
               <tr>
-
-                <th scope="row">{{ sample["characteristics_ch1"] }}</th>
-                <td>{{ sample["extract_protocol_ch1"] }}</td>
-                <td>{{ sample["series_id"] }}</td>
+                <th scope="row">{{ sample["title"] }}</th>
                 <td>{{ sample["source_name_ch1"] }}</td>
-                <td>{{ sample["title"] }}</td>
+                <td>{{ sample["extract_protocol_ch1"] }}</td>
+                <td>
+                  <ul>
+                    {% for characteristics in sample["characteristics_ch1"].split(",") %}
+                    <li>{{ characteristics }}</li>
+                    {% endfor %}
+                  </ul>
+                </td>
+                <td>
+                  <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['series_id'] }}" target="_blank"
+                    rel="noopener noreferrer">
+                    {{ sample["series_id"] }}
+                  </a>
+                </td>
+                <td>{{ sample["sample_type"] }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Tab Content: Seed Studies -->
         <div class="tab-pane fade" id="seed" role="tabpanel" aria-labelledby="seed-tab">
           <table class="table table-striped">
             <caption>
@@ -139,15 +161,22 @@ put your custom script or styling here
                 <th scope="col">gse_id_text</th>
                 <th scope="col">similarity_score</th>
                 <th scope="col">similarity_source</th>
+                <th scope="col">sample type</th>
               </tr>
             </thead>
             <tbody>
               {% for sample in data["data"]["seed_studies"] %}
               <tr>
-                <th scope="row">{{ sample["gse_id"] }}</th>
+                <th scope="row">
+                  <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['gse_id'] }}" target="_blank"
+                    rel="noopener noreferrer">
+                    {{ sample["gse_id"] }}
+                  </a>
+                </th>
                 <td>{{ sample["gse_id_text"] }}</td>
                 <td>{{ sample["similarity_score"] }}</td>
                 <td>{{ sample["similarity_source"] }}</td>
+                <td>{{ sample["sample_type"] }}</td>
               </tr>
               {% endfor %}
             </tbody>

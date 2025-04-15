@@ -10,3 +10,4 @@ pyLDAvis==2.1.2
 python-dotenv
 requests
 Flask-WTF==1.2.2
+pysradb==2.2.2

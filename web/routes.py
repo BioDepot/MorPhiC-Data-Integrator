@@ -7,6 +7,7 @@ from web.utils import utils, altair_plot, plotly_plot
 from .forms import SearchForm, BwbForm
 import json
 import requests
+from pysradb import SRAweb
 
 import uuid
 import os
@@ -130,6 +131,10 @@ def search():
         session['uuid'] = str(uuid.uuid4())
         user_uuid = session.get('uuid')
 
+        # remove session key for previous search results
+        if 'gse_sample_type' in session:
+            del session['gse_sample_type']
+
         # user inputs
         query = form.query.data
         genes = form.genes.data
@@ -172,7 +177,37 @@ def search():
         return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
     return render_template('search.html', form=form)
 
-# BioRAG search results
+# Get sample type, Bulk or Single-cell, from pysradb
+def get_gse_sample_type(gse_id):
+    if 'gse_sample_type' not in session:
+        # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk', 'GSE81405,GSE81406': 'Bulk', 'GSE109408': 'Bulk', 'GSE65634': 'Bulk', 'GSE43070': 'Bulk', 'GSE147561': 'Bulk', 'GSE87710,GSE87712': 'Bulk', 'GSE54308': 'Bulk', 'GSE118254,GSE118256': 'Bulk', 'GSE196855,GSE196856': 'Bulk', 'GSE174534': 'Bulk', 'GSE86189': 'Bulk', 'GSE148180,GSE148185': 'Bulk', 'GSE125504': 'Bulk', 'GSE113648': 'Bulk'}
+        session['gse_sample_type'] = {}
+    
+    sample_type = session.get('gse_sample_type').get(gse_id)
+    if sample_type:
+        return sample_type
+    
+    try:
+        db = SRAweb()
+
+        srp_df = db.gse_to_srp(gse_id)
+        # srp_df.to_csv("{}.tsv".format(srp_df), sep="\t", index=False)
+        # srp_df.to_json('srp_study.json')
+        study_accession = srp_df['study_accession'][0]
+        metadata = db.sra_metadata(study_accession, detailed=True)
+
+        contains_bulk = metadata['library_strategy'].str.contains('RNA-Seq').any()
+        if contains_bulk:
+            session['gse_sample_type'][gse_id] = 'Bulk'
+            return 'Bulk'
+        else:
+            session['gse_sample_type'][gse_id] = 'Single-cell'
+            return 'Single-cell'
+    except:
+        print("ERROR: pysradb was unable to get data for gse id")
+        return ''
+
+# Search results
 @app.route("/search-results")
 def search_results():
     if 'uuid' in session and 'lines' in session:
@@ -180,9 +215,23 @@ def search_results():
         lines = session.get('lines')
 
         res = get_data_output(uuid, lines)
-        if not res:
+        if not res or res.get('status') == 'query_not_present':
             return render_template('search_results.html')
 
+        # add sample type to result data
+        for study in res['data']['expansion_studies']:
+            gse_id = study.get('gse_id')
+            if gse_id:
+                study['sample_type'] = get_gse_sample_type(gse_id)
+        for study in res['data']['samples']:
+            gse_id = study.get('series_id')
+            if gse_id:
+                study['sample_type'] = get_gse_sample_type(gse_id)
+        for study in res['data']['seed_studies']:
+            gse_id = study.get('gse_id')
+            if gse_id:
+                study['sample_type'] = get_gse_sample_type(gse_id)
+        
         return render_template('search_results.html', data=res)
     return render_template('search_results.html')
 
