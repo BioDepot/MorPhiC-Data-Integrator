@@ -153,12 +153,11 @@ Custom script or styling
                     <fieldset class="form-group">
                         <legend>Result Size</legend>
 
-                        <label id="rangeValLabel" for="formControlRange">
+                        <label id="rangeValLabel" for="size">
                             View top {{ form.size.data }} results
                         </label>
                         {{ form.size(class="form-control-range",
-                        oninput="document.getElementById('rangeValLabel').innerHTML = 'View top ' + this.value + '
-                        results';") }}
+                        oninput="document.getElementById('rangeValLabel').textContent = 'View top ' + this.value + ' results';") }}
                     </fieldset>
 
                     <div class="form-group">
