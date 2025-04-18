@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField
+from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField, BooleanField
 from wtforms.validators import DataRequired, Regexp
 
 class SearchForm(FlaskForm):
@@ -71,3 +71,30 @@ class BwbForm(FlaskForm):
         default='GSE169687',
         validators=[DataRequired()]
     )
+
+def create_results_table_form(studies_data):
+    """
+    Generate Form for selecting gse id's.
+    
+    This function will take studies data and create a Flask-WTF form with a checkbox input for each gse id.
+    
+    Args:
+        studies_data (list of dict): A list of dictionaries, from the search results of a backend API request, each containing string attributes (e.g., "gse_id", "gse_id_text").
+        
+    Returns:
+        FlaskForm: A dynamically generated Flask-WTF form with BooleanField(s) for each dictionary attribute of the studies_data list.
+
+    Example:
+        studies_data = [{"gse_id": “text”}]
+        form = create_results_table_form(studies_data)
+    """
+    class ResultsTableForm(FlaskForm):
+        # Dynamically create checkboxes for each study
+        pass
+
+    for study in studies_data:
+        gse_id = study["gse_id"]
+        checkbox = BooleanField(gse_id, default=False)
+        setattr(ResultsTableForm, gse_id, checkbox)
+
+    return ResultsTableForm

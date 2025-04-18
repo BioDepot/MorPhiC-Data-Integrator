@@ -29,6 +29,16 @@ put your custom script or styling here
     // Revoke object url after download
     window.URL.revokeObjectURL(url);
   }
+
+  // Submit form when checkboxes are checked/unchecked
+  document.addEventListener("DOMContentLoaded", function() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        this.form.submit();
+      })
+    })
+  })
 </script>
 {% endblock script %}
 
@@ -76,11 +86,14 @@ put your custom script or styling here
       <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="expansion" role="tabpanel" aria-labelledby="expansion-tab">
           <table class="table table-striped">
+            <form action="{{url_for('search_results')}}" method="POST">
+            {{ form.hidden_tag() }}
             <caption>
               Expansion Studies
             </caption>
             <thead>
               <tr>
+                <th scope="col"></th>
                 <th scope="col">gse_id</th>
                 <th scope="col">gse_id_text</th>
                 <th scope="col">index</th>
@@ -91,6 +104,7 @@ put your custom script or styling here
             <tbody>
               {% for study in data["data"]["expansion_studies"] %}
               <tr>
+                <th>{{ form[study["gse_id"]|string] }}</th>
                 <th scope="row">
                   <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ study['gse_id'] }}" target="_blank"
                     rel="noopener noreferrer">
@@ -104,6 +118,7 @@ put your custom script or styling here
               </tr>
               {% endfor %}
             </tbody>
+            </form>
           </table>
         </div>
 

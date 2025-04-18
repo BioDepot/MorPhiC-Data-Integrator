@@ -4,7 +4,7 @@ import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
-from .forms import SearchForm, BwbForm
+from .forms import SearchForm, BwbForm, create_results_table_form
 import json
 import requests
 from pysradb import SRAweb
@@ -208,12 +208,13 @@ def get_gse_sample_type(gse_id):
         return ''
 
 # Search results
-@app.route("/search-results")
+@app.route("/search-results", methods=['GET', 'POST'])
 def search_results():
     if 'uuid' in session and 'lines' in session:
         uuid = session.get('uuid')
         lines = session.get('lines')
 
+        # get search results
         res = get_data_output(uuid, lines)
         if not res or res.get('status') == 'query_not_present':
             return render_template('search_results.html')
@@ -232,7 +233,17 @@ def search_results():
             if gse_id:
                 study['sample_type'] = get_gse_sample_type(gse_id)
         
-        return render_template('search_results.html', data=res)
+        # Use a Form for gse_id's in result data
+        ResultsTableForm = create_results_table_form(res["data"]["expansion_studies"])
+        form = ResultsTableForm()
+
+        if form.validate_on_submit():
+            # list of selected/checked inputs
+            selected_studies = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
+            if selected_studies:
+                session['gse'] = selected_studies
+        
+        return render_template('search_results.html', data=res, form=form)
     return render_template('search_results.html')
 
 @app.route('/plots/p1.html')
