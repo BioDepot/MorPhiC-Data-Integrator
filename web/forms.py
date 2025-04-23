@@ -92,8 +92,7 @@ def create_results_table_form(studies_data):
         # Dynamically create checkboxes for each study
         pass
 
-    for study in studies_data:
-        gse_id = study["gse_id"]
+    for gse_id in studies_data:
         checkbox = BooleanField(gse_id, default=False)
         setattr(ResultsTableForm, gse_id, checkbox)
 

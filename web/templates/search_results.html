@@ -82,12 +82,12 @@ put your custom script or styling here
 
     </div>
     <div class="">
-      <!-- Tab Content: Expansion Studies -->
+      <form action="{{url_for('search_results')}}" method="POST">
+      {{ form.hidden_tag() }}
       <div class="tab-content" id="myTabContent">
+        <!-- Tab Content: Expansion Studies -->
         <div class="tab-pane fade show active" id="expansion" role="tabpanel" aria-labelledby="expansion-tab">
           <table class="table table-striped">
-            <form action="{{url_for('search_results')}}" method="POST">
-            {{ form.hidden_tag() }}
             <caption>
               Expansion Studies
             </caption>
@@ -118,11 +118,10 @@ put your custom script or styling here
               </tr>
               {% endfor %}
             </tbody>
-            </form>
           </table>
         </div>
 
-        <!-- Tab Content: Samples -->
+        <!-- Tab Content: Relevant Samples -->
         <div class="tab-pane fade" id="samples" role="tabpanel" aria-labelledby="samples-tab">
           <table class="table table-striped">
             <caption>
@@ -130,18 +129,26 @@ put your custom script or styling here
             </caption>
             <thead>
               <tr>
+                <th scope="col"></th>
+                <th scope="col">series_id</th>
                 <th scope="col">title</th>
                 <th scope="col">source_name_ch1</th>
                 <th scope="col">extract_protocol_ch1</th>
                 <th scope="col">characteristics_ch1</th>
-                <th scope="col">series_id</th>
                 <th scope="col">sample type</th>
               </tr>
             </thead>
             <tbody>
               {% for sample in data["data"]["samples"] %}
               <tr>
-                <th scope="row">{{ sample["title"] }}</th>
+                <td>{{ form[sample["series_id"]|string] }}</td>
+                <th scope="row">
+                  <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['series_id'] }}" target="_blank"
+                    rel="noopener noreferrer">
+                    {{ sample["series_id"] }}
+                  </a>
+                </th>
+                <td>{{ sample["title"] }}</td>
                 <td>{{ sample["source_name_ch1"] }}</td>
                 <td>{{ sample["extract_protocol_ch1"] }}</td>
                 <td>
@@ -150,12 +157,6 @@ put your custom script or styling here
                     <li>{{ characteristics }}</li>
                     {% endfor %}
                   </ul>
-                </td>
-                <td>
-                  <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['series_id'] }}" target="_blank"
-                    rel="noopener noreferrer">
-                    {{ sample["series_id"] }}
-                  </a>
                 </td>
                 <td>{{ sample["sample_type"] }}</td>
               </tr>
@@ -172,6 +173,7 @@ put your custom script or styling here
             </caption>
             <thead>
               <tr>
+                <th scope="col"></th>
                 <th scope="col">gse_id</th>
                 <th scope="col">gse_id_text</th>
                 <th scope="col">similarity_score</th>
@@ -182,6 +184,7 @@ put your custom script or styling here
             <tbody>
               {% for sample in data["data"]["seed_studies"] %}
               <tr>
+                <td>{{ form[sample["gse_id"]|string] }}</td>
                 <th scope="row">
                   <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['gse_id'] }}" target="_blank"
                     rel="noopener noreferrer">
@@ -198,6 +201,7 @@ put your custom script or styling here
           </table>
         </div>
       </div>
+      </form>
     </div>
     {% endif %}
   </div>

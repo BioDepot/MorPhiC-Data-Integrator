@@ -220,21 +220,25 @@ def search_results():
             return render_template('search_results.html')
 
         # add sample type to result data
+        available_gse_ids = []
         for study in res['data']['expansion_studies']:
             gse_id = study.get('gse_id')
             if gse_id:
                 study['sample_type'] = get_gse_sample_type(gse_id)
+                available_gse_ids.append(gse_id)
         for study in res['data']['samples']:
             gse_id = study.get('series_id')
             if gse_id:
                 study['sample_type'] = get_gse_sample_type(gse_id)
+                available_gse_ids.append(gse_id)
         for study in res['data']['seed_studies']:
             gse_id = study.get('gse_id')
             if gse_id:
                 study['sample_type'] = get_gse_sample_type(gse_id)
-        
+                available_gse_ids.append(gse_id)
+
         # Use a Form for gse_id's in result data
-        ResultsTableForm = create_results_table_form(res["data"]["expansion_studies"])
+        ResultsTableForm = create_results_table_form(available_gse_ids)
         form = ResultsTableForm()
 
         if form.validate_on_submit():
