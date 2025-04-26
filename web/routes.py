@@ -13,6 +13,7 @@ import uuid
 import os
 import socket
 import io
+import time
 
 
 # for bwb page
@@ -177,35 +178,118 @@ def search():
         return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
     return render_template('search.html', form=form)
 
-# Get sample type, Bulk or Single-cell, from pysradb
+# helper function that take a list of studies (dictionary) 
+# and separates each gse_id in the study into its own study
+def split_gse_ids(studies, gse_id_label):
+    updated_studies = []
+    for study in studies:
+        gse_ids = [gse_id.strip() for gse_id in study[gse_id_label].split(',')]
+        if len(gse_ids) > 1:
+            for gse_id in gse_ids:
+                modified_study = study.copy()
+                modified_study[gse_id_label] = gse_id
+                updated_studies.append(modified_study)
+        else:
+            updated_studies.append(study)
+    
+    return updated_studies
+
+# helper function that removes duplicate gse_id's in a study
+def remove_duplicate_gse_ids(studies, gse_id_label):
+    unique_gse_ids = set()
+    updated_studies = []
+    for study in studies:
+        gse_id = study[gse_id_label]
+        if gse_id not in unique_gse_ids:
+            updated_studies.append(study.copy())
+        unique_gse_ids.add(gse_id)
+    return updated_studies
+
+# create new data by spliting listed gse_id's into its own study and removing duplicates
+def reshape_data(data):
+    updated_expansion_studies = split_gse_ids(data['data']['expansion_studies'], 'gse_id')
+    updated_expansion_studies = remove_duplicate_gse_ids(updated_expansion_studies, 'gse_id')
+    data['data']['expansion_studies'] = updated_expansion_studies
+
+    updated_samples = split_gse_ids(data['data']['samples'], 'series_id')
+    data['data']['samples'] = updated_samples
+
+    updated_seed_studies = split_gse_ids(data['data']['seed_studies'], 'gse_id')
+    updated_seed_studies = remove_duplicate_gse_ids(updated_seed_studies, 'gse_id')
+    data['data']['seed_studies'] = updated_seed_studies
+
+    return data
+
+# get a list of unique gse id's
+def get_all_gse_ids(data):
+    all_gse_ids = set()
+    for study in data['data']['expansion_studies']:
+        gse_id = study.get('gse_id')
+        if gse_id:
+            all_gse_ids.add(gse_id)
+    for study in data['data']['samples']:
+        gse_id = study.get('series_id')
+        if gse_id:
+            all_gse_ids.add(gse_id)
+    for study in data['data']['seed_studies']:
+        gse_id = study.get('gse_id')
+        if gse_id:
+            all_gse_ids.add(gse_id)
+    return list(all_gse_ids)
+
+# Get sample type, Bulk or Single-cell, from session
 def get_gse_sample_type(gse_id):
-    if 'gse_sample_type' not in session:
-        # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk', 'GSE81405,GSE81406': 'Bulk', 'GSE109408': 'Bulk', 'GSE65634': 'Bulk', 'GSE43070': 'Bulk', 'GSE147561': 'Bulk', 'GSE87710,GSE87712': 'Bulk', 'GSE54308': 'Bulk', 'GSE118254,GSE118256': 'Bulk', 'GSE196855,GSE196856': 'Bulk', 'GSE174534': 'Bulk', 'GSE86189': 'Bulk', 'GSE148180,GSE148185': 'Bulk', 'GSE125504': 'Bulk', 'GSE113648': 'Bulk'}
-        session['gse_sample_type'] = {}
+    if session.get('gse_sample_type') is None:
+        return ''
     
     sample_type = session.get('gse_sample_type').get(gse_id)
     if sample_type:
         return sample_type
-    
-    try:
-        db = SRAweb()
-
-        srp_df = db.gse_to_srp(gse_id)
-        # srp_df.to_csv("{}.tsv".format(srp_df), sep="\t", index=False)
-        # srp_df.to_json('srp_study.json')
-        study_accession = srp_df['study_accession'][0]
-        metadata = db.sra_metadata(study_accession, detailed=True)
-
-        contains_bulk = metadata['library_strategy'].str.contains('RNA-Seq').any()
-        if contains_bulk:
-            session['gse_sample_type'][gse_id] = 'Bulk'
-            return 'Bulk'
-        else:
-            session['gse_sample_type'][gse_id] = 'Single-cell'
-            return 'Single-cell'
-    except:
-        print("ERROR: pysradb was unable to get data for gse id")
+    else:
         return ''
+
+# fetch metadata using pysradb for a list of gse id's and save results
+def fetch_gse_metadata(gse_list):
+    db = SRAweb()
+
+    # setup saving locations
+    metadata_collection = []
+    if session.get('gse_sample_type') is None:
+        # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk', 'GSE81405,GSE81406': 'Bulk', 'GSE109408': 'Bulk', 'GSE65634': 'Bulk', 'GSE43070': 'Bulk', 'GSE147561': 'Bulk', 'GSE87710,GSE87712': 'Bulk', 'GSE54308': 'Bulk', 'GSE118254,GSE118256': 'Bulk', 'GSE196855,GSE196856': 'Bulk', 'GSE174534': 'Bulk', 'GSE86189': 'Bulk', 'GSE148180,GSE148185': 'Bulk', 'GSE125504': 'Bulk', 'GSE113648': 'Bulk'}
+        session['gse_sample_type'] = {}
+    else:
+        return None
+
+    for gse_id in gse_list:
+        try:
+            db = SRAweb()
+
+            srp_df = db.gse_to_srp(gse_id)
+            study_accession = srp_df['study_accession'][0]
+            metadata = db.sra_metadata(study_accession, detailed=True)
+
+            # track metadata results
+            metadata_subset = metadata[['library_name', 'library_strategy', 'run_accession', 'experiment_desc', 'source_name']]
+            metadata_collection.append(metadata_subset)
+
+            # save strategy to session
+            contains_bulk = metadata['library_strategy'].str.contains('RNA-Seq').any()
+            if contains_bulk:
+                session['gse_sample_type'][gse_id] = 'Bulk'
+            else:
+                session['gse_sample_type'][gse_id] = 'Single-cell'
+        except Exception as e:
+            session['gse_sample_type'][gse_id] = ''
+            error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
+            print(error_message)
+            time.sleep(0.5)
+        time.sleep(0.5)
+
+    # save metadata collection
+    if metadata_collection:
+        metadata_collection = pd.concat(metadata_collection, ignore_index=True)
+        metadata_collection.to_json('metadata_collection.json')
+        metadata_collection.to_csv("metadata_collection.csv", index=False)
 
 # Search results
 @app.route("/search-results", methods=['GET', 'POST'])
@@ -219,8 +303,14 @@ def search_results():
         if not res or res.get('status') == 'query_not_present':
             return render_template('search_results.html')
 
+        # split comma separated gse_ids and remove duplicates
+        res = reshape_data(res)
+
+        # get and save metadata info for gse id's in result data
+        available_gse_ids = get_all_gse_ids(res)
+        fetch_gse_metadata(available_gse_ids)
+
         # add sample type to result data
-        available_gse_ids = []
         for study in res['data']['expansion_studies']:
             gse_id = study.get('gse_id')
             if gse_id:
