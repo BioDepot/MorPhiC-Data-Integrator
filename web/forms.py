@@ -79,13 +79,13 @@ def create_results_table_form(studies_data):
     This function will take studies data and create a Flask-WTF form with a checkbox input for each gse id.
     
     Args:
-        studies_data (list of dict): A list of dictionaries, from the search results of a backend API request, each containing string attributes (e.g., "gse_id", "gse_id_text").
+        studies_data (list of string): A list of gse id's.
         
     Returns:
         FlaskForm: A dynamically generated Flask-WTF form with BooleanField(s) for each dictionary attribute of the studies_data list.
 
     Example:
-        studies_data = [{"gse_id": “text”}]
+        studies_data = ["GSEID", "GSEID2"]
         form = create_results_table_form(studies_data)
     """
     class ResultsTableForm(FlaskForm):
