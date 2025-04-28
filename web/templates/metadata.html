@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block script %}
+<script>
+
+</script>
+{% endblock script %}
+
+{% block my_content %}
+
+<!-- Main content -->
+<div>
+  <!-- {{ table|safe }} -->
+
+  <!-- {% if data %}
+  <pre>{{ data | tojson(indent=2)}}</pre>
+  {% endif %} -->
+
+  <table class="table table-striped">
+    <caption>
+      Metadata
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">run_accession</th>
+        <th scope="col">experiment_desc</th>
+        <th scope="col">library_name</th>
+        <th scope="col">library_strategy</th>
+        <th scope="col">source_name</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data %}
+      <tr>
+        <th scope="row">{{ row["run_accession"] }}</th>
+
+        <td>{{ row["experiment_desc"] }}</td>
+        <td>{{ row["library_name"] }}</td>
+        <td>{{ row["library_strategy"] }}</td>
+        <td>{{ row["source_name"]}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<!-- /.content -->
+
+{% endblock my_content %}

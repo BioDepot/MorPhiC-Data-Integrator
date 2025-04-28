@@ -340,6 +340,16 @@ def search_results():
         return render_template('search_results.html', data=res, form=form)
     return render_template('search_results.html')
 
+@app.route('/metadata', methods=['GET', 'POST'])
+def metadata():
+    # metadata = pd.read_csv('metadata_collection.csv')
+    # table_html = metadata.to_html(classes='table table-striped', index=False)
+    # return render_template('metadata.html', table=table_html)
+
+    metadata_df = pd.read_csv('metadata_collection.csv')
+    metadata = json.loads(metadata_df.to_json(orient='records'))
+    return render_template('metadata.html', data=metadata)
+
 @app.route('/plots/p1.html')
 def get_plot():
     return send_file('./plots/p1.html')
