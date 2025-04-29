@@ -97,3 +97,29 @@ def create_results_table_form(studies_data):
         setattr(ResultsTableForm, gse_id, checkbox)
 
     return ResultsTableForm
+
+def create_srr_form(srr_list):
+    """
+    Generate Form for selecting SRR ID's.
+    
+    This function will take sSRR ID's and create a Flask-WTF form with a checkbox input for each SRR ID.
+    
+    Args:
+        srr_list (set of string): A set of SRR ID's.
+        
+    Returns:
+        FlaskForm: A dynamically generated Flask-WTF form with BooleanField(s) for each string of the provided list.
+
+    Example:
+        studies_data = {"SRRID", "SRRID2"}
+        form = create_srr_form(srr_list)
+    """
+    class SRRForm(FlaskForm):
+        # Dynamically create checkboxes for each study
+        pass
+
+    for srr_id in srr_list:
+        checkbox = BooleanField(srr_id, default=False)
+        setattr(SRRForm, srr_id, checkbox)
+
+    return SRRForm

@@ -4,7 +4,7 @@ import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
-from .forms import SearchForm, BwbForm, create_results_table_form
+from .forms import SearchForm, BwbForm, create_results_table_form, create_srr_form
 import json
 import requests
 from pysradb import SRAweb
@@ -288,8 +288,8 @@ def fetch_gse_metadata(gse_list):
     # save metadata collection
     if metadata_collection:
         metadata_collection = pd.concat(metadata_collection, ignore_index=True)
-        metadata_collection.to_json('metadata_collection.json')
-        metadata_collection.to_csv("metadata_collection.csv", index=False)
+        # metadata_collection.to_json('metadata.json')
+        metadata_collection.to_csv("metadata.csv", index=False)
 
 # Search results
 @app.route("/search-results", methods=['GET', 'POST'])
@@ -342,13 +342,22 @@ def search_results():
 
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
-    # metadata = pd.read_csv('metadata_collection.csv')
-    # table_html = metadata.to_html(classes='table table-striped', index=False)
-    # return render_template('metadata.html', table=table_html)
+    # read saved csv metadata
+    metadata_df = pd.read_csv('metadata.csv')
 
-    metadata_df = pd.read_csv('metadata_collection.csv')
+    # create Form
+    srr_ids = metadata_df['run_accession']
+    SRRForm = create_srr_form(set(srr_ids))
+    form = SRRForm()
+
+    if form.validate_on_submit():
+        # list of selected/checked inputs
+        selected_srr_ids = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
+        if selected_srr_ids:
+            session['srr_ids'] = selected_srr_ids
+
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata)
+    return render_template('metadata.html', data=metadata, form=form)
 
 @app.route('/plots/p1.html')
 def get_plot():
