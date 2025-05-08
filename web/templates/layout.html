@@ -115,7 +115,13 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                 <li class="nav-item">
                                     <a href="/search-results" class="nav-link {{ 'active' if request.path == '/search-results'  else '' }}">
                                         <i class="fa fa-table nav-icon"></i>
-                                        <p>Results</p>
+                                        <p>Search Results</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="/metadata" class="nav-link {{ 'active' if request.path == '/metadata'  else '' }}">
+                                        <i class="fa fa-table nav-icon"></i>
+                                        <p>Metadata</p>
                                     </a>
                                 </li>
                             </ul>

@@ -35,7 +35,7 @@ put your custom script or styling here
           <h2 class="text-left mb-3">Select subset sample</h2>
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">GSE Datasets</h3>
+              <h3 class="card-title">Available SRR ID's</h3>
               <div class="card-tools">
                 <!-- Buttons, labels, and many other things can be placed here! -->
                 <!-- Here is a label for example -->
@@ -45,26 +45,41 @@ put your custom script or styling here
             </div>
             <!-- /.card-header -->
             <div class="card-body">
-              <div class="form-group">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                  <label class="form-check-label" for="defaultCheck1">
-                    Option
-                  </label>
+              {% if 'srr_ids' in session %}
+              {% for group, srr_ids in session.get('srr_ids').items() %}
+              <fieldset class="form-group">
+                <legend>{{ group }}</legend>
+                {% for id in srr_ids %}
+                <div class="form-group">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="{{ id|string }}" id="{{ id|string }}">
+                    <label class="form-check-label" for="{{ id|string }}">
+                      {{ id }}
+                    </label>
+                  </div>
+                  <!-- <div class="form-check">
+                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                      <label class="form-check-label" for="defaultCheck1">
+                        Option
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                      <label class="form-check-label" for="defaultCheck1">
+                        Option
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+                      <label class="form-check-label" for="defaultCheck1">
+                        Option
+                      </label>
+                    </div> -->
                 </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                  <label class="form-check-label" for="defaultCheck1">
-                    Option
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                  <label class="form-check-label" for="defaultCheck1">
-                    Option
-                  </label>
-                </div>
-              </div>
+                {% endfor %}
+              </fieldset>
+              {% endfor %}
+              {% endif %}
             </div>
             <!-- /.card-body -->
             <!-- <div class="card-footer">

@@ -3,7 +3,7 @@
 <script>
   // Submit form when checkboxes are checked/unchecked
   document.addEventListener("DOMContentLoaded", function () {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const checkboxes = document.querySelectorAll('select');
     checkboxes.forEach(checkbox => {
       checkbox.addEventListener('change', function () {
         this.form.submit();
@@ -16,7 +16,38 @@
 {% block my_content %}
 
 <!-- Main content -->
-<div>
+<div class="container">
+  <form action="{{url_for('create_group')}}" method="POST">
+    {{ group_form.hidden_tag() }}
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-secondary mt-3 mb-2" data-toggle="modal" data-target="#groupModal"
+      style="margin-left: 0.75rem;">
+      + New Group
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="groupModalLabel">New Category</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body justify-content-center">
+            {{ group_form.group(class="form-control") }}
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
   <form action="{{url_for('metadata')}}" method="POST">
     {{ form.hidden_tag() }}
     <table class="table table-striped">
@@ -28,20 +59,16 @@
           <th scope="col"></th>
           <th scope="col">run_accession</th>
           <th scope="col">experiment_desc</th>
-          <th scope="col">library_name</th>
-          <th scope="col">library_strategy</th>
           <th scope="col">source_name</th>
         </tr>
       </thead>
       <tbody>
         {% for row in data %}
         <tr>
-          <td>{{ form[row["run_accession"]|string] }}</td>
+          <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
+          
           <th scope="row">{{ row["run_accession"] }}</th>
-
           <td>{{ row["experiment_desc"] }}</td>
-          <td>{{ row["library_name"] }}</td>
-          <td>{{ row["library_strategy"] }}</td>
           <td>{{ row["source_name"]}}</td>
         </tr>
         {% endfor %}

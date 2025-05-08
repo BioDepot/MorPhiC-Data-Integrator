@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField, BooleanField
-from wtforms.validators import DataRequired, Regexp
+from wtforms.validators import DataRequired, Regexp, Optional
 
 class SearchForm(FlaskForm):
     """
@@ -43,7 +43,6 @@ class SearchForm(FlaskForm):
         """
         Custom validation to check that a least a search or a list of genes were provided
         
-        
         Returns:
             bool: True if validation passes, False otherwise
         """
@@ -60,7 +59,7 @@ class SearchForm(FlaskForm):
 
 class BwbForm(FlaskForm):
     """
-    Form for choosing the ;arameters for Bwb
+    Form for choosing the parameters for Bwb
     
     Attributes:
         workflow (SelectField): A select field for a choice of different workflows available
@@ -70,6 +69,19 @@ class BwbForm(FlaskForm):
         choices=[('GSE169687', 'star_salmon_short_yin'), ('GSE224615', 'star_salmon_short_ryan'), ('TEST', 'test')], 
         default='GSE169687',
         validators=[DataRequired()]
+    )
+
+class GroupForm(FlaskForm):
+    """
+    Form for creating a new SRR ID group.
+    
+    Attributes:
+        group (StringField): A text field where the user enters a group name.
+    """
+    group = StringField(
+        'new_group',
+        render_kw={"placeholder": "Add a new group."},
+        validators=[Regexp(r'^[a-zA-Z0-9\s!.,:;?()"&-/\'`]*$', message='Only alphanumeric characters, common punctuation and spaces are allowed')]
     )
 
 def create_results_table_form(studies_data):
@@ -98,28 +110,45 @@ def create_results_table_form(studies_data):
 
     return ResultsTableForm
 
-def create_srr_form(srr_list):
+def create_srr_form(srr_list, groups=None):
     """
     Generate Form for selecting SRR ID's.
     
-    This function will take sSRR ID's and create a Flask-WTF form with a checkbox input for each SRR ID.
+    This function will take SRR ID's and create a Flask-WTF form with a select dropdown containing group options for each SRR ID
     
     Args:
         srr_list (set of string): A set of SRR ID's.
+        groups (set of string): A set of group names.
         
     Returns:
-        FlaskForm: A dynamically generated Flask-WTF form with BooleanField(s) for each string of the provided list.
+        FlaskForm: A dynamically generated Flask-WTF form with SelectField(s) with groups as choices for each SRR ID.
 
     Example:
-        studies_data = {"SRRID", "SRRID2"}
-        form = create_srr_form(srr_list)
+        studies_data= {"SRRID", "SRRID2"}
+        group_names = {"Group1", "Group2"} 
+        form = create_srr_form(srr_list, group_names)
     """
     class SRRForm(FlaskForm):
         # Dynamically create checkboxes for each study
         pass
 
-    for srr_id in srr_list:
-        checkbox = BooleanField(srr_id, default=False)
-        setattr(SRRForm, srr_id, checkbox)
+    if groups:
+        for srr_id in srr_list:
+            select_group = SelectField(
+                srr_id,
+                choices=[('', 'Add to group')] + [(group_name, group_name) for group_name in set(groups)],
+                default='',
+                validators=[Optional()]
+            )
+            setattr(SRRForm, srr_id, select_group)
+    else:
+        for srr_id in srr_list:
+            select_group = SelectField(
+                srr_id,
+                choices=[('', 'Add to group')],
+                default='',
+                validators=[Optional()]
+            )
+            setattr(SRRForm, srr_id, select_group)
 
     return SRRForm

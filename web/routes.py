@@ -4,7 +4,7 @@ import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.utils import utils, altair_plot, plotly_plot
-from .forms import SearchForm, BwbForm, create_results_table_form, create_srr_form
+from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
 import json
 import requests
 from pysradb import SRAweb
@@ -345,19 +345,42 @@ def metadata():
     # read saved csv metadata
     metadata_df = pd.read_csv('metadata.csv')
 
-    # create Form
+    # create Forms
     srr_ids = metadata_df['run_accession']
-    SRRForm = create_srr_form(set(srr_ids))
+    if session.get('srr_groups'):
+        SRRForm = create_srr_form(set(srr_ids), session.get('srr_groups'))
+    else:
+        SRRForm = create_srr_form(set(srr_ids))
     form = SRRForm()
+    select_group_form = GroupForm()
 
     if form.validate_on_submit():
-        # list of selected/checked inputs
-        selected_srr_ids = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
-        if selected_srr_ids:
-            session['srr_ids'] = selected_srr_ids
+        selected_srr_ids = {}
+        for dropdown in form:
+            if dropdown.data and dropdown.type == 'SelectField':
+                group_name = dropdown.data
+                group_srr_id = dropdown.id
+                if group_name not in selected_srr_ids:
+                    selected_srr_ids[group_name] = []
+                selected_srr_ids[group_name].append(group_srr_id)
+        session['srr_ids'] = selected_srr_ids
+        # with open("srr_id_groups.json", "w") as json_file:
+        #     json.dump(selected_srr_ids, json_file, indent=4)
 
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata, form=form)
+    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form)
+
+@app.route('/create-group', methods=['POST'])
+def create_group():
+    form = GroupForm()
+    if form.validate_on_submit():
+        group_name = form.group.data
+        if session.get('srr_groups'):
+            session['srr_groups'].append(group_name)
+            session.modified = True
+        else:
+            session['srr_groups'] = [group_name]
+    return redirect('/metadata')
 
 @app.route('/plots/p1.html')
 def get_plot():
