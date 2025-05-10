@@ -7,6 +7,7 @@ from web.utils import utils, altair_plot, plotly_plot
 from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
 import json
 import requests
+from werkzeug.utils import secure_filename
 from pysradb import SRAweb
 
 import uuid
@@ -15,6 +16,10 @@ import socket
 import io
 import time
 
+UPLOAD_FOLDER = 'uploads'
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # for bwb page
 @app.route("/bwb")
@@ -387,13 +392,20 @@ def get_plot():
     return send_file('./plots/p1.html')
 
 # for rendering visualization
-@app.route("/view", methods=['POST'])
-def plot_visuals():
+@app.route("/run-bwb", methods=['POST'])
+def run_bwb():
     form = BwbForm()
 
     if form.validate_on_submit():
 
         # gse
+
+        # file upload
+        f = form.file.data
+        filename = secure_filename(f.filename)
+        # f.save(os.path.join(
+        #     app.instance_path, UPLOAD_FOLDER, filename
+        # ))
 
         # workflow based on aligment name
         workflow = form.workflow.data
@@ -405,9 +417,9 @@ def plot_visuals():
             os.remove(cidfile)
 
         # start  selected  workflow
-        if (workflow == 'GSE224615'):
+        if (workflow == 'star_salmon_short_ryan'):
             status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
-        elif (workflow == 'GSE169687'):
+        elif (workflow == 'star_salmon_short_yin'):
             status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_yin/star_salmon_short_yin.ows biodepot/bwb')
         elif (workflow == 'notebook'):
             status = 0
@@ -425,15 +437,14 @@ def plot_visuals():
             session['bwb_opened'] = False
         sock.close
         
-        return render_template('viz.html', status=status)
-    return render_template('viz.html', status=-1)
+        return render_template('dash.html', form=form, status=status)
+    return render_template('dash.html', form=form, status=-1)
 
 @app.route("/dashboard/gse/<gse>")
 def dash_gse(gse):
     return render_template('plot.html', gse=gse)
 
 @app.route("/")
-@app.route("/plot")
 def plot_plotly_global():
     form = BwbForm()
-    return render_template('plot.html', form=form)
+    return render_template('dash.html', form=form)

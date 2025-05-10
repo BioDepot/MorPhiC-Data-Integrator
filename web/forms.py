@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField, BooleanField
+from flask_wtf.file import FileField, FileAllowed
 from wtforms.validators import DataRequired, Regexp, Optional
 
 class SearchForm(FlaskForm):
@@ -62,12 +63,14 @@ class BwbForm(FlaskForm):
     Form for choosing the parameters for Bwb
     
     Attributes:
+        file (FileField): A file input field for uploading a file
         workflow (SelectField): A select field for a choice of different workflows available
     """
+    file = FileField('fastq', validators=[Optional(), FileAllowed(['fastq'], 'Only .fastq allowed')])
     workflow = SelectField(
         'alignment_name',
-        choices=[('GSE169687', 'star_salmon_short_yin'), ('GSE224615', 'star_salmon_short_ryan'), ('TEST', 'test')], 
-        default='GSE169687',
+        choices=[('star_salmon_short_yin', 'star_salmon_short_yin'), ('star_salmon_short_ryan', 'star_salmon_short_ryan')], 
+        default='star_salmon_short_yin',
         validators=[DataRequired()]
     )
 

@@ -29,7 +29,7 @@ put your custom script or styling here
   <!-- Tab: Form for Bwb input parameters -->
   <div class="tab-content mt-4 mb-4" id="myTabContent">
     <div class="tab-pane fade show active" id="parameter" role="tabpanel" aria-labelledby="home-tab">
-      <form method="POST" action="{{url_for('plot_visuals')}}">
+      <form method="POST" action="{{url_for('run_bwb')}}" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <section class="container mb-5">
           <h2 class="text-left mb-3">Select subset sample</h2>
@@ -103,17 +103,17 @@ put your custom script or styling here
             </div>
             <!-- /.card-header -->
             <div class="card-body">
-              <div class="rounded bg-light d-flex align-items-end mb-3"
-                style="height: 200px; border: 1px dashed black;">
-                <!-- <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="customFile">
-                    <label class="custom-file-label" for="customFile">Choose file</label>
-                  </div> -->
-                <div class="custom-file text-center">
-                  <span>Drag your file(s) or </span> <span class="text-primary"><u>Upload</u></span>
+              <div class="input-group">
+                <div class="custom-file">
+                  {{ form.file(class="custom-file-input")}}
+                  <label for="file" class="custom-file-label">File types: .fastq</label>
                 </div>
               </div>
-              <p>File types: .fastq</p>
+              {% if form.file.errors %}
+              {% for error in form.file.errors %}
+              <div class="text-danger">{{ error }}</div>
+              {% endfor %}
+              {% endif %}
             </div>
             <!-- /.card-body -->
             <!-- <div class="card-footer">
