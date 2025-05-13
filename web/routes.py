@@ -253,29 +253,19 @@ def get_gse_sample_type(gse_id):
     else:
         return ''
 
-# fetch metadata using pysradb for a list of gse id's and save results
-def fetch_gse_metadata(gse_list):
-    db = SRAweb()
-
-    # setup saving locations
-    metadata_collection = []
+# fetch library strategy using pysradb for a list of gse id's and save results to session
+def fetch_gse_library_strategy(gse_list):
     if session.get('gse_sample_type') is None:
         # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk', 'GSE81405,GSE81406': 'Bulk', 'GSE109408': 'Bulk', 'GSE65634': 'Bulk', 'GSE43070': 'Bulk', 'GSE147561': 'Bulk', 'GSE87710,GSE87712': 'Bulk', 'GSE54308': 'Bulk', 'GSE118254,GSE118256': 'Bulk', 'GSE196855,GSE196856': 'Bulk', 'GSE174534': 'Bulk', 'GSE86189': 'Bulk', 'GSE148180,GSE148185': 'Bulk', 'GSE125504': 'Bulk', 'GSE113648': 'Bulk'}
         session['gse_sample_type'] = {}
-    else:
-        return None
-
+    gse_list = [id for id in gse_list if id not in session.get('gse_sample_type').keys()]
+    
+    db = SRAweb()
     for gse_id in gse_list:
         try:
-            db = SRAweb()
-
             srp_df = db.gse_to_srp(gse_id)
             study_accession = srp_df['study_accession'][0]
-            metadata = db.sra_metadata(study_accession, detailed=True)
-
-            # track metadata results
-            metadata_subset = metadata[['library_name', 'library_strategy', 'run_accession', 'experiment_desc', 'source_name']]
-            metadata_collection.append(metadata_subset)
+            metadata = db.sra_metadata(study_accession, detailed=False)
 
             # save strategy to session
             contains_bulk = metadata['library_strategy'].str.contains('RNA-Seq').any()
@@ -285,6 +275,26 @@ def fetch_gse_metadata(gse_list):
                 session['gse_sample_type'][gse_id] = 'Single-cell'
         except Exception as e:
             session['gse_sample_type'][gse_id] = ''
+            error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
+            print(error_message)
+            time.sleep(0.5)
+        time.sleep(0.5)
+
+# fetch metadata using pysradb for a list of gse id's and save results to csv file
+def fetch_gse_metadata(gse_list):
+    metadata_collection = []
+
+    db = SRAweb()
+    for gse_id in gse_list:
+        try:
+            srp_df = db.gse_to_srp(gse_id)
+            study_accession = srp_df['study_accession'][0]
+            metadata = db.sra_metadata(study_accession, detailed=True)
+
+            # track metadata results
+            metadata_subset = metadata[['run_accession', 'experiment_desc', 'source_name']]
+            metadata_collection.append(metadata_subset)
+        except Exception as e:
             error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
             print(error_message)
             time.sleep(0.5)
@@ -313,7 +323,7 @@ def search_results():
 
         # get and save metadata info for gse id's in result data
         available_gse_ids = get_all_gse_ids(res)
-        fetch_gse_metadata(available_gse_ids)
+        fetch_gse_library_strategy(available_gse_ids)
 
         # add sample type to result data
         for study in res['data']['expansion_studies']:
@@ -340,13 +350,21 @@ def search_results():
             # list of selected/checked inputs
             selected_studies = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
             if selected_studies:
-                session['gse'] = selected_studies
+                session['gse_ids'] = selected_studies
         
         return render_template('search_results.html', data=res, form=form)
     return render_template('search_results.html')
 
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
+    # fetch new metadata
+    gse_ids = session.get('gse_ids')
+    if gse_ids is None:
+        redirect('/search-results')
+    if gse_ids != session.get('prev_gse_ids_metadata'):
+        fetch_gse_metadata(gse_ids)
+        session['prev_gse_ids_metadata'] = gse_ids
+
     # read saved csv metadata
     metadata_df = pd.read_csv('metadata.csv')
 
