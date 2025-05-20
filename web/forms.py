@@ -79,12 +79,24 @@ class GroupForm(FlaskForm):
     Form for creating a new SRR ID group.
     
     Attributes:
-        group (StringField): A text field where the user enters a group name.
+        group_a (StringField): A text field where the user enters a group name.
+        group_b (StringField): A text field where the user enters a group name.
     """
-    group = StringField(
+    group_a = StringField(
         'new_group',
-        render_kw={"placeholder": "Add a new group."},
-        validators=[Regexp(r'^[a-zA-Z0-9\s!.,:;?()"&-/\'`]*$', message='Only alphanumeric characters, common punctuation and spaces are allowed')]
+        render_kw={"placeholder": "Group name."},
+        validators=[
+            DataRequired(),
+            Regexp(r'^[a-zA-Z0-9\s!.,:;?()"&-/\'`]*$', message='Only alphanumeric characters, common punctuation and spaces are allowed')
+        ]
+    )
+    group_b = StringField(
+        'new_group',
+        render_kw={"placeholder": "Group name"},
+        validators=[
+            DataRequired(),
+            Regexp(r'^[a-zA-Z0-9\s!.,:;?()"&-/\'`]*$', message='Only alphanumeric characters, common punctuation and spaces are allowed')
+        ]
     )
 
 def create_results_table_form(studies_data):

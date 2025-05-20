@@ -31,13 +31,20 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header border-0">
-            <h5 class="modal-title" id="groupModalLabel">New Category</h5>
+            <h5 class="modal-title" id="groupModalLabel">New Group</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
           <div class="modal-body justify-content-center">
-            {{ group_form.group(class="form-control") }}
+            <div class="form-group">
+              <label for="group">Group A</label>
+              {{ group_form.group_a(class="form-control") }}
+            </div>
+            <div class="form-group">
+              <label for="group_b">Group B</label>
+              {{ group_form.group_b(class="form-control") }}
+            </div>
           </div>
           <div class="modal-footer border-0">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -66,7 +73,7 @@
         {% for row in data %}
         <tr>
           <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
-          
+
           <th scope="row">{{ row["run_accession"] }}</th>
           <td>{{ row["experiment_desc"] }}</td>
           <td>{{ row["source_name"]}}</td>

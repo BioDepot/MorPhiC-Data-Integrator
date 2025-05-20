@@ -370,12 +370,14 @@ def metadata():
 
     # create Forms
     srr_ids = metadata_df['run_accession']
-    if session.get('srr_groups'):
-        SRRForm = create_srr_form(set(srr_ids), session.get('srr_groups'))
+    srr_groups = session.get('srr_groups')
+    if srr_groups:
+        SRRForm = create_srr_form(set(srr_ids), srr_groups)
+        select_group_form = GroupForm(group_a=srr_groups[0], group_b=srr_groups[1])
     else:
         SRRForm = create_srr_form(set(srr_ids))
+        select_group_form = GroupForm()
     form = SRRForm()
-    select_group_form = GroupForm()
 
     if form.validate_on_submit():
         selected_srr_ids = {}
@@ -397,12 +399,10 @@ def metadata():
 def create_group():
     form = GroupForm()
     if form.validate_on_submit():
-        group_name = form.group.data
-        if session.get('srr_groups'):
-            session['srr_groups'].append(group_name)
-            session.modified = True
-        else:
-            session['srr_groups'] = [group_name]
+        group_a_name = form.group_a.data
+        group_b_name = form.group_b.data
+        session['srr_groups'] = [group_a_name, group_b_name]
+        session.modified = True
     return redirect('/metadata')
 
 @app.route('/plots/p1.html')
