@@ -1,4 +1,10 @@
 */__pycache__/
+.venv/
+.venv/*
+sched_storage
+*.swp
+*/*.swp
+sched_storage/*
 web/__pycache__
 web/utils/__pycache__
 web/.ipynb_checkpoints

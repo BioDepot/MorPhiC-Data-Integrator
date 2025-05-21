@@ -105,16 +105,29 @@ put your custom script or styling here
             <div class="card-body">
               <div class="input-group">
                 <div class="custom-file">
-                  {{ form.file(class="custom-file-input")}}
-                  <label for="file" class="custom-file-label">File types: .fastq</label>
+                  {{ form.file(class="custom-file-input", id="file") }}
+                  <label class="custom-file-label" for="file">File types: .fastq</label>
                 </div>
               </div>
+
               {% if form.file.errors %}
-              {% for error in form.file.errors %}
-              <div class="text-danger">{{ error }}</div>
-              {% endfor %}
+                {% for error in form.file.errors %}
+                  <div class="text-danger">{{ error }}</div>
+                {% endfor %}
               {% endif %}
             </div>
+
+            <!-- Add this JavaScript to update the label -->
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                const fileInput = document.querySelector('.custom-file-input');
+                fileInput.addEventListener('change', function (e) {
+                  const fileName = e.target.files[0] ? e.target.files[0].name : "File types: .fastq";
+                  const label = e.target.nextElementSibling;
+                  label.textContent = fileName;
+                });
+              });
+            </script>
             <!-- /.card-body -->
             <!-- <div class="card-footer">
               </div> -->

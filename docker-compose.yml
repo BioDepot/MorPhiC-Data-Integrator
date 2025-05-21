@@ -1,0 +1,158 @@
+services:
+    bwb-dash:
+        container_name: bwb-dash
+        image: bwb-dashboard
+        build:
+            dockerfile: Dockerfile
+            context: .
+        ports:
+            - 5000:5000
+        networks:
+            - temporal-network
+        volumes:
+            - ${SCHED_STORAGE_DIR}:/data/sched_storage
+
+
+    elasticsearch:
+        container_name: temporal-elasticsearch
+        environment:
+            - cluster.routing.allocation.disk.threshold_enabled=true
+            - cluster.routing.allocation.disk.watermark.low=512mb
+            - cluster.routing.allocation.disk.watermark.high=256mb
+            - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+            - discovery.type=single-node
+            - ES_JAVA_OPTS=-Xms256m -Xmx256m
+            - xpack.security.enabled=false
+        image: elasticsearch:${ELASTICSEARCH_VERSION}
+        networks:
+            - temporal-network
+        expose:
+            - 9200
+        volumes:
+            - /var/lib/elasticsearch/data
+
+    postgresql:
+        container_name: temporal-postgresql
+        environment:
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_DB: temporal
+        image: postgres:${POSTGRESQL_VERSION}
+        networks:
+            - temporal-network
+        ports:
+            - 5432:5432
+
+    temporal:
+        container_name: temporal
+        depends_on:
+            - postgresql
+            - elasticsearch
+        environment:
+            - DB=postgresql
+            - DB_PORT=5432
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PWD=${POSTGRES_PASSWORD}
+            - POSTGRES_SEEDS=postgresql
+            - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+            - ENABLE_ES=true
+            - ES_SEEDS=elasticsearch
+            - ES_VERSION=v7
+        image: temporalio/auto-setup:${TEMPORAL_VERSION}
+        networks:
+            - temporal-network
+        ports:
+            - 7233:7233
+        volumes:
+            - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+        labels:
+            kompose.volume.type: configMap
+
+    temporal-admin-tools:
+        container_name: temporal-admin-tools
+        depends_on:
+            - temporal
+        environment:
+            - TEMPORAL_ADDRESS=temporal:7233
+            - TEMPORAL_CLI_ADDRESS=temporal:7233
+        image: temporalio/admin-tools:${TEMPORAL_VERSION}
+        networks:
+            - temporal-network
+        stdin_open: true
+        tty: true
+
+    temporal-ui:
+        container_name: temporal-ui
+        depends_on:
+            - temporal
+        environment:
+            - TEMPORAL_ADDRESS=temporal:7233
+            - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+        image: temporalio/ui:${TEMPORAL_UI_VERSION}
+        networks:
+            - temporal-network
+        ports:
+            - 8080:8080
+
+    bwb-sched-worker:
+        image: patrickmckeever/bwb-scheduler:0.1
+        container_name: scheduler-worker
+        restart: unless-stopped
+        environment:
+            - MINIO_ENDPOINT_URL=http://minio:9000
+            - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+            - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+            - SCHED_STORAGE_DIR=/data/sched_storage
+            - TEMPORAL_ENDPOINT_URL=temporal:7233
+        depends_on:
+            - temporal
+        command: bash -c "sleep 10 && poetry run python bwb/scheduling_service/worker.py scheduler"
+        networks:
+            - temporal-network
+        privileged: true
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ${SCHED_STORAGE_DIR}:/data/sched_storage
+
+    bwb-regular-worker:
+        image: patrickmckeever/bwb-scheduler:0.1
+        container_name: regular-worker1
+        restart: unless-stopped
+        environment:
+            - MINIO_ENDPOINT_URL=http://minio:9000
+            - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+            - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+            - SCHED_STORAGE_DIR=/data/sched_storage
+            - TEMPORAL_ENDPOINT_URL=temporal:7233
+        depends_on:
+            - temporal
+        command: bash -c "sleep 10 && poetry run python bwb/scheduling_service/worker.py regular --queue worker1 --ram ${WORKER_RAM} --cpu_cores ${WORKER_CPUS} --gpus ${WORKER_GPUS}"
+        networks:
+            - temporal-network
+        privileged: true
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ${SCHED_STORAGE_DIR}:/data/sched_storage
+
+    bwb-scheduler-api:
+        container_name: scheduler-server
+        image: patrickmckeever/bwb-scheduler:0.1
+        environment:
+            - MINIO_ENDPOINT_URL=http://minio:9000
+            - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+            - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+            - SCHED_STORAGE_DIR=/data/sched_storage
+            - TEMPORAL_ENDPOINT_URL=temporal:7233
+        depends_on:
+            - temporal
+        command: poetry run python3 -m uvicorn bwb.scheduling_service.main:app --host=0.0.0.0 --port=8000
+        ports:
+            - 8000:8000
+        networks:
+            - temporal-network
+
+
+networks:
+    temporal-network:
+        driver: bridge
+        name: temporal-network

@@ -17,6 +17,7 @@ import io
 import time
 
 UPLOAD_FOLDER = 'uploads'
+SCHED_STORAGE_DIR = os.path.join("/data/sched_storage")
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -415,12 +416,47 @@ def run_bwb():
     form = BwbForm()
 
     if form.validate_on_submit():
-
-        # gse
-
-        # file upload
         f = form.file.data
         filename = secure_filename(f.filename)
+
+        new_dir = str(uuid.uuid4())
+        f = form.file.data
+        filename = secure_filename(f.filename)
+        fastq_dir = os.path.join(SCHED_STORAGE_DIR, "bulkrna", "singularity_data", new_dir)
+        os.makedirs(fastq_dir)
+        form.file.data.save(os.path.join(fastq_dir, filename))
+
+        with open("bulk_rna_async.json", "r") as f:
+            workflow = json.load(f)
+
+        workflow['nodes'][4]['parameters']['s3downloaddir'] = f'/data/{new_dir}'
+
+        url_start = "http://bwb-scheduler-api:8000/start_workflow"
+        url_add_worker = "http://bwb-scheduler-api:8000/add_worker_to_workflow"
+
+        data = { "workflow_def": workflow }
+        response = requests.post(url_start, json=data)
+        response.raise_for_status()
+
+        workflow_id = response.json().get("workflow_id")
+        if not workflow_id:
+            raise ValueError("Response does not contain 'workflow_id'")
+
+        payload = {"workflow_id": workflow_id,
+                   "worker_queue": "worker1",
+                   # Edit as needed
+                   "worker_cpus": 16,
+                   "worker_gpus": 0,
+                   "worker_mem_mb": 64000}
+        response = requests.post(url_add_worker, json=payload)
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            print(f"Failed request as {response.text}")
+            exit(1)
+
+        return render_template('dash.html', form=form, status=-1)
+
         # f.save(os.path.join(
         #     app.instance_path, UPLOAD_FOLDER, filename
         # ))
