@@ -96,108 +96,116 @@ Custom script or styling
 
 
 {% block my_content %}
-<!-- /.content-header -->
-
-<!-- Search -->
-<div class="container">
-    <h1 class="mb-5">Search using Sample Explorer</h1>
-
-    <!-- Input -->
-    <div class="card mb-5">
-        <div class="card-body">
-            <form method="POST" action="{{url_for('search')}}">
-                {{ form.hidden_tag() }}
-
-                <div>
-                    <fieldset class="form-group">
-                        <legend>Strategy</legend>
-
-                        <div class="form-group">
-                            <label for="question">Question</label>
-                            {% if form.query.errors %}
-                                {{ form.query(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
-
-                                {% for error in form.query.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            {% else %}
-                                {{ form.query(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <label for="genes">Genes</label>
-                            <p>Paste a set of gene symbols on each row in the
-                                textbox below.</p>
-                            <!-- <textarea class="form-control" id="genes" name="genes" rows="3"
-                                onchange="this.value.trim() !== '' ? document.getElementById('query').required = false : document.getElementById('query').required = true"></textarea> -->
-
-                            {% if form.genes.errors %}
-                                {{ form.genes(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
-
-                                {% for error in form.genes.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            {% else %}
-                                {{ form.genes(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
-                            {% endif %}
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="form-group">
-                        <legend>Expansion Strategies</legend>
-
-                        {{ form.expansion_strategy(class="form-control") }}
-                    </fieldset>
-
-                    <fieldset class="form-group">
-                        <legend>Result Size</legend>
-
-                        <label id="rangeValLabel" for="size">
-                            View top {{ form.size.data }} results
-                        </label>
-                        {{ form.size(class="form-control-range",
-                        oninput="document.getElementById('rangeValLabel').textContent = 'View top ' + this.value + ' results';") }}
-                    </fieldset>
-
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-dark">Query</button>
-                        {% if success %}
-                        <div class="alert alert-warning" role="alert">
-                            Warning: Making a new search will requeue you.
-                        </div>
-                        {% endif %}
-                    </div>
-
-                </div>
-            </form>
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1>Search using Sample Explorer</h1>
+            </div>
         </div>
     </div>
+</div>
+<!-- /.content-header -->
+<div class="content" style="max-width: 1400px;">
+    <div class="container-fluid">
+        <!-- SEARCH -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card card-default">
+                    <form method="POST" action="{{url_for('search')}}">
+                        {{ form.hidden_tag() }}
+                        <div class="card-body">
+                            <fieldset class="form-group">
+                                <legend>Strategy</legend>
+        
+                                <div class="form-group">
+                                    <label for="question">Question</label>
+                                    {% if form.query.errors %}
+                                        {{ form.query(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
+        
+                                        {% for error in form.query.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                    {% else %}
+                                        {{ form.query(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
+                                    {% endif %}
+                                </div>
+        
+                                <div class="form-group">
+                                    <label for="genes">Genes</label>
+                                    <p>Paste a set of gene symbols on each row in the
+                                        textbox below.</p>
 
-    <!-- Output -->
-    <div>
-        {% if success %}
-        <div id="status-queue" class="card" style="width: 50%;">
-            <h5 class="card-header">Search in queue</h5>
-            <div class="card-body">
-                <p class="card-text">
-                <div class="spinner-border text-info px-1" role="status">
-                    <span class="sr-only">Loading...</span>
+                                    {% if form.genes.errors %}
+                                        {{ form.genes(class="form-control is-invalid", oninput="removeStrategyErrorMessage(this)") }}
+        
+                                        {% for error in form.genes.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                    {% else %}
+                                        {{ form.genes(class="form-control", oninput="removeStrategyErrorMessage(this)") }}
+                                    {% endif %}
+                                </div>
+                            </fieldset>
+        
+                            <fieldset class="form-group">
+                                <legend>Expansion Strategies</legend>
+        
+                                {{ form.expansion_strategy(class="form-control") }}
+                            </fieldset>
+        
+                            <fieldset class="form-group">
+                                <legend>Result Size</legend>
+        
+                                <label id="rangeValLabel" for="size">
+                                    View top {{ form.size.data }} results
+                                </label>
+                                {{ form.size(class="form-control-range",
+                                oninput="document.getElementById('rangeValLabel').textContent = 'View top ' + this.value + ' results';") }}
+                            </fieldset>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-dark">Query</button>
+                            {% if success %}
+                            <div class="alert alert-warning" role="alert">
+                                Warning: Making a new search will requeue you.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </form>
                 </div>
-                <strong id="queue-position"></strong>
-                </p>
+            </div>
+        </div>
+        <!-- SEARCH STATUS -->
+        {% if success %}
+        <div class="row">
+            <div class="col-12">
+                <div id="status-queue" class="callout callout-info">
+                    <h4>
+                        <span class="spinner-border text-info" role="status" aria-hidden="true"></span>
+                        Search in queue
+                    </h4>
+                    <p>
+                        <strong id="queue-position"></strong>
+                    </p>
+                </div>
             </div>
         </div>
         <script>
             startCheckQueuePosition();
         </script>
-        {% else %}
-        {% if result %}
-        <div class="alert alert-danger" style="width: 50%;">
-            <h4 class="alert-heading">Error</h4>
-            <p>{{ result["data"]["error"] }}</p>
+        {% elif result %}
+        <div class="row">
+            <div class="col-12">
+                <div class="callout callout-danger">
+                    <h4>
+                        <i class="icon fas fa-exclamation-triangle text-danger" aria-hidden="true"></i>
+                        Error
+                    </h4>
+                    <p>{{ result["data"]["error"] }}</p>
+                </div>
+            </div>
         </div>
-        {% endif %}
         {% endif %}
     </div>
 </div>
