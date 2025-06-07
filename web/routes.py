@@ -292,7 +292,7 @@ def fetch_gse_metadata(gse_list):
             metadata = db.sra_metadata(study_accession, detailed=True)
 
             # track metadata results
-            metadata_subset = metadata[['run_accession', 'experiment_desc', 'source_name']]
+            metadata_subset = metadata[['run_accession', 'experiment_desc', 'source_name', 'library_layout']]
             metadata_collection.append(metadata_subset)
         except Exception as e:
             error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
