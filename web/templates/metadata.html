@@ -122,3 +122,20 @@
 </section>
 
 {% endblock my_content %}
+
+{% block body_script %}
+<script>
+  $(document).ready(function () {
+    $('#metadata-table').DataTable({
+      paging: false,
+      layout: {
+        topStart: 'info',
+        bottom: 'paging',
+        bottomStart: null,
+        bottomEnd: null
+      },
+      order: [[1, 'asc']]
+    });
+  });
+</script>
+{% endblock body_script %}

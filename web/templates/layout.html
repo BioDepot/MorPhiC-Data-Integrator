@@ -19,6 +19,8 @@ scratch. This page gets rid of all links and provides the needed markup only.
     <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
     <!-- Google Font: Source Sans Pro -->
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="//cdn.datatables.net/2.3.1/css/dataTables.dataTables.min.css">
 
     <link rel="stlesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/vega-tooltip@0.16.0/vega-tooltip.scss">
     
@@ -157,10 +159,14 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
     <!-- jQuery -->
     <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
+    <!-- DataTables -->
+    <script src="//cdn.datatables.net/2.3.1/js/dataTables.min.js"></script>
     <!-- Bootstrap 4 -->
     <script src="{{ url_for('static', filename='plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <!-- AdminLTE App -->
     <script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
+    {% block body_script %}
+    {% endblock body_script %}
 </body>
 
 </html>
