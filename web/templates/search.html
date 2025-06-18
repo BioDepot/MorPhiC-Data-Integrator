@@ -40,31 +40,32 @@ Custom script or styling
                 errorMessage = result.data.error;
 
                 // Create elements for displaying the alert message
-                let alertDiv = document.createElement('div');
                 let alertHeading = document.createElement('h4');
+                let alertHeadingText = document.createTextNode(' Error');
+                let alertIcon = document.createElement('i');
                 let alertDescription = document.createElement('p');
                 let separatingLine = document.createElement('hr');
                 let alertSuggestion = document.createElement('p');
 
-                alertDiv.classList.add('alert', 'alert-danger');
-                alertHeading.classList.add('alert-heading');
-                alertSuggestion.classList.add('mb-0');
+                alertIcon.className = 'icon fas fa-exclamation-triangle text-danger';
+                alertIcon.setAttribute('aria-hidden', 'true');
 
-                // Add title, error message, and suggestion
-                alertHeading.textContent = 'Error';
+                // Add content: icon, title, error message, and suggestion
+                alertHeading.appendChild(alertIcon);
+                alertHeading.appendChild(alertHeadingText);
                 alertDescription.textContent = errorMessage;
-                alertSuggestion.textContent = 'Please make a new search';
+                alertSuggestion.textContent = 'Please make a new search.';
 
                 // Add all elements to page
-                alertDiv.appendChild(alertHeading);
-                alertDiv.appendChild(alertDescription);
-                alertDiv.appendChild(separatingLine);
-                alertDiv.appendChild(alertSuggestion);
-
                 let statusBox = document.getElementById("status-queue");
                 if (statusBox) {
                     statusBox.innerHTML = '';
-                    statusBox.appendChild(alertDiv);
+                    statusBox.className = 'callout callout-danger';
+                    statusBox.role = 'alert';
+                    statusBox.appendChild(alertHeading);
+                    statusBox.appendChild(alertDescription);
+                    statusBox.appendChild(separatingLine);
+                    statusBox.appendChild(alertSuggestion);
                 }
 
                 // Stop checking for queue position
