@@ -13,6 +13,8 @@ Custom script or styling
             const intervalId = setInterval(async function () {
                 let queueStatus = await checkQueuePosition();
                 if (queueStatus) clearInterval(intervalId);
+                // redirect to search results on complete
+                if (queueStatus === "complete") window.location.href = 'search-results';
             }, 5000);
         }, 1000);
         setTimeout;
@@ -29,8 +31,7 @@ Custom script or styling
             result = await response.json();
 
             if (result && result.status === "complete") {
-                // redirect to search results on complete
-                window.location.href = 'search-results';
+                return "complete";
             }
             if (result && result.status.startsWith("in_queue")) {
                 const queueElement = document.getElementById('queue-position');
