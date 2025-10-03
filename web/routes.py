@@ -1,9 +1,6 @@
-from altair import Chart, X, Y, Axis, Data, DataFormat
 import pandas as pd
-import numpy as np
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
-from web.utils import utils, altair_plot, plotly_plot
 from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
 import json
 import requests
