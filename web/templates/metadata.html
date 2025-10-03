@@ -24,6 +24,7 @@
     </div>
   </div>
 </section>
+{% if data %}
 <!-- CREATE GROUP -->
 <section class="content">
   <div class="container-fluid">
@@ -35,6 +36,10 @@
           <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#groupModal">
             + New Group
           </button>
+          {% if group_names is iterable and group_names|length >= 2 %}
+          <button type="button" class="btn btn-secondary mb-3">{{ group_names[0] }}</button>
+          <button type="button" class="btn btn-secondary mb-3">{{ group_names[1] }}</button>
+          {% endif %}
 
           <!-- Modal -->
           <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel"
@@ -50,11 +55,11 @@
 
                 <div class="modal-body justify-content-center">
                   <div class="form-group">
-                    <label for="group">Group A</label>
+                    <label for="group">Group A <span class="text-danger">*</span></label>
                     {{ group_form.group_a(class="form-control") }}
                   </div>
                   <div class="form-group">
-                    <label for="group_b">Group B</label>
+                    <label for="group_b">Group B <span class="text-danger">*</span></label>
                     {{ group_form.group_b(class="form-control") }}
                   </div>
                 </div>
@@ -120,6 +125,7 @@
     </div>
   </div>
 </section>
+{% endif %}
 
 {% endblock my_content %}
 

@@ -1,17 +1,18 @@
 import pandas as pd
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
+from web.apis.sample_explorer_api import SampleExplorerAPI
+from web.apis import sra_web_api
+from web.utils import utils, sample_explorer_utils
 from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
 import json
 import requests
 from werkzeug.utils import secure_filename
-from pysradb import SRAweb
 
 import uuid
 import os
 import socket
 import io
-import time
 
 UPLOAD_FOLDER = 'uploads'
 
@@ -23,128 +24,49 @@ if not os.path.exists(UPLOAD_FOLDER):
 def homepage():
     return render_template('bwb_page.html')
 
-def query_rag(user_uuid, text_query_used, query, gene_set_used, gene_set, search, expand):
-    # ssgsea = True
-    # “uuid”: “<id_goes_here>”,
-    # “text_query_used”: “True”,  //Should only be True or False
-    # “text_query”: “<text_goes_here>”,
-    # “gene_set_used”: “True”,  //Should only be True or False
-    # “gene_set”: [‘gene1”, “gene2”, … ],  //There should be at least 5
-    # “search”: “<value>”, //Should only be semantic or transcriptome
-    # “expand”: “<value>” //Should only be semantic or transcriptome
-    try:
-        url = 'http://127.0.0.1:5001/query_rag'
-        input_data = {'uuid': user_uuid,
-                    'text_query_used': text_query_used,
-                    'text_query': query,
-                    'gene_set_used': gene_set_used,
-                    'gene_set': gene_set,
-                    'search': search,
-                    'expand': expand}
-        # print(input_data)
-        res = requests.post(url, json=input_data)
-        print('response from server:', res.text)
-
-        return res.json()
-    except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
-
 @app.route('/queue_position', methods=['GET'])
 def get_queue():
     # get user uuid
-    uuid = session.get('uuid')
-
-    if not uuid:
+    user_uuid = session.get('uuid')
+    if not user_uuid:
         return jsonify({'error: search query is required'}), 400
-    
-    # make request to check queue position
-    url = 'http://127.0.0.1:5001/queue_position'
-    input_data = {'uuid': uuid}
-    try:
-        # fetch
-        res = requests.post(url, json=input_data)
-        print('get queue position, response from server:', res.text)
 
-        return jsonify(res.json()), 200
-    except requests.RequestException as e:
-        # failed
-        print(f"Error getting queue position: {e}")
+    response = SampleExplorerAPI().get_queue_position(user_uuid)
+
+    if response:
+        return jsonify(response), 200
+    else:
         return jsonify({'error': 'error getting queue position'}), 500
-
-def get_data_output(uuid, lines):
-    # uuid = session.get('uuid')
-    if not uuid or not lines:
-        return jsonify({'error: A search with amount of lines is required'}), 400
-    
-    url = 'http://127.0.0.1:5001/data_output'
-    input_data = {'uuid': uuid,
-                    'amount_of_lines': int(lines)}
-    try:
-        # fetch
-        res = requests.post(url, json=input_data)
-        print('data_output, response from server:', str(res.text)[:100])
-
-        return res.json()
-    except requests.RequestException as e:
-        # failed
-        print(f"Error getting data output: {e}")
-        return None
 
 @app.route('/download_data', methods=['GET'])
 def get_download_data():
     # retrieve uuid and amount of lines
-    uuid = session.get('uuid')
+    user_uuid = session.get('uuid')
     lines = session.get('lines')
 
-    if not uuid or not lines:
-        return jsonify({'error: A search with amount of lines is required'}), 400
+    if not user_uuid or not lines:
+        return jsonify({'error': 'A search with amount of lines is required'}), 400
 
-    url = 'http://127.0.0.1:5001/file_download'
-    input_data = {'uuid': uuid,
-                    'amount_of_lines': lines}
-    try:
-        # fetch
-        res_file = requests.post(url, json=input_data)
-
-        if res_file.status_code == 400:
-            print(res_file.text)
-            return jsonify({'error': res_file.text}), 400
-        
-        zip_file = io.BytesIO(res_file.content)
-        return send_file(zip_file, as_attachment=True, download_name='search-results.zip', mimetype='application/zip')
-    except requests.RequestException as e:
-        # failed
-        print(f"Error getting data output: {e}")
-        return jsonify({'error': str(e)}), 500
+    response_file = SampleExplorerAPI().get_download_file(user_uuid, lines)
     
-def extract_genes(input_genes):
-    # filter out genes, save and return as a list of genes
-    genes = input_genes.split()
-    genes = [gene.strip() for gene in genes if gene.strip()]
+    if response_file is None:
+        return jsonify({'error': 'Error getting download file'}), 500
+    zip_file = io.BytesIO(response_file.content)
+    return send_file(zip_file, as_attachment=True, download_name='testing-search-results.zip', mimetype='application/zip')
 
-    return genes
-
-# BioRAG search
 @app.route("/search", methods=['GET','POST'])
 def search():
     form = SearchForm()
 
     if form.validate_on_submit():
         # generate uuid
-        session['uuid'] = str(uuid.uuid4())
-        user_uuid = session.get('uuid')
-
-        # remove session key for previous search results
-        if 'gse_sample_type' in session:
-            del session['gse_sample_type']
+        user_uuid = str(uuid.uuid4())
 
         # user inputs
         query = form.query.data
         genes = form.genes.data
         expansion_strategy = form.expansion_strategy.data
         size = form.size.data
-        print("INPUT SIZE:")
-        print(size)
 
         # set search and expand from selected expansion strategy
         if expansion_strategy == 'semantic_transcriptome':
@@ -154,193 +76,78 @@ def search():
             search = 'semantic'
             expand = 'semantic'
 
-        # Check if search query and genes list was inputed
+        # check if search query and genes list is in input
         has_query = bool(query)
         has_genes = bool(genes)
-        # Save lines for future use
-        if size:
-            session['lines'] = int(size)
-        # Create a gene set from input genes
+
+        # create a gene set from input genes
         if genes:
-            genes = extract_genes(genes)
+            genes = utils.format_genes_from_str_to_list(genes)
 
         # make a query
-        q_response = query_rag(user_uuid, has_query, query, has_genes, genes, search, expand)
+        q_response = SampleExplorerAPI().make_query(user_uuid, has_query, query, has_genes, genes, search, expand)
 
-        # check for query status
+        # when successful status
+        if "status" in q_response and q_response["status"] == "queued":
+            # save uuid for future use
+            session['uuid'] = user_uuid
+            # save lines for future use
+            if size:
+                session['lines'] = int(size)
+            # remove session key for previous search results
+            if 'gse_sample_type' in session:
+                del session['gse_sample_type']
+
+            return render_template('search.html', result=q_response, success=True, form=form)
+        # when status is abnormal
         if "status" in q_response:
             print("status:")
             print(q_response["status"])
-        if "status" in q_response and q_response["status"] == "queued":
-            return render_template('search.html', result=q_response, success=True, form=form)
-        if "status" in q_response:
+
             return render_template('search.html', result=q_response, success=False, form=form)
 
         # error after attempting to make a request
         return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
     return render_template('search.html', form=form)
 
-# helper function that take a list of studies (dictionary) 
-# and separates each gse_id in the study into its own study
-def split_gse_ids(studies, gse_id_label):
-    updated_studies = []
-    for study in studies:
-        gse_ids = [gse_id.strip() for gse_id in study[gse_id_label].split(',')]
-        if len(gse_ids) > 1:
-            for gse_id in gse_ids:
-                modified_study = study.copy()
-                modified_study[gse_id_label] = gse_id
-                updated_studies.append(modified_study)
-        else:
-            updated_studies.append(study)
-    
-    return updated_studies
-
-# helper function that removes duplicate gse_id's in a study
-def remove_duplicate_gse_ids(studies, gse_id_label):
-    unique_gse_ids = set()
-    updated_studies = []
-    for study in studies:
-        gse_id = study[gse_id_label]
-        if gse_id not in unique_gse_ids:
-            updated_studies.append(study.copy())
-        unique_gse_ids.add(gse_id)
-    return updated_studies
-
-# create new data by spliting listed gse_id's into its own study and removing duplicates
-def reshape_data(data):
-    updated_expansion_studies = split_gse_ids(data['data']['expansion_studies'], 'gse_id')
-    updated_expansion_studies = remove_duplicate_gse_ids(updated_expansion_studies, 'gse_id')
-    data['data']['expansion_studies'] = updated_expansion_studies
-
-    updated_samples = split_gse_ids(data['data']['samples'], 'series_id')
-    data['data']['samples'] = updated_samples
-
-    updated_seed_studies = split_gse_ids(data['data']['seed_studies'], 'gse_id')
-    updated_seed_studies = remove_duplicate_gse_ids(updated_seed_studies, 'gse_id')
-    data['data']['seed_studies'] = updated_seed_studies
-
-    return data
-
-# get a list of unique gse id's
-def get_all_gse_ids(data):
-    all_gse_ids = set()
-    for study in data['data']['expansion_studies']:
-        gse_id = study.get('gse_id')
-        if gse_id:
-            all_gse_ids.add(gse_id)
-    for study in data['data']['samples']:
-        gse_id = study.get('series_id')
-        if gse_id:
-            all_gse_ids.add(gse_id)
-    for study in data['data']['seed_studies']:
-        gse_id = study.get('gse_id')
-        if gse_id:
-            all_gse_ids.add(gse_id)
-    return list(all_gse_ids)
-
-# Get sample type, Bulk or Single-cell, from session
-def get_gse_sample_type(gse_id):
-    if session.get('gse_sample_type') is None:
-        return ''
-    
-    sample_type = session.get('gse_sample_type').get(gse_id)
-    if sample_type:
-        return sample_type
-    else:
-        return ''
-
-# fetch library strategy using pysradb for a list of gse id's and save results to session
-def fetch_gse_library_strategy(gse_list):
-    if session.get('gse_sample_type') is None:
-        # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk', 'GSE81405,GSE81406': 'Bulk', 'GSE109408': 'Bulk', 'GSE65634': 'Bulk', 'GSE43070': 'Bulk', 'GSE147561': 'Bulk', 'GSE87710,GSE87712': 'Bulk', 'GSE54308': 'Bulk', 'GSE118254,GSE118256': 'Bulk', 'GSE196855,GSE196856': 'Bulk', 'GSE174534': 'Bulk', 'GSE86189': 'Bulk', 'GSE148180,GSE148185': 'Bulk', 'GSE125504': 'Bulk', 'GSE113648': 'Bulk'}
-        session['gse_sample_type'] = {}
-    gse_list = [id for id in gse_list if id not in session.get('gse_sample_type').keys()]
-    
-    db = SRAweb()
-    for gse_id in gse_list:
-        try:
-            srp_df = db.gse_to_srp(gse_id)
-            study_accession = srp_df['study_accession'][0]
-            metadata = db.sra_metadata(study_accession, detailed=False)
-
-            # save strategy to session
-            contains_bulk = metadata['library_strategy'].str.contains('RNA-Seq').any()
-            if contains_bulk:
-                session['gse_sample_type'][gse_id] = 'Bulk'
-            else:
-                session['gse_sample_type'][gse_id] = 'Single-cell'
-        except Exception as e:
-            session['gse_sample_type'][gse_id] = ''
-            error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
-            print(error_message)
-            time.sleep(0.5)
-        time.sleep(0.5)
-
-# fetch metadata using pysradb for a list of gse id's and save results to csv file
-def fetch_gse_metadata(gse_list):
-    metadata_collection = []
-
-    db = SRAweb()
-    for gse_id in gse_list:
-        try:
-            srp_df = db.gse_to_srp(gse_id)
-            study_accession = srp_df['study_accession'][0]
-            metadata = db.sra_metadata(study_accession, detailed=True)
-
-            # track metadata results
-            metadata_subset = metadata[['run_accession', 'experiment_desc', 'source_name', 'library_layout']]
-            metadata_collection.append(metadata_subset)
-        except Exception as e:
-            error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
-            print(error_message)
-            time.sleep(0.5)
-        time.sleep(0.5)
-
-    # save metadata collection
-    if metadata_collection:
-        metadata_collection = pd.concat(metadata_collection, ignore_index=True)
-        # metadata_collection.to_json('metadata.json')
-        metadata_collection.to_csv("metadata.csv", index=False)
-
 # Search results
 @app.route("/search-results", methods=['GET', 'POST'])
 def search_results():
     if 'uuid' in session and 'lines' in session:
-        uuid = session.get('uuid')
+        user_uuid = session.get('uuid')
         lines = session.get('lines')
 
         # get search results
-        res = get_data_output(uuid, lines)
-        if not res or res.get('status') == 'query_not_present':
+        search_results = SampleExplorerAPI().get_data_output(user_uuid, lines)
+        if not search_results:
             return render_template('search_results.html')
 
-        # split comma separated gse_ids and remove duplicates
-        res = reshape_data(res)
+        # split comma separated gse_id's and remove duplicates
+        search_results = sample_explorer_utils.reshape_data(search_results)
 
-        # get and save metadata info for gse id's in result data
-        available_gse_ids = get_all_gse_ids(res)
-        fetch_gse_library_strategy(available_gse_ids)
+        gse_ids_in_search_results = sample_explorer_utils.get_unique_gse_ids(search_results)
+        
+        # retrieve previously saved gse id's with sample types, Bulk or Single-cell, format: {'gse_id': 'sample-type'}
+        if session.get('gse_sample_type') is None:
+            # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk'}
+            session['gse_sample_type'] = {}
+        saved_sample_types = session.get('gse_sample_type', {})
+        
+        # diff: gse id's in search results - saved gse ids with sample types
+        gse_ids_without_sample_types = set(gse_ids_in_search_results) - set(saved_sample_types.keys())
 
-        # add sample type to result data
-        for study in res['data']['expansion_studies']:
-            gse_id = study.get('gse_id')
-            if gse_id:
-                study['sample_type'] = get_gse_sample_type(gse_id)
-                available_gse_ids.append(gse_id)
-        for study in res['data']['samples']:
-            gse_id = study.get('series_id')
-            if gse_id:
-                study['sample_type'] = get_gse_sample_type(gse_id)
-                available_gse_ids.append(gse_id)
-        for study in res['data']['seed_studies']:
-            gse_id = study.get('gse_id')
-            if gse_id:
-                study['sample_type'] = get_gse_sample_type(gse_id)
-                available_gse_ids.append(gse_id)
+        # fetch sample types for new gse id's
+        library_strategies = sra_web_api.get_library_strategy_for_gse_ids(gse_ids_without_sample_types)
+
+        # save sample types: {'gse_id': 'sample-type'}
+        saved_sample_types.update(library_strategies)
+        session['gse_sample_type'] = saved_sample_types
+
+        # add sample type to search results
+        search_results = sample_explorer_utils.add_sample_type_to_studies_data(saved_sample_types, search_results)
 
         # Use a Form for gse_id's in result data
-        ResultsTableForm = create_results_table_form(available_gse_ids)
+        ResultsTableForm = create_results_table_form(gse_ids_in_search_results)
         form = ResultsTableForm()
 
         if form.validate_on_submit():
@@ -349,17 +156,18 @@ def search_results():
             if selected_studies:
                 session['gse_ids'] = selected_studies
         
-        return render_template('search_results.html', data=res, form=form)
+        return render_template('search_results.html', data=search_results, form=form)
     return render_template('search_results.html')
 
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
-    # fetch new metadata
+    # get selected gse id's
     gse_ids = session.get('gse_ids')
     if gse_ids is None:
-        redirect('/search-results')
+        return render_template('metadata.html')
     if gse_ids != session.get('prev_gse_ids_metadata'):
-        fetch_gse_metadata(gse_ids)
+        # fetch metadata for gse_id's
+        sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
         session['prev_gse_ids_metadata'] = gse_ids
 
     # read saved csv metadata
@@ -367,7 +175,7 @@ def metadata():
 
     # create Forms
     srr_ids = metadata_df['run_accession']
-    srr_groups = session.get('srr_groups')
+    srr_groups = session.get('srr_groups') # ["group_name_a", "group_name_b"]
     if srr_groups:
         SRRForm = create_srr_form(set(srr_ids), srr_groups)
         select_group_form = GroupForm(group_a=srr_groups[0], group_b=srr_groups[1])
@@ -390,7 +198,7 @@ def metadata():
         #     json.dump(selected_srr_ids, json_file, indent=4)
 
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form)
+    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form, group_names=srr_groups)
 
 @app.route('/create-group', methods=['POST'])
 def create_group():
@@ -401,10 +209,6 @@ def create_group():
         session['srr_groups'] = [group_a_name, group_b_name]
         session.modified = True
     return redirect('/metadata')
-
-@app.route('/plots/p1.html')
-def get_plot():
-    return send_file('./plots/p1.html')
 
 # for rendering visualization
 @app.route("/run-bwb", methods=['POST'])
@@ -454,10 +258,6 @@ def run_bwb():
         
         return render_template('dash.html', form=form, status=status)
     return render_template('dash.html', form=form, status=-1)
-
-@app.route("/dashboard/gse/<gse>")
-def dash_gse(gse):
-    return render_template('plot.html', gse=gse)
 
 @app.route("/")
 def plot_plotly_global():
