@@ -75,7 +75,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
-            <a href="index3.html" class="brand-link">
+            <a href="/" class="brand-link">
                 <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="Bwb" class="brand-image img-circle elevation-3"
                     style="opacity: .8">
                 <span class="brand-text font-weight-light">Bwb Dash</span>
@@ -92,41 +92,28 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                         with font-awesome or any other icon font library -->
                         
                         <li class="nav-item">
-                            <a href="/" class="nav-link {{ 'active' if request.path == '/'  else '' }}">
-                                <i class="nav-icon fas fa-th"></i>
-                                <p>
-                                    Dashboard
-                                </p>
-                            </a>
-                        </li>
-                        <li class="nav-item has-treeview menu-open">
                             <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
                                 <i class="nav-icon fas fa-search"></i>
-                                <p>
-                                    Search
-                                    <i class="right fas fa-angle-left"></i>
-                                </p>
+                                <p>Search</p>
                             </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Sample Explorer</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="/search-results" class="nav-link {{ 'active' if request.path == '/search-results'  else '' }}">
-                                        <i class="fa fa-table nav-icon"></i>
-                                        <p>Search Results</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="/metadata" class="nav-link {{ 'active' if request.path == '/metadata'  else '' }}">
-                                        <i class="fa fa-table nav-icon"></i>
-                                        <p>Metadata</p>
-                                    </a>
-                                </li>
-                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/search-results" class="nav-link {{ 'active' if request.path == '/search-results'  else '' }}">
+                                <i class="fa fa-table nav-icon"></i>
+                                <p>Search Results</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/metadata" class="nav-link {{ 'active' if request.path == '/metadata'  else '' }}">
+                                <i class="fa fa-table nav-icon"></i>
+                                <p>Metadata</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/" class="nav-link {{ 'active' if request.path == '/'  else '' }}" role="menuitem">
+                                <i class="nav-icon fas fa-cogs"></i>
+                                <p>Run Workflows</p>
+                            </a>
                         </li>
                     </ul>
                 </nav>
