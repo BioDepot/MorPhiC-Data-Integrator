@@ -19,6 +19,10 @@ UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+@app.route("/")
+def landing():
+    return render_template('landing.html')
+
 # for bwb page
 @app.route("/bwb")
 def homepage():
@@ -259,7 +263,8 @@ def run_bwb():
         return render_template('dash.html', form=form, status=status)
     return render_template('dash.html', form=form, status=-1)
 
-@app.route("/")
-def plot_plotly_global():
+@app.route("/visualize")
+@app.route("/dash")
+def dash():
     form = BwbForm()
     return render_template('dash.html', form=form)

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>Bwb Dashboard</title>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='plugins/fontawesome-free/css/all.min.css') }}">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        .nav-link:focus,
+        .nav-link:hover {
+            text-decoration: underline;
+            text-underline-offset: 8px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, #074484, #3c8dbc 115%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        .timeline img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            min-width: 400px;
+            min-height: 208px;
+        }
+    </style>
+</head>
+
+<body class="layout-top-nav" style="height: auto;">
+    <div class="wrapper">
+
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand-md navbar-light navbar-white">
+            <div class="container">
+                <a href="/" class="navbar-brand">
+                    <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="Bwb logo"
+                        class="brand-image img-circle elevation-3" style="opacity: .8">
+                    <span class="brand-text font-weight-light">Bwb Dash</span>
+                </a>
+
+                <button class="navbar-toggler order-1 collapsed" type="button" data-toggle="collapse"
+                    data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon" aria-hidden="true"></span>
+                </button>
+
+                <div class="navbar-collapse order-3 collapse justify-content-end" id="navbarCollapse">
+                    <!-- Left navbar links -->
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link text-dark">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link text-dark">Tutorials</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- /.container -->
+        </nav>
+        <!-- /.navbar -->
+
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-wrapper" style="min-height: 155px;">
+            <!-- Main content -->
+            <div class="content">
+                <div class="container py-5">
+                    <!-- Hero -->
+                    <div class="row py-5">
+                        <div class="col-md-9 text-center mx-auto pb-3">
+                            <h1 class="display-4 font-weight-bold mb-3 gradient-text">
+                                Integrated transcriptomics data analysis using language models
+                            </h1>
+                            <p class="lead">
+                                This interactive dashboard makes it easy to perform integrated analysis across
+                                multiple
+                                transcriptomics datasets. Users can create an integrated compendium dataset across
+                                studies,
+                                uniformly process and analyze the integrated dataset, visualize and interpret the
+                                results.
+                                Specifically, users can create an integrated compendium data across the following
+                                options:
+                            </p>
+                            <a href="/search" class="btn btn-lg text-white" style="background-color: #217aae;">Start Now</a>
+                        </div>
+                        <!-- /.col -->
+                    </div>
+                    <!-- /.row -->
+                    <!-- END Hero -->
+
+                    <!-- Feature Highlights -->
+                    <div class="row justify-content-around">
+                        <div class="col-12 p-4 text-center">
+                            <h2 class="lead text-bold grad">Create an integrated compendium data across the following
+                                options</h2>
+                        </div>
+
+                        <div class="col-3 py-1 px-4 card card-navy card-outline">
+                            <div class="card-header border-0 pl-0 pr-0 pb-2">
+                                <div style="display: flex; justify-content: center;">
+                                    <i class="fa fa-search fa-2x text-navy" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <p class="text-center">
+                                <b>Search</b> for publicly available transcriptomics datasets from GEO via text and/or
+                                gene set
+                                queries leveraging language models.
+                            </p>
+                        </div>
+
+                        <div class="col-3 py-1 px-4 card card-navy card-outline">
+                            <div class="card-header border-0 pl-0 pr-0 pb-2">
+                                <div style="display: flex; justify-content: center;">
+                                    <i class="fas fa-cogs fa-2x text-navy"></i>
+                                </div>
+                            </div>
+                            <p class="text-center">
+                                <b>Integrate</b> external datasets with datasets from the NHGRI MorPhiC consortium.
+                            </p>
+                        </div>
+
+                        <div class="col-3 py-1 px-4 card card-navy card-outline">
+                            <div class="card-header border-0 pl-0 pr-0 pb-2">
+                                <div style="display: flex; justify-content: center;">
+                                    <i class="fas fa-upload fa-2x text-navy"></i>
+                                </div>
+                            </div>
+                            <p class="text-center">
+                                <b>Upload</b> your own private data.
+                            </p>
+                        </div>
+                    </div>
+                    <!-- /.row -->
+                    <!-- END Feature Highlights -->
+
+                    <!-- User Journey -->
+                    <section class="my-5">
+                        <h2 class="display-4 font-weight-bold py-5 text-center">Here is a typical user journey:</h2>
+
+                        <!-- Timeline -->
+                        <div class="timeline">
+                            <!-- Timeline item section -->
+                            <div>
+                                <!-- Before each timeline item corresponds to one icon on the left scale -->
+                                <i class="fa fa-search" style="background-color: #074484; color: white;"></i>
+                                <!-- Timeline item -->
+                                <div class="timeline-item">
+                                    <!-- Time -->
+                                    <!-- Header. Optional -->
+                                    <!-- Body -->
+                                    <div class="timeline-body">
+                                        <div class="row justify-content-around">
+                                            <div class="col-5">
+                                                <img src="" alt="" style="background-color: #aed3f4;">
+                                            </div>
+                                            <!-- /.col -->
+                                            <div class="col-6 d-flex flex-column justify-content-center">
+                                                <h2>Identify</h2>
+                                                <p>Search for publicly available transcriptomics datasets from GEO
+                                                    via text and/or gene
+                                                    set
+                                                    queries leveraging language models.</p>
+                                            </div>
+                                            <!-- /.col -->
+                                        </div>
+                                    </div>
+                                    <!-- /.timeline-body -->
+                                    <!-- Placement of additional controls. Optional -->
+                                </div>
+                            </div>
+
+                            <!-- Timeline item section -->
+                            <div>
+                                <!-- Before each timeline item corresponds to one icon on the left scale -->
+                                <i class="fas fa-cogs" style="background-color: #846507; color: white;"></i>
+                                <!-- Timeline item -->
+                                <div class="timeline-item">
+                                    <!-- Time -->
+                                    <!-- Header. Optional -->
+                                    <!-- Body -->
+                                    <div class="timeline-body">
+                                        <div class="row justify-content-around">
+                                            <div class="col-5">
+                                                <img src="" alt="" style="background-color: #fad48b;">
+                                            </div>
+                                            <!-- /.col -->
+                                            <div class="col-6 d-flex flex-column justify-content-center">
+                                                <h2>Analyze</h2>
+                                                <p>
+                                                    Uniformly process and analyze data
+                                                </p>
+                                            </div>
+                                            <!-- .col -->
+                                        </div>
+                                    </div>
+                                    <!-- .timeline-body -->
+                                    <!-- Placement of additional controls. Optional -->
+                                </div>
+                            </div>
+
+                            <!-- Timeline item section -->
+                            <div>
+                                <!-- Before each timeline item corresponds to one icon on the left scale -->
+                                <i class="fas fa-chart-bar" style="background-color: #07844f; color: white;"></i>
+                                <!-- Timeline item -->
+                                <div class="timeline-item">
+                                    <!-- Time -->
+                                    <!-- Header. Optional -->
+                                    <!-- Body -->
+                                    <div class="timeline-body">
+                                        <div class="row justify-content-around">
+                                            <div class="col-5">
+                                                <img src="" alt="" style="background-color: #e1e0ab;">
+                                            </div>
+                                            <div class="col-6 d-flex flex-column justify-content-center">
+                                                <h2>Visualize</h2>
+                                                <p>Visualize and interpret results</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Placement of additional controls. Optional -->
+                                </div>
+                            </div>
+                            <!-- The last icon means the story is complete -->
+                        </div>
+                        <!-- /.timeline -->
+
+                        <div class="text-center">
+                            <a href="/search" class="btn btn-dark text-white">Go to dashboard <i class="fas fa-arrow-right pl-2"
+                                    aria-hidden="true"></i></a>
+                        </div>
+
+                    </section>
+                    <!-- END User Journey -->
+                </div>
+                <!-- /.container -->
+            </div>
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+
+        <!-- Main Footer -->
+        <footer class="main-footer text-center">
+            <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" height="16" width="16"
+                alt="Bwb logo" class="brand-image" style="opacity: .8">
+            <p class="d-inline">Bwb Dashboard</p>
+        </footer>
+
+    </div>
+    <!-- ./wrapper -->
+
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{{ url_for('static', filename='plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- AdminLTE App -->
+    <script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
+</body>
+
+</html>
