@@ -201,8 +201,30 @@ put your custom script or styling here
 
     <!-- Tab: Visuals -->
     <div class="tab-pane fade" id="visuals" role="tabpanel" aria-labelledby="profile-tab">
-      <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt="">
-      <p>Setting up a predictive classifier for the most significant genes.</p>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card card-primary card-outline">
+            <div class="card-body">
+              <div style="height: 300px; padding: 0px; position: relative;">
+                <img class="card-img-top" src="{{ url_for('static', filename='images/image.png') }}" alt="" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: auto; height: 300px;" width="904" height="600">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card card-primary card-outline">
+            <div class="card-body">
+              <div style="height: 300px; padding: 0px; position: relative;">
+                <img class="card-img-top" src="{{ url_for('static', filename='images/image2.png') }}" alt="" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: auto; height: 300px;" width="904" height="600">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt=""> -->
+      <!-- <p>Setting up a predictive classifier for the most significant genes.</p> -->
     </div>
   </div>
 
