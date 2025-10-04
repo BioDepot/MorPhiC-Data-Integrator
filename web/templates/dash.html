@@ -3,13 +3,50 @@
 <!-- 
 put your custom script or styling here
 -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Update file label when file has been uploaded
+    const fileInputs = document.querySelectorAll('.custom-file-input');
+
+    function handleFileInputChange(event) {
+      const fileName = event.target.files[0] ? event.target.files[0].name : "File types: .fastq";
+      const label = event.target.nextElementSibling;
+      label.textContent = fileName;
+    };
+
+    fileInputs.forEach(input => {
+      input.addEventListener('change', handleFileInputChange)
+    });
+
+
+    // Toggle file inputs for paired-end or single-end
+    function toggleFileInputs() {
+      const readType = document.getElementById("read_type");
+      const pairedFields = document.getElementById("paired-field");
+      const singleField = document.getElementById("single-field");
+
+      if (readType.value == "paired") {
+        pairedFields.style.display = "block";
+        singleField.style.display = "none";
+      } else {
+        pairedFields.style.display = "none";
+        singleField.style.display = "block";
+      }
+    }
+
+    const readTypeInput = document.getElementById("read_type")
+    readTypeInput.addEventListener('change', toggleFileInputs)
+  })
+</script>
 {% endblock script %}
 
 
 {% block my_content %}
 <!-- Sample Visuals -->
 <div class="content container">
-  <h1 class="mb-5">Bwb Dashboard</h1>
+  <h1 class="pt-3">Run workflows using Bwb</h1>
+
+  <p class="card-text mb-5">Customize input parameters or analytical modules in the Biodepot platform.</p>
 
   <!-- Navigation Tabs -->
   <ul class="nav nav-tabs" id="myTab" role="tablist">
@@ -21,9 +58,6 @@ put your custom script or styling here
       <a class="nav-link" id="visuals-tab" data-toggle="tab" href="#visuals" role="tab" aria-controls="visuals"
         aria-selected="false">Visuals</a>
     </li>
-    <!-- <li class="nav-item">
-      <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Visuals</a>
-    </li> -->
   </ul>
 
   <!-- Tab: Form for Bwb input parameters -->
@@ -57,24 +91,6 @@ put your custom script or styling here
                       {{ id }}
                     </label>
                   </div>
-                  <!-- <div class="form-check">
-                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                      <label class="form-check-label" for="defaultCheck1">
-                        Option
-                      </label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                      <label class="form-check-label" for="defaultCheck1">
-                        Option
-                      </label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-                      <label class="form-check-label" for="defaultCheck1">
-                        Option
-                      </label>
-                    </div> -->
                 </div>
                 {% endfor %}
               </fieldset>
@@ -82,9 +98,6 @@ put your custom script or styling here
               {% endif %}
             </div>
             <!-- /.card-body -->
-            <!-- <div class="card-footer">
-            </div> -->
-            <!-- /.card-footer -->
           </div>
           <!-- /.card -->
         </section>
@@ -103,22 +116,53 @@ put your custom script or styling here
             </div>
             <!-- /.card-header -->
             <div class="card-body">
-              <div class="input-group">
-                <div class="custom-file">
-                  {{ form.file(class="custom-file-input")}}
-                  <label for="file" class="custom-file-label">File types: .fastq</label>
+              <div class="form-group">
+                <label for="{{ form.read_type.id }}">Read type</label>
+                {{ form.read_type(class="form-control") }}
+              </div>
+
+              <div id="single-field" {% if form.read_type.data == 'paired' %} style="display: none;"{% endif %}>
+                <div class="form-group">
+                  <label for="{{ form.file.id }}">file upload</label>
+                  <div class="input-group mb-3">
+                    <div class="custom-file">
+                      {{ form.file(class="custom-file-input") }}
+                      <label class="custom-file-label" for="{{ form.file.id }}" aria-describedby="{{ form.file.id }}">File types: .fastq</label>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {% if form.file.errors %}
+
+              <div id="paired-field" {% if form.read_type.data == 'single' %} style="display: none;"{% endif %}>
+                <div class="form-group">
+                  <label for="{{ form.file.id }}">R1 file upload</label>
+                  <div class="input-group mb-3">
+                    <div class="custom-file">
+                      {{ form.file(class="custom-file-input") }}
+                      <label class="custom-file-label" for="{{ form.file.id }}" aria-describedby="{{ form.file.id }}">File types: .fastq</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="{{ form.file_r2.id }}">R2 file upload</label>
+                  <div class="input-group mb-3">
+                    <div class="custom-file">
+                      {{ form.file_r2(class="custom-file-input") }}
+                      <label class="custom-file-label" for="{{ form.file_r2.id }}" aria-describedby="{{ form.file_r2.id }}">File types: .fastq</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {% for error in form.file.errors %}
-              <div class="text-danger">{{ error }}</div>
+                <div id="file-error" class="text-danger">File 1: {{ error }}</div>
               {% endfor %}
-              {% endif %}
+              {% for error in form.file_r2.errors %}
+                <div id="file-r2-error" class="text-danger">File 2: {{ error }}</div>
+              {% endfor %}
+
             </div>
             <!-- /.card-body -->
-            <!-- <div class="card-footer">
-              </div> -->
-            <!-- /.card-footer -->
           </div>
           <!-- /.card -->
         </section>
@@ -133,9 +177,6 @@ put your custom script or styling here
               </div>
             </div>
             <!-- /.card-body -->
-            <!-- <div class="card-footer">
-            </div> -->
-            <!-- /.card-footer -->
           </div>
           <!-- /.card -->
         </section>

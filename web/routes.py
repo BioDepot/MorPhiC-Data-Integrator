@@ -221,50 +221,29 @@ def run_bwb():
 
     if form.validate_on_submit():
 
-        # gse
+        # selected srr id's: {'group_name': ['srr_id',]}
+        srr_ids = session.get('srr_ids')
+
+        # Read type
+        read_type = form.read_type.data
 
         # file upload
         f = form.file.data
-        filename = secure_filename(f.filename)
-        # f.save(os.path.join(
-        #     app.instance_path, UPLOAD_FOLDER, filename
-        # ))
+        if f:
+            filename1 = secure_filename(f.filename)
+        f_r2 = form.file_r2.data
+        if f_r2:
+            filename2 = secure_filename(f_r2.filename)
 
         # workflow based on aligment name
         workflow = form.workflow.data
-
-        # Stop docker container and delete cidfile
-        cidfile = 'cidfile'
-        if os.path.isfile(cidfile):
-            os.system('docker stop $(cat cidfile)')
-            os.remove(cidfile)
-
-        # start  selected  workflow
-        if (workflow == 'star_salmon_short_ryan'):
-            status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_ryan/star_salmon_short_ryan.ows biodepot/bwb')
-        elif (workflow == 'star_salmon_short_yin'):
-            status = os.system('docker run --rm -d  --init --cidfile=cidfile -p 6080:6080 -v ${PWD}:/data -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/.X11-unix:/tmp/.X11-unix --privileged --group-add root -e STARTING_WORKFLOW=/data/star_salmon_short_yin/star_salmon_short_yin.ows biodepot/bwb')
-        elif (workflow == 'notebook'):
-            status = 0
-        else:
-            status = -1
-
-        # Check if port has opened
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex(('localhost', 6080))
-        if result == 0:
-            print("------------ Port is open --------------")
-            session['bwb_opened'] = True
-        else:
-            print("------------- Port is NOT open ---------")
-            session['bwb_opened'] = False
-        sock.close
         
-        return render_template('dash.html', form=form, status=status)
+        # return redirect(url_for('dash'))
+        return render_template('dash.html', form=form, status=1)
     return render_template('dash.html', form=form, status=-1)
 
-@app.route("/visualize")
 @app.route("/dash")
+@app.route("/visualize")
 def dash():
     form = BwbForm()
     return render_template('dash.html', form=form)

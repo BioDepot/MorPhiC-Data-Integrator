@@ -64,15 +64,39 @@ class BwbForm(FlaskForm):
     
     Attributes:
         file (FileField): A file input field for uploading a file
+        file_r2 (FileField): A file input field for uploading a file
         workflow (SelectField): A select field for a choice of different workflows available
     """
     file = FileField('fastq', validators=[Optional(), FileAllowed(['fastq'], 'Only .fastq allowed')])
+    file_r2 = FileField('fastq', validators=[Optional(), FileAllowed(['fastq'], 'Only .fastq allowed')])
+    read_type = SelectField(
+        'read_type',
+        choices=[('single', 'Single-end'), ('paired', 'Paired-end')],
+        default='single',
+        validators=[Optional()]
+    )
     workflow = SelectField(
         'alignment_name',
         choices=[('star_salmon_short_yin', 'star_salmon_short_yin'), ('star_salmon_short_ryan', 'star_salmon_short_ryan')], 
         default='star_salmon_short_yin',
         validators=[DataRequired()]
     )
+
+    def validate(self, extra_validators = None):
+        """
+        Custom validation to check that when read type is 'paired' there are two files uploaded
+        
+        Returns:
+            bool: True if validation passes, False otherwise
+        """
+        if super().validate(extra_validators):
+            if self.read_type.data == 'paired' and (not self.file_r2.data or not self.file.data):
+                self.file_r2.errors.append('Must upload both files for paired end')
+                return False
+            else:
+                return True
+        else:
+            return True
 
 class GroupForm(FlaskForm):
     """
