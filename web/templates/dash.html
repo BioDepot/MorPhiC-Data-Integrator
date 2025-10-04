@@ -66,10 +66,13 @@ put your custom script or styling here
       <form method="POST" action="{{url_for('run_bwb')}}" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <section class="container mb-5">
-          <h2 class="text-left mb-3">Select subset sample</h2>
+          <h2 class="text-left mb-3">Selected subset samples</h2>
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Available SRR ID's</h3>
+              <h3 class="card-title">
+                SRR ID's 
+                {% if 'srr_ids' in session %} <small><a href="/metadata" class="ml-2">Edit</a></small> {% endif %}
+              </h3>
               <div class="card-tools">
                 <!-- Buttons, labels, and many other things can be placed here! -->
                 <!-- Here is a label for example -->
@@ -80,21 +83,12 @@ put your custom script or styling here
             <!-- /.card-header -->
             <div class="card-body">
               {% if 'srr_ids' in session %}
-              {% for group, srr_ids in session.get('srr_ids').items() %}
-              <fieldset class="form-group">
-                <legend>{{ group }}</legend>
-                {% for id in srr_ids %}
-                <div class="form-group">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="{{ id|string }}" id="{{ id|string }}">
-                    <label class="form-check-label" for="{{ id|string }}">
-                      {{ id }}
-                    </label>
-                  </div>
-                </div>
-                {% endfor %}
-              </fieldset>
-              {% endfor %}
+                <dl>
+                  {% for group, srr_ids in session.get('srr_ids').items() %}
+                    <dt>{{ group | string }}</dt>
+                    <dd class="border px-3 py-1">{{ srr_ids | join(', ') }}</dd>
+                  {% endfor %}
+                </dl>
               {% endif %}
             </div>
             <!-- /.card-body -->
