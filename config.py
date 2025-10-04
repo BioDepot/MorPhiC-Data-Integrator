@@ -20,3 +20,5 @@ class Config:
     COMPRESSOR_DEBUG = environ.get('COMPRESSOR_DEBUG')
     # Flask-WTF
     WTF_CSRF_ENABLED = True
+    # Testing
+    TESTING = False

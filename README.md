@@ -40,3 +40,14 @@ In the project root directory:
     ```shell
     $ flask run
     ```
+
+## Testing
+Run all Tests:
+```
+PYTHONPATH=. pytest
+```
+
+Run specific tests like unit tests:
+```
+PYTHONPATH=. pytest -m unit
+```
