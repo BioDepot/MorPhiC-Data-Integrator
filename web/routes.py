@@ -14,7 +14,9 @@ import os
 import socket
 import io
 
-UPLOAD_FOLDER = 'uploads'
+BWB_SCHED_DIR='/home/patrick/SCHED_STORAGE'
+STORAGE_ID='storageID'
+UPLOAD_FOLDER = os.path.join(BWB_SCHED_DIR, STORAGE_ID)
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -218,9 +220,10 @@ def create_group():
 @app.route("/run-bwb", methods=['POST'])
 def run_bwb():
     form = BwbForm()
+    randStr = str(uuid.uuid4())
+    os.makedirs(os.path.join(UPLOAD_FOLDER, randStr))
 
     if form.validate_on_submit():
-
         # selected srr id's: {'group_name': ['srr_id',]}
         srr_ids = session.get('srr_ids')
 
@@ -231,14 +234,19 @@ def run_bwb():
         f = form.file.data
         if f:
             filename1 = secure_filename(f.filename)
+            filepath1 = os.path.join(UPLOAD_FOLDER, randStr, filename1)
+            f.save(filepath1)
         f_r2 = form.file_r2.data
         if f_r2:
             filename2 = secure_filename(f_r2.filename)
+            filepath2 = os.path.join(UPLOAD_FOLDER, randStr, filename2)
+            f.save(filepath2)
 
         # workflow based on aligment name
-        workflow = form.workflow.data
-        
-        # return redirect(url_for('dash'))
+        cmd = f"docker run -v /var/run/docker.sock:/var/run/docker.sock -v \"$(pwd)\":/wfs -v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} -e BWB_SCHED_DIR={BWB_SCHED_DIR} patrickmckeever/bwb-scheduler:latest bwbSched run --docker --noTemporal -v --storageId {STORAGE_ID} -p Start.fastqDir=/data/{randStr} /wfs/bulkrna_async.json"
+        print(cmd)
+        os.system(cmd)
+
         return render_template('dash.html', form=form, status=1)
     return render_template('dash.html', form=form, status=-1)
 
