@@ -1,15 +1,13 @@
 {% extends "layout.html" %}
 {% block script %}
-<!-- 
-put your custom script or styling here
--->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Update file label when file has been uploaded
     const fileInputs = document.querySelectorAll('.custom-file-input');
 
     function handleFileInputChange(event) {
-      const fileName = event.target.files[0] ? event.target.files[0].name : "File types: .fastq";
+      const fileName = event.target.files[0] ?
+        event.target.files[0].name :
+        "File types: .fastq";
       const label = event.target.nextElementSibling;
       label.textContent = fileName;
     };
@@ -18,8 +16,6 @@ put your custom script or styling here
       input.addEventListener('change', handleFileInputChange)
     });
 
-
-    // Toggle file inputs for paired-end or single-end
     function toggleFileInputs() {
       const readType = document.getElementById("read_type");
       const pairedFields = document.getElementById("paired-field");
@@ -36,7 +32,62 @@ put your custom script or styling here
 
     const readTypeInput = document.getElementById("read_type")
     readTypeInput.addEventListener('change', toggleFileInputs)
-  })
+
+    const jobId = "{{ job_id | default('') }}";
+    const statusBox = document.getElementById("job-status-box");
+    const statusText = document.getElementById("job-status-text");
+    const queuePosText = document.getElementById("job-queue-position");
+    const resultBox = document.getElementById("job-result");
+    const cancelBtn = document.getElementById("cancel-job-btn");
+
+    if (jobId) {
+      statusBox.style.display = "block";
+
+      function updateStatus() {
+        fetch(`/job-status/${jobId}`)
+          .then(r => r.json())
+          .then(data => {
+            statusText.textContent = data.status || "unknown";
+
+            if (data.queue_position !== null) {
+              queuePosText.textContent = `Position in queue: ${data.queue_position}`;
+            } else {
+              queuePosText.textContent = "";
+            }
+
+            if (data.status === "done" || data.status === "error") {
+              resultBox.textContent = data.result || "";
+              cancelBtn.style.display = "none";
+            }
+
+            if (data.status === "running" || data.status === "queued") {
+              cancelBtn.style.display = "inline-block";
+            }
+
+            if (data.status === "canceled") {
+              queuePosText.textContent = "";
+              resultBox.textContent = "Job was canceled.";
+              cancelBtn.style.display = "none";
+            }
+          })
+          .catch(err => {
+            statusText.textContent = "Error fetching status";
+          });
+      }
+
+      updateStatus();
+      setInterval(updateStatus, 2000);
+
+      cancelBtn.addEventListener("click", function () {
+        fetch(`/cancel-job/${jobId}`, { method: "POST" })
+          .then(r => r.json())
+          .then(data => {
+            // Refresh immediately after cancellation
+            updateStatus();
+          });
+      });
+    }
+  });
 </script>
 {% endblock script %}
 
@@ -45,6 +96,21 @@ put your custom script or styling here
 <!-- Sample Visuals -->
 <div class="content container">
   <h1 class="pt-3">Run workflows using Bwb</h1>
+	<div id="job-status-box"
+	   class="alert alert-info mt-3"
+	   style="display: none;">
+		<h4>Job Status</h4>
+		<p id="job-status-text">Checking...</p>
+		<p id="job-queue-position"></p>
+		<pre id="job-result"
+		     style="white-space: pre-wrap; background: #f8f9fa; padding: 8px;"></pre>
+	
+		<button id="cancel-job-btn"
+		        class="btn btn-danger mt-2"
+		        style="display: none;">
+		  Cancel Job
+		</button>
+	</div>
 
   <p class="card-text mb-5">Customize input parameters or analytical modules in the Biodepot platform.</p>
 

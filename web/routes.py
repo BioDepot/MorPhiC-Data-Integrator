@@ -21,6 +21,78 @@ UPLOAD_FOLDER = os.path.join(BWB_SCHED_DIR, STORAGE_ID)
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+class JobManager:
+    def __init__(self):
+        self.queue = queue.Queue()
+        self.current_job = None
+        self.lock = threading.Lock()
+        self.jobs = {}
+        self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
+        self.worker_thread.start()
+
+    def submit(self, cmd):
+        job_id = str(uuid.uuid4())
+        job_info = {
+            "id": job_id,
+            "cmd": cmd,
+            "status": "queued",
+            "result": None,
+            "start_time": None,
+            "end_time": None,
+        }
+        with self.lock:
+            self.jobs[job_id] = job_info
+        self.queue.put(job_id)
+        return job_id
+
+    def worker_loop(self):
+        while True:
+            job_id = self.queue.get()
+            with self.lock:
+                job = self.jobs[job_id]
+                self.current_job = job_id
+                job["status"] = "running"
+                job["start_time"] = time.time()
+
+            try:
+                proc = subprocess.run(job["cmd"], shell=True, capture_output=True)
+                with self.lock:
+                    job["status"] = "done" if proc.returncode == 0 else "error"
+                    job["result"] = proc.stdout.decode() if proc.stdout else ""
+            except Exception as e:
+                with self.lock:
+                    job["status"] = "error"
+                    job["result"] = str(e)
+            finally:
+                with self.lock:
+                    job["end_time"] = time.time()
+                    self.current_job = None
+
+            time.sleep(0.25)
+
+    def get_status(self, job_id):
+        with self.lock:
+            if job_id not in self.jobs:
+                return {"error": "job not found"}
+
+            job = self.jobs[job_id]
+
+            # compute queue position
+            if job["status"] == "queued":
+                ids_in_queue = list(self.queue.queue)
+                position = ids_in_queue.index(job_id) + 1 if job_id in ids_in_queue else None
+            else:
+                position = None
+
+            return {
+                "id": job_id,
+                "status": job["status"],
+                "queue_position": position,
+                "result": job["result"] if job["status"] in ("done", "error") else None,
+            }
+
+JOB_MANAGER = JobManager()
+
 @app.route("/")
 def landing():
     return render_template('landing.html')
@@ -216,6 +288,27 @@ def create_group():
         session.modified = True
     return redirect('/metadata')
 
+@app.route("/cancel-job/<job_id>", methods=["POST"])
+def cancel_job(job_id):
+    with JOB_MANAGER.lock:
+        job = JOB_MANAGER.jobs.get(job_id)
+        if not job:
+            return jsonify({"error": "not found"}), 404
+        if job["status"] != "queued":
+            return jsonify({"error": "cannot cancel"}), 400
+
+        try:
+            JOB_MANAGER.queue.queue.remove(job_id)
+            job["status"] = "canceled"
+        except ValueError:
+            return jsonify({"error": "was not in queue"}), 400
+
+    return jsonify({"status": "canceled"})
+
+@app.route("/job-status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    return jsonify(JOB_MANAGER.get_status(job_id))
+
 # for rendering visualization
 @app.route("/run-bwb", methods=['POST'])
 def run_bwb():
@@ -223,32 +316,38 @@ def run_bwb():
     randStr = str(uuid.uuid4())
     os.makedirs(os.path.join(UPLOAD_FOLDER, randStr))
 
-    if form.validate_on_submit():
-        # selected srr id's: {'group_name': ['srr_id',]}
-        srr_ids = session.get('srr_ids')
+    if not form.validate_on_submit():
+        return render_template('dash.html', form=form, status=-1)
 
-        # Read type
-        read_type = form.read_type.data
+    srr_ids = session.get('srr_ids')
+    read_type = form.read_type.data
+    f = form.file.data
+    if f:
+        filename1 = secure_filename(f.filename)
+        filepath1 = os.path.join(UPLOAD_FOLDER, randStr, filename1)
+        f.save(filepath1)
 
-        # file upload
-        f = form.file.data
-        if f:
-            filename1 = secure_filename(f.filename)
-            filepath1 = os.path.join(UPLOAD_FOLDER, randStr, filename1)
-            f.save(filepath1)
-        f_r2 = form.file_r2.data
-        if f_r2:
-            filename2 = secure_filename(f_r2.filename)
-            filepath2 = os.path.join(UPLOAD_FOLDER, randStr, filename2)
-            f.save(filepath2)
+    f_r2 = form.file_r2.data
+    if f_r2:
+        filename2 = secure_filename(f_r2.filename)
+        filepath2 = os.path.join(UPLOAD_FOLDER, randStr, filename2)
+        f_r2.save(filepath2)
 
-        # workflow based on aligment name
-        cmd = f"docker run -v /var/run/docker.sock:/var/run/docker.sock -v \"$(pwd)\":/wfs -v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} -e BWB_SCHED_DIR={BWB_SCHED_DIR} patrickmckeever/bwb-scheduler:latest bwbSched run --docker --noTemporal -v --storageId {STORAGE_ID} -p Start.fastqDir=/data/{randStr} /wfs/bulkrna_async.json"
-        print(cmd)
-        os.system(cmd)
+    cmd = (
+        f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+        f"-v \"$(pwd)\":/wfs "
+        f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+        f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+        f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+        f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+        f"-p Start.fastqDir=/data/{randStr} "
+        f"/wfs/bulkrna_async.json"
+    )
 
-        return render_template('dash.html', form=form, status=1)
-    return render_template('dash.html', form=form, status=-1)
+    # submit job to queue
+    job_id = JOB_MANAGER.submit(cmd)
+
+    return render_template('dash.html', form=form, status=1, job_id=job_id)
 
 @app.route("/dash")
 @app.route("/visualize")
