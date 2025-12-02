@@ -1,3 +1,8 @@
+import queue
+import signal
+import time
+import subprocess
+import threading
 import pandas as pd
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
@@ -26,7 +31,7 @@ class JobManager:
         self.queue = queue.Queue()
         self.current_job = None
         self.lock = threading.Lock()
-        self.jobs = {}
+        self.jobs = {}          # job_id -> job info
         self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
         self.worker_thread.start()
 
@@ -39,6 +44,7 @@ class JobManager:
             "result": None,
             "start_time": None,
             "end_time": None,
+            "container_name": job_id  # container will use job_id as name
         }
         with self.lock:
             self.jobs[job_id] = job_info
@@ -48,42 +54,81 @@ class JobManager:
     def worker_loop(self):
         while True:
             job_id = self.queue.get()
+
             with self.lock:
                 job = self.jobs[job_id]
-                self.current_job = job_id
                 job["status"] = "running"
                 job["start_time"] = time.time()
+                self.current_job = job_id
+
+            # modify cmd to include --name
+            cmd_with_name = job["cmd"].replace("docker run", f"docker run --name {job_id}")
 
             try:
-                proc = subprocess.run(job["cmd"], shell=True, capture_output=True)
+                proc = subprocess.Popen(
+                    cmd_with_name,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+
                 with self.lock:
-                    job["status"] = "done" if proc.returncode == 0 else "error"
-                    job["result"] = proc.stdout.decode() if proc.stdout else ""
+                    job["proc"] = proc  # store process if needed
+
+                stdout, stderr = proc.communicate()
+
+                with self.lock:
+                    if job["status"] == "canceled":
+                        job["result"] = "Job was canceled."
+                    elif proc.returncode == 0:
+                        job["status"] = "done"
+                        job["result"] = stdout.decode()
+                    else:
+                        job["status"] = f"error: {stderr.decode()}"
+
             except Exception as e:
                 with self.lock:
                     job["status"] = "error"
                     job["result"] = str(e)
+
             finally:
                 with self.lock:
                     job["end_time"] = time.time()
                     self.current_job = None
+                    job.pop("proc", None)
 
-            time.sleep(0.25)
+            time.sleep(0.1)
+
+    def cancel_running_job(self, job_id):
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if not job:
+                return False, "not found"
+            if job["status"] != "running":
+                return False, "not running"
+            job["status"] = "canceled"
+
+        # kill docker container by name
+        try:
+            subprocess.run(
+                ["docker", "kill", job["container_name"]],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True, "killed"
+        except subprocess.CalledProcessError as e:
+            return False, f"docker kill failed: {e.stderr.decode()}"
 
     def get_status(self, job_id):
         with self.lock:
             if job_id not in self.jobs:
                 return {"error": "job not found"}
-
             job = self.jobs[job_id]
-
-            # compute queue position
+            position = None
             if job["status"] == "queued":
                 ids_in_queue = list(self.queue.queue)
                 position = ids_in_queue.index(job_id) + 1 if job_id in ids_in_queue else None
-            else:
-                position = None
-
             return {
                 "id": job_id,
                 "status": job["status"],
@@ -294,16 +339,20 @@ def cancel_job(job_id):
         job = JOB_MANAGER.jobs.get(job_id)
         if not job:
             return jsonify({"error": "not found"}), 404
-        if job["status"] != "queued":
-            return jsonify({"error": "cannot cancel"}), 400
 
+    if job["status"] == "queued":
         try:
             JOB_MANAGER.queue.queue.remove(job_id)
             job["status"] = "canceled"
+            return jsonify({"status": "canceled"})
         except ValueError:
-            return jsonify({"error": "was not in queue"}), 400
+            pass
 
-    return jsonify({"status": "canceled"})
+    ok, msg = JOB_MANAGER.cancel_running_job(job_id)
+    if ok:
+        return jsonify({"status": "killed"})
+    else:
+        return jsonify({"error": msg}), 400
 
 @app.route("/job-status/<job_id>", methods=["GET"])
 def job_status(job_id):

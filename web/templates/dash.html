@@ -1,5 +1,8 @@
 {% extends "layout.html" %}
 {% block script %}
+<head>
+	<meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const fileInputs = document.querySelectorAll('.custom-file-input');
@@ -79,7 +82,14 @@
       setInterval(updateStatus, 2000);
 
       cancelBtn.addEventListener("click", function () {
-        fetch(`/cancel-job/${jobId}`, { method: "POST" })
+		const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        fetch(`/cancel-job/${jobId}`, { 
+			    method: "POST",
+				headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+		   })
           .then(r => r.json())
           .then(data => {
             // Refresh immediately after cancellation
