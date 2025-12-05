@@ -2433,6 +2433,7 @@
 			"Title": "gatherCounts",
 			"Command": [
                 "find _bwb{countsDirs} -name \"*.sf\" -print -quit | grep -q . || (echo \"No quant.sf found\" && exit 1)",
+				"mkdir -p _bwb{tablesDir}",
 				"makeCountsMatrix.sh "
 			],
 			"ArgTypes": {
