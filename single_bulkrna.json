@@ -2429,7 +2429,7 @@
 		"9": {
 			"Id": 9,
 			"ImageName": "patrickmckeever/gather_cnts",
-			"ImageTag": "0.1",
+			"ImageTag": "0.3",
 			"Title": "gatherCounts",
 			"Command": [
                 "find _bwb{countsDirs} -name \"*.sf\" -print -quit | grep -q . || (echo \"No quant.sf found\" && exit 1)",
