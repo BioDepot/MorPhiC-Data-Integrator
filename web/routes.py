@@ -21,10 +21,6 @@ import io
 
 BWB_SCHED_DIR='/home/patrick/SCHED_STORAGE'
 STORAGE_ID='storageID'
-UPLOAD_FOLDER = os.path.join(BWB_SCHED_DIR, STORAGE_ID)
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
 
 class JobManager:
     def __init__(self):
@@ -363,6 +359,11 @@ def job_status(job_id):
 def run_bwb():
     form = BwbForm()
     randStr = str(uuid.uuid4())
+    UPLOAD_FOLDER = os.path.join(BWB_SCHED_DIR, STORAGE_ID)
+    
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    
     os.makedirs(os.path.join(UPLOAD_FOLDER, randStr))
 
     if not form.validate_on_submit():
@@ -371,6 +372,7 @@ def run_bwb():
     srr_ids = session.get('srr_ids')
     read_type = form.read_type.data
     f = form.file.data
+    print()
     if f:
         filename1 = secure_filename(f.filename)
         filepath1 = os.path.join(UPLOAD_FOLDER, randStr, filename1)
@@ -382,18 +384,34 @@ def run_bwb():
         filepath2 = os.path.join(UPLOAD_FOLDER, randStr, filename2)
         f_r2.save(filepath2)
 
-    cmd = (
-        f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
-        f"-v \"$(pwd)\":/wfs "
-        f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
-        f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
-        f"patrickmckeever/bwb-scheduler:latest bwbSched run "
-        f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-        f"-p Start.fastqDir=/data/{randStr} "
-        f"/wfs/bulkrna_async.json"
-    )
+    readType = form.read_type.data
+    if readType == "single":
+        fastqfiles = f"[/data/{randStr}/{filename1}]"
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p Start.fastqfiles={fastqfiles} "
+            f"/wfs/single_bulkrna.json"
+        )
+    else:
+        fastqfiles = f"[/data/{randStr}/{filename1},/data/{randStr}/{filename2}]"
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p Start.fastqfiles={fastqfiles} "
+            f"/wfs/paired_bulkrna.json"
+        )
 
     # submit job to queue
+    print(cmd)
     job_id = JOB_MANAGER.submit(cmd)
 
     return render_template('dash.html', form=form, status=1, job_id=job_id)
