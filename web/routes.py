@@ -3,8 +3,9 @@ from flask import render_template, url_for, flash, redirect, request, make_respo
 from web import app
 from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
+from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
-from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
+from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form, create_morphic_form
 import json
 import requests
 from werkzeug.utils import secure_filename
@@ -22,6 +23,10 @@ if not os.path.exists(UPLOAD_FOLDER):
 @app.route("/")
 def landing():
     return render_template('landing.html')
+
+@app.route("/explore")
+def explore():
+    return render_template('explore.html')
 
 # for bwb page
 @app.route("/bwb")
@@ -114,6 +119,10 @@ def search():
         return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
     return render_template('search.html', form=form)
 
+@app.route("/search/status", methods=['GET'])
+def search_status():
+    return render_template('search_status.html')
+
 # Search results
 @app.route("/search-results", methods=['GET', 'POST'])
 def search_results():
@@ -159,13 +168,51 @@ def search_results():
             selected_studies = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
             if selected_studies:
                 session['gse_ids'] = selected_studies
+                return redirect('/metadata')
         
         return render_template('search_results.html', data=search_results, form=form)
     return render_template('search_results.html')
 
+@app.route("/morphic", methods=['GET', 'POST'])
+def morphic_data():
+    morphic_api = MorphicAPI()
+    morphic_full_data = morphic_api.get_data()
+
+    if morphic_full_data is None:
+        return render_template("morphic_data.html")
+    
+    studies = morphic_full_data['_embedded']['studies']
+    data = []
+    for study in studies:
+        study_content = study["content"]
+        new_study = {
+            "study_title": study_content["study_title"],
+            "target_genes": study_content["target_genes"],
+            "readout_assay": study_content["readout_assay"],
+            "geo_accession": study["accessions"][1]
+        }
+        data.append(new_study)
+
+    # Create a Form from available gse ids
+    morphic_geo_ids = [study["geo_accession"] for study in data]
+    MorphicForm = create_morphic_form(morphic_geo_ids)
+    form = MorphicForm()
+    
+    # Save submitted gse ids
+    if form.validate_on_submit():
+        selected_ids = [box.id for box in form if box.data and box.type == 'BooleanField']
+        session['gse_ids'] = selected_ids
+
+    # Update form with previously saved inputs
+    for checkbox in form:
+        if checkbox.type == 'BooleanField' and session.get('gse_ids') and checkbox.id in session.get('gse_ids'):
+            checkbox.data = True
+
+    return render_template("morphic_data.html", form=form, data=data)
+
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
-    # get selected gse id's
+    # get user selected gse id's
     gse_ids = session.get('gse_ids')
     if gse_ids is None:
         return render_template('metadata.html')
@@ -179,30 +226,49 @@ def metadata():
 
     # create Forms
     srr_ids = metadata_df['run_accession']
-    srr_groups = session.get('srr_groups') # ["group_name_a", "group_name_b"]
-    if srr_groups:
-        SRRForm = create_srr_form(set(srr_ids), srr_groups)
-        select_group_form = GroupForm(group_a=srr_groups[0], group_b=srr_groups[1])
+    user_selected_metadata = session.get('user_selected_metadata', {})
+    if user_selected_metadata is not None and user_selected_metadata and user_selected_metadata.get('groups'):
+        group_names  = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
+
+        SRRForm = create_srr_form(set(srr_ids), group_names)
+        select_group_form = GroupForm(group_a=group_names[0], group_b=group_names[1])
     else:
         SRRForm = create_srr_form(set(srr_ids))
         select_group_form = GroupForm()
     form = SRRForm()
 
     if form.validate_on_submit():
-        selected_srr_ids = {}
+        form_selected_metadata = user_selected_metadata
         for dropdown in form:
             if dropdown.data and dropdown.type == 'SelectField':
-                group_name = dropdown.data
-                group_srr_id = dropdown.id
-                if group_name not in selected_srr_ids:
-                    selected_srr_ids[group_name] = []
-                selected_srr_ids[group_name].append(group_srr_id)
-        session['srr_ids'] = selected_srr_ids
-        # with open("srr_id_groups.json", "w") as json_file:
-        #     json.dump(selected_srr_ids, json_file, indent=4)
+                new_group_name = dropdown.data
+                new_srr_id = dropdown.id
 
+                for group_info in form_selected_metadata.get('groups', []):
+                    if group_info['name'] == new_group_name and new_srr_id not in group_info['samples']:
+                        group_info['samples'].append(new_srr_id)
+                for group_info in form_selected_metadata.get('groups', []):
+                    if group_info['name'] != new_group_name and new_srr_id in group_info['samples']:
+                        group_info['samples'].remove(new_srr_id)
+                form_selected_metadata.get('samples')[new_srr_id] = new_group_name
+
+        # save selected ids
+        session['user_selected_metadata'] = form_selected_metadata
+        session.modified = True
+        with open("srr_id_groups.json", "w") as json_file:
+            json.dump(form_selected_metadata, json_file, indent=4)
+    
+    # update form with previously saved inputs
+    for dropdown in form:
+        if dropdown.type == 'SelectField':
+            if user_selected_metadata is not None and isinstance(user_selected_metadata, dict) and user_selected_metadata:
+                metadata_samples = user_selected_metadata.get('samples')
+                if metadata_samples:
+                    dropdown.data = metadata_samples.get(dropdown.id)
+
+    available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form, group_names=srr_groups)
+    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form, group_names=available_groups)# group_names=srr_groups)
 
 @app.route('/create-group', methods=['POST'])
 def create_group():
@@ -210,7 +276,13 @@ def create_group():
     if form.validate_on_submit():
         group_a_name = form.group_a.data
         group_b_name = form.group_b.data
-        session['srr_groups'] = [group_a_name, group_b_name]
+        session['user_selected_metadata'] = {
+            'groups': [
+                {"name": group_a_name, "samples": []}, 
+                {"name": group_b_name, "samples": []}
+            ], 
+            'samples': {}
+        }
         session.modified = True
     return redirect('/metadata')
 

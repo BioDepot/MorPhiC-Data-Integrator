@@ -24,105 +24,191 @@
     </div>
   </div>
 </section>
+
 {% if data %}
-<!-- CREATE GROUP -->
+
 <section class="content">
   <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <form action="{{url_for('create_group')}}" method="POST">
-          {{ group_form.hidden_tag() }}
-          <!-- Button trigger modal -->
-          <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#groupModal">
-            + New Group
-          </button>
-          {% if group_names is iterable and group_names|length >= 2 %}
-          <button type="button" class="btn btn-secondary mb-3">{{ group_names[0] }}</button>
-          <button type="button" class="btn btn-secondary mb-3">{{ group_names[1] }}</button>
-          {% endif %}
-
-          <!-- Modal -->
-          <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog" role="document">
-              <div class="modal-content">
-                <div class="modal-header border-0">
-                  <h5 class="modal-title" id="groupModalLabel">New Group</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-
-                <div class="modal-body justify-content-center">
-                  <div class="form-group">
-                    <label for="group">Group A <span class="text-danger">*</span></label>
-                    {{ group_form.group_a(class="form-control") }}
-                  </div>
-                  <div class="form-group">
-                    <label for="group_b">Group B <span class="text-danger">*</span></label>
-                    {{ group_form.group_b(class="form-control") }}
-                  </div>
-                </div>
-
-                <div class="modal-footer border-0">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                  <button type="submit" class="btn btn-primary">Create</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /.modal -->
-        </form>
-      </div>
-    </div>
+    
   </div>
 </section>
-<!-- METADATA TABLE -->
+
 <section class="content">
   <div class="container-fluid">
+    <!-- STEPPER -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header border-0">
+            <h2 class="card-title"><b>Guided Steps</b></h2>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+              </button>
+            </div>
+            <!-- /.card-tools -->
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body">
+            <nav>
+              <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/morphic" class="btn btn-dark rounded-circle p-1 mb-auto mt-auto"
+                    aria-label="Go to MorPhiC data">
+                    <img class="img-circle"
+                      style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
+                      src="{{ url_for('static', filename='images/morphic-symbol.png') }}" alt="">
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
+                    <p class="small text-muted p-0 m-0">Explore relevant data</p>
+                  </div>
+                </li>
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: #343a40;">
+                </div>
+
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/metadata" class="btn btn-dark rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Go to metatada">
+                    <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Metadata</h4>
+                    <p class="small text-muted p-0 m-0">Select SRR ID's</p>
+                  </div>
+                </li>
+                <div
+                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
+                </div>
+
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/visualize" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Go to metatada">
+                    <i class="fa fa-play" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Run workflow</h4>
+                    <p class="small text-muted p-0 m-0 text-wrap" style="width: 8rem;">Upload personal data and run
+                      workflow</p>
+                  </div>
+                </li>
+              </ol>
+            </nav>
+          </div>
+          <!-- /.card-body -->
+        </div>
+        <!-- ./card -->
+      </div>
+      <!-- ./col -->
+    </div>
+    <!-- ./row -->
+
+    <!-- GROUPS -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header border-0">
+            <h2 class="card-title"><b>Groups</b></h2>
+          </div>
+          <div class="card-body pt-0">
+            <form action="{{url_for('create_group')}}" method="POST">
+              {{ group_form.hidden_tag() }}
+              <!-- Button trigger modal -->
+              <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-toggle="modal"
+                data-target="#groupModal">
+                <i class="fa fa-plus pr-2"></i> New Group
+              </button>
+              <!-- AVAILABLE GROUPS -->
+              {% if group_names is iterable and group_names|length >= 2 %}
+              <button type="button" class="btn btn-sm bg-gray-dark rounded-pill px-3">{{ group_names[0] }}</button>
+              <button type="button" class="btn btn-sm bg-gray-dark rounded-pill px-3">{{ group_names[1] }}</button>
+              {% endif %}
+
+              <!-- CREATE GROUPS -->
+              <!-- Modal -->
+              <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header border-0">
+                      <h5 class="modal-title" id="groupModalLabel">New Group</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+
+                    <div class="modal-body justify-content-center">
+                      <div class="form-group">
+                        <label for="group">Group A <span class="text-danger">*</span></label>
+                        {{ group_form.group_a(class="form-control") }}
+                      </div>
+                      <div class="form-group">
+                        <label for="group_b">Group B <span class="text-danger">*</span></label>
+                        {{ group_form.group_b(class="form-control") }}
+                      </div>
+                    </div>
+
+                    <div class="modal-footer border-0">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- /.modal -->
+            </form>
+          </div>
+          <!-- /.card-body -->
+        </div>
+        <!-- /.card -->
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+
+    <!-- METADATA -->
     <div class="row">
       <div class="col-12">
         <div class="card">
           <div class="card-body">
             <div class="dataTables_wrapper dt-bootstrap4">
-              <div class="row">
-                <div class="col-sm-12">
-                  <form action="{{url_for('metadata')}}" method="POST">
-                    {{ form.hidden_tag() }}
-                    <table id="metadata-table" class="table table-bordered table-hover dataTable dtr-inline">
-                      <thead>
-                        <tr>
-                          <th></th>
-                          <th>run_accession</th>
-                          <th>experiment_desc</th>
-                          <th>source_name</th>
-                          <th>library_layout</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for row in data %}
-                        <tr>
-                          <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
+              <form action="{{url_for('metadata')}}" method="POST">
+                {{ form.hidden_tag() }}
+                <!-- METADATA TABLE -->
+                <table id="metadata-table" class="table table-bordered table-hover dataTable dtr-inline">
+                  <thead>
+                    <tr>
+                      <th>group</th>
+                      <th>run_accession</th>
+                      <th>experiment_desc</th>
+                      <th>source_name</th>
+                      <th>library_layout</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in data %}
+                    <tr>
+                      <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
 
-                          <td>{{ row["run_accession"] }}</td>
-                          <td>{{ row["experiment_desc"] }}</td>
-                          <td>{{ row["source_name"] }}</td>
-                          <td>{{ row["library_layout"] }}</td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                      <tfoot></tfoot>
-                    </table>
-                  </form>
-                </div>
-              </div>
+                      <td>{{ row["run_accession"] }}</td>
+                      <td>{{ row["experiment_desc"] }}</td>
+                      <td>{{ row["source_name"] }}</td>
+                      <td>{{ row["library_layout"] }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot></tfoot>
+                </table>
+              </form>
             </div>
             <!-- /.dataTables_wrapper -->
           </div>
+          <!-- /.card-body -->
         </div>
         <!-- /.card -->
       </div>
+      <!-- /.col -->
     </div>
+    <!-- /.row -->
   </div>
 </section>
 <section>
@@ -133,6 +219,27 @@
 {% endif %}
 
 {% endblock my_content %}
+
+{% set fixed_footer_class = "layout-footer-fixed" %}
+{% block nav_footer %}
+<nav class="d-flex justify-content-between">
+  <a href="/morphic" class="d-flex align-items-end mt-1">
+    <i class="fas fa-chevron-left m-1 p-1" aria-hidden="true"></i>
+    <div class="px-2 mb-1">
+      <span class="small">Previous</span>
+      <div>MorPhiC Data</div>
+    </div>
+  </a>
+
+  <a href="/visualize" class="d-flex align-items-end mt-1">
+    <div class="px-2 mb-1 text-right">
+      <span class="small">Next</span>
+      <div>Use SRR ID's, upload supporting files, and run a workflow</div>
+    </div>
+    <i class="fas fa-chevron-right m-1 p-1" aria-hidden="true"></i>
+  </a>
+</nav>
+{% endblock nav_footer %}
 
 {% block body_script %}
 <script>
@@ -145,7 +252,10 @@
         bottomStart: null,
         bottomEnd: null
       },
-      order: [[1, 'asc']]
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: 0 } // disable sorting on checkbox column
+      ]
     });
   });
 </script>

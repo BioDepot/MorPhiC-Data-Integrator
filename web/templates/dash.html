@@ -66,29 +66,31 @@ put your custom script or styling here
       <form method="POST" action="{{url_for('run_bwb')}}" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <section class="container mb-5">
-          <h2 class="text-left mb-3">Selected subset samples</h2>
+          <h2 class="text-left mb-3">Selected samples</h2>
           <div class="card">
+            {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
             <div class="card-header">
               <h3 class="card-title">
                 SRR ID's 
-                {% if 'srr_ids' in session %} <small><a href="/metadata" class="ml-2">Edit</a></small> {% endif %}
+                <small><a href="/metadata" class="ml-2">Edit</a></small>
               </h3>
-              <div class="card-tools">
-                <!-- Buttons, labels, and many other things can be placed here! -->
-                <!-- Here is a label for example -->
-                <span class="badge badge-primary"></span>
-              </div>
-              <!-- /.card-tools -->
             </div>
             <!-- /.card-header -->
+            {% endif %}
             <div class="card-body">
-              {% if 'srr_ids' in session %}
+              <!-- METADATA SELECTED BY USER -->
+              {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
                 <dl>
-                  {% for group, srr_ids in session.get('srr_ids').items() %}
-                    <dt>{{ group | string }}</dt>
-                    <dd class="border px-3 py-1">{{ srr_ids | join(', ') }}</dd>
+                  {% for group in session.get('user_selected_metadata', {}).get('groups', []) %}
+                    <dt>{{ group["name"] | string }}</dt>
+                    <dd class="border px-3 py-1">
+                      {{ group["samples"] | join(', ') }}
+                    </dd>
                   {% endfor %}
                 </dl>
+              {% else %}
+                <p>Find relevant studies and select samples from MorPhiC</p>
+                <a href="/morphic" class="btn btn-outline-primary">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
               {% endif %}
             </div>
             <!-- /.card-body -->
@@ -161,33 +163,58 @@ put your custom script or styling here
           <!-- /.card -->
         </section>
 
-        <section class="container mb-5">
-          <h2 class="text-left mt-4 mb-3">Select a Workflow</h2>
-          <div class="card">
-            <div class="card-body">
-              <div class="form-group">
-                <label for="{{ form.workflow.id }}">Workflows</label>
-                {{ form.workflow(class="form-control") }}
-              </div>
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card -->
-        </section>
-
+        <!-- Run workflow -->
         <section class="container mb-5">
           <hr />
 
-          <div class="row justify-content-end">
-            <div class="col">
-              <button type="submit" class="btn btn-primary">Run</button>
-              <a class="btn btn-primary {% if not session['bwb_opened'] %} disabled {% endif %}"
-                href="http://127.0.0.1:5000/bwb" target="_blank" rel="noopener noreferrer">
-                <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="" width="15" height="20">
-                Customize
-              </a>
+          <div class="row">
+            <div class="col-md-6">
+              <!-- Run MorPhiC Bulk-RNA-seq Workflow -->
+              <div class="card h-100">
+                <div class="card-header border-0">
+                  <h2 class="card-title font-weight-bold">Run MorPhiC Bulk-RNA-seq Workflow</h2>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body pt-0 d-flex flex-column">
+                  <ul class="mb-3 pl-3">
+                    <li>Run workflow uing Bwb</li>
+                    <li>Produces downstream analysis plots</li>
+                  </ul>
+          
+                  <button type="submit" class="btn btn-primary btn-block mt-auto">
+                    <i class="fa fa-play pr-2"></i> Run MorPhiC Bulk-RNA-seq Workflow
+                  </button>
+                </div>
+                <!-- /.card-body -->
+              </div>
+              <!-- /.card -->
             </div>
+            <!-- /.col -->
+
+            <div class="col-md-6">
+              <!-- Edit a workflow -->
+              <div class="card h-100">
+                <div class="card-header border-0">
+                  <h2 class="card-title font-weight-bold">Customize Workflow</h2>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body pt-0 d-flex flex-column">
+                  <ul class="mb-3 pl-3">
+                    <li>Open Bwb locally to customize a workflow</li>
+                  </ul>
+                  <a class="btn btn-primary btn-block mt-auto {% if not session['bwb_opened'] %} disabled {% endif %}"
+                    href="http://127.0.0.1:5000/bwb" target="_blank" rel="noopener noreferrer">
+                    <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="" width="15" height="20">
+                    <span class="pl-2">Customize Workflow</span>
+                  </a>
+                </div>
+                <!-- /.card-body -->
+              </div>
+              <!-- /.card -->
+            </div>
+            <!-- /.col -->
           </div>
+          <!-- /.row -->
         </section>
 
       </form>

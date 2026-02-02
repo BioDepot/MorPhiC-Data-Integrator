@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+{% block script %}
+<script>
+  // Submit form when checkboxes are checked/unchecked
+  document.addEventListener("DOMContentLoaded", function () {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function () {
+        this.form.submit();
+      })
+    })
+  })
+</script>
+{% endblock script %}
+
+{% block my_content %}
+
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-12">
+        <h1>MorPhiC Data</h1>
+        <p>Studies generated from the MorPhic Public Data Release</p>
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+  </div>
+  <!-- /.container-fluid -->
+</section>
+
+{% if data %}
+<!-- CONTENT -->
+<section class="content pb-5">
+  <div class="container-fluid">
+
+    <!-- STEPPER -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header border-0">
+            <h2 class="card-title"><b>Guided Steps</b></h2>
+          </div>
+          <div class="card-body">
+            <nav>
+              <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/morphic" class="btn btn-dark rounded-circle p-1 mb-auto mt-auto"
+                    aria-label="Go to MorPhiC data">
+                    <img class="img-circle"
+                      style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
+                      src="{{ url_for('static', filename='images/morphic-symbol.png') }}" alt="">
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
+                    <p class="small text-muted p-0 m-0">Explore relevant data</p>
+                  </div>
+                </li>
+                <div
+                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
+                </div>
+
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/metadata" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Go to metatada">
+                    <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Metadata</h4>
+                    <p class="small text-muted p-0 m-0">Select SRR ID's</p>
+                  </div>
+                </li>
+                <div
+                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
+                </div>
+
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Go to metatada">
+                    <i class="fa fa-play" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Run workflow</h4>
+                    <p class="small text-muted p-0 m-0 text-wrap" style="width: 8rem;">Upload personal data and run
+                      workflow</p>
+                  </div>
+                </li>
+              </ol>
+            </nav>
+          </div>
+          <!-- /.card-body -->
+        </div>
+        <!-- /.card -->
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+
+    <!-- DATA TABLE -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="dataTables_wrapper dt-bootstrap4">
+              <!-- {{ table | safe }} -->
+              <form action="{{url_for('morphic_data')}}" method="POST">
+                {{ form.hidden_tag() }}
+                <table id="morphic-table" class="table table-bordered table-hover dataTable dtr-inline">
+                  <thead>
+                    <tr>
+                      <th>Select</th>
+                      <th>gse_id</th>
+                      <th>study_title</th>
+                      <th>target_genes</th>
+                      <th>readout_assay</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in data %}
+                    <tr>
+                      <td>{{ form[row["geo_accession"]|string] }}</td>
+
+                      <td>
+                        <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ row['geo_accession'] }}"
+                          target="_blank" rel="noopener noreferrer">
+                          {{ row["geo_accession"] }}
+                        </a>
+                      </td>
+                      <td>{{ row["study_title"] }}</td>
+                      <td>{{ row["target_genes"] | join(", ") }}</td>
+                      <td>{{ row.readout_assay }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot></tfoot>
+                </table>
+              </form>
+              <!-- /.col -->
+            </div>
+            <!-- /.dataTables_wrapper -->
+          </div>
+        </div>
+        <!-- /.card -->
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+
+  </div>
+  <!-- /.container-fluid -->
+</section>
+{% endif %}
+
+{% endblock my_content %}
+
+{% set fixed_footer_class = "layout-footer-fixed" %}
+{% block nav_footer %}
+<nav class="d-flex justify-content-between">
+  <a href="/" class="d-flex align-items-end mt-1">
+    <i class="fas fa-chevron-left m-1 p-1" aria-hidden="true"></i>
+    <div class="px-2 mb-1">
+      <span class="small">Previous</span>
+      <div>Home</div>
+    </div>
+  </a>
+
+  <a href="/metadata" class="d-flex align-items-end mt-1">
+    <div class="px-2 mb-1">
+      <span class="small">Next</span>
+      <div>Metadata</div>
+    </div>
+    <i class="fas fa-chevron-right m-1 p-1" aria-hidden="true"></i>
+  </a>
+</nav>
+{% endblock nav_footer %}
+
+{% block body_script %}
+<script>
+  $(document).ready(function () {
+    $('#morphic-table').DataTable({
+      paging: false,
+      layout: {
+        topStart: 'info',
+        bottom: 'paging',
+        bottomStart: null,
+        bottomEnd: null
+      },
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: 0 } // disable sorting on checkbox column
+      ]
+    });
+  });
+</script>
+{% endblock body_script %}

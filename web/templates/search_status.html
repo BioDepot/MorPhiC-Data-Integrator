@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // redirect to search results on complete
+        setTimeout(() => {
+            window.location.href = '/search-results';
+        }, 1500);
+    });
+</script>
+<style>
+    .placeholder {
+        display: inline-block;
+        min-height: 1.75em;
+        vertical-align: middle;
+        background-color: lightgray;
+        opacity: .5;
+        animation: skeleton-loading 1s linear infinite alternate;
+    }
+
+    .placeholder-tab {
+        border-top: 3px solid #3c8dbc;
+    }
+
+    @keyframes skeleton-loading {
+        0% {
+            background-color: hsl(200, 20%, 80%);
+        }
+
+        100% {
+            background-color: hsl(200, 20%, 95%);
+        }
+    }
+</style>
+{% endblock script %}
+
+{% block my_content %}
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-12">
+                <h1>Search Results</h1>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- /.content-header -->
+
+<!-- /.content -->
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <p>Loading...</p>
+                <p>This may take a couple of minutes.</p>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row justify-content-start">
+                            <div class="col-2">
+                                <span class="placeholder placeholder-tab col"></span>
+                            </div>
+                            <div class="col-2">
+                                <span class="placeholder col"></span>
+                            </div>
+                            <div class="col-2">
+                                <span class="placeholder col"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="row border bg-light">
+                                    <div class="col-1 border-right"></div>
+                                    <div class="col border-right"><span class="col"></span></div>
+                                    <div class="col-2 border-right"><span class="col"></span></div>
+                                    <div class="col-4 border-right"><span class="col"></span></div>
+                                    <div class="col border-right"><span class="col"></span></div>
+                                    <div class="col"><span class="col"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                                <div class="row border-left border-right border-bottom">
+                                    <div class="col-1 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-2 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col-4 border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col border-right"><span class="placeholder col my-2"></span></div>
+                                    <div class="col"><span class="placeholder col my-2"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock my_content %}

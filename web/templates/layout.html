@@ -48,7 +48,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
     
 </head>
 
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition sidebar-mini layout-fixed {{ fixed_footer_class if fixed_footer_class is defined }}">
     <div class="wrapper">
 
         <!-- Navbar -->
@@ -79,7 +79,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
         <!-- /.navbar -->
 
         <!-- Main Sidebar Container -->
-        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <aside class="main-sidebar sidebar-dark-light elevation-4">
             <!-- Brand Logo -->
             <a href="/" class="brand-link">
                 <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="Bwb" class="brand-image img-circle elevation-3"
@@ -97,6 +97,12 @@ scratch. This page gets rid of all links and provides the needed markup only.
                         <!-- Add icons to the links using the .nav-icon class
                                         with font-awesome or any other icon font library -->
                         
+                        <li class="nav-item">
+                            <a href="/explore" class="nav-link {{ 'active' if request.path == '/explore'  else '' }}">
+                                <i class="nav-icon fas fa-th"></i>
+                                <p>Explore</p>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
                                 <i class="nav-icon fas fa-search"></i>
@@ -142,6 +148,8 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
         <!-- Main Footer -->
         <footer class="main-footer">
+            {% block nav_footer %}
+            {% endblock nav_footer %}
             <!-- To the right -->
             <div class="float-right d-none d-sm-inline">
             </div>

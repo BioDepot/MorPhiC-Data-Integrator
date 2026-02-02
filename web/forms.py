@@ -77,7 +77,7 @@ class BwbForm(FlaskForm):
     )
     workflow = SelectField(
         'alignment_name',
-        choices=[('star_salmon_short_yin', 'star_salmon_short_yin'), ('star_salmon_short_ryan', 'star_salmon_short_ryan')], 
+        choices=[('star_salmon_short_yin', 'star_salmon_short_yin'), ('star_salmon_short_ryan', 'star_salmon_short_ryan'), ('morphic_bulk_rna_seq', 'MorPhiC Bulk RNA-seq')], 
         default='star_salmon_short_yin',
         validators=[DataRequired()]
     )
@@ -191,3 +191,29 @@ def create_srr_form(srr_list, groups=None):
             setattr(SRRForm, srr_id, select_group)
 
     return SRRForm
+
+def create_morphic_form(studies_data):
+    """
+    Generate Form for selecting gse id's.
+    
+    This function will take studies data and create a Flask-WTF form with a checkbox input for each gse id.
+    
+    Args:
+        studies_data (list of string): A list of gse id's.
+        
+    Returns:
+        FlaskForm: A dynamically generated Flask-WTF form with BooleanField(s) for each dictionary attribute of the studies_data list.
+
+    Example:
+        studies_data = ["GSEID", "GSEID2"]
+        form = create_create_morphic_form(studies_data)
+    """
+    class MorphicForm(FlaskForm):
+        # Dynamically create checkboxes for each study
+        pass
+
+    for gse_id in studies_data:
+        checkbox = BooleanField(gse_id, default=False)
+        setattr(MorphicForm, gse_id, checkbox)
+
+    return MorphicForm
