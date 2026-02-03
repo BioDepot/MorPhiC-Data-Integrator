@@ -25,13 +25,18 @@
   </div>
 </section>
 
-{% if data %}
-
+<!-- STATUS -->
+{% if error_message %}
 <section class="content">
   <div class="container-fluid">
-    
+    <div class="alert alert-warning rounded-lg border-warning bg-white" role="alert">
+      <i class="icon fas fa-exclamation-triangle pr-2 text-warning" aria-hidden="true"></i> {{ error_message | string }}
+    </div>
   </div>
 </section>
+{% endif %}
+
+{% if data %}
 
 <section class="content">
   <div class="container-fluid">

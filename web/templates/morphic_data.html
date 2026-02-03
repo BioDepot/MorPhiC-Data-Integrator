@@ -29,6 +29,17 @@
   <!-- /.container-fluid -->
 </section>
 
+<!-- STATUS -->
+{% if error_message %}
+<section class="content">
+  <div class="container-fluid">
+    <div class="alert alert-danger rounded-lg border-danger bg-white" role="alert">
+      <i class="icon fas fa-exclamation-triangle pr-2 text-danger" aria-hidden="true"></i> {{ error_message | string }}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {% if data %}
 <!-- CONTENT -->
 <section class="content pb-5">

@@ -179,7 +179,7 @@ def morphic_data():
     morphic_full_data = morphic_api.get_data()
 
     if morphic_full_data is None:
-        return render_template("morphic_data.html")
+        return render_template("morphic_data.html", error_message="Error loading data")
     
     studies = morphic_full_data['_embedded']['studies']
     data = []
@@ -214,11 +214,14 @@ def morphic_data():
 def metadata():
     # get user selected gse id's
     gse_ids = session.get('gse_ids')
-    if gse_ids is None:
-        return render_template('metadata.html')
+    if gse_ids is None or not gse_ids:
+        return render_template('metadata.html', error_message="Please select a study to view metadata")
     if gse_ids != session.get('prev_gse_ids_metadata'):
         # fetch metadata for gse_id's
-        sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
+        api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
+        if api_response is None:
+            error_message = f"No results were found for: {', '.join(gse_ids)}"
+            return render_template('metadata.html', error_message=error_message)
         session['prev_gse_ids_metadata'] = gse_ids
 
     # read saved csv metadata
