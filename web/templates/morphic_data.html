@@ -121,6 +121,7 @@
                     <tr>
                       <th>Select</th>
                       <th>gse_id</th>
+                      <th>era_id</th>
                       <th>study_title</th>
                       <th>target_genes</th>
                       <th>readout_assay</th>
@@ -129,12 +130,18 @@
                   <tbody>
                     {% for row in data %}
                     <tr>
-                      <td>{{ form[row["geo_accession"]|string] }}</td>
+                      <td>{{ form[row["erp_accession"]|string] }}</td>
 
                       <td>
                         <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ row['geo_accession'] }}"
                           target="_blank" rel="noopener noreferrer">
                           {{ row["geo_accession"] }}
+                        </a>
+                      </td>
+                      <td>
+                        <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}"
+                          target="_blank" rel="noopener noreferrer">
+                          {{ row["erp_accession"] }}
                         </a>
                       </td>
                       <td>{{ row["study_title"] }}</td>

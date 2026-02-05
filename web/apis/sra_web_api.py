@@ -41,13 +41,13 @@ def get_library_strategy_for_gse_ids(gse_list: list) -> dict:
     
     return strategies
 
-# fetch_gse_metadata
-def get_metadata_for_gse_ids(gse_list: list, save_to_file: bool = True) -> list:
+# fetch metadata for given accession id
+def get_metadata_for_gse_ids(accession_id_list: list, save_to_file: bool = True) -> list:
     """
-        Get metadata with library stategies for corresponding gse id's.
+        Get metadata with library stategies for corresponding erp id's.
 
         Parameters:
-            gse_list (list): A list of gse id's as strings.
+            accession_id_list (list): A list of erp id's as strings.
             save_to_file (bool): When True save results as file
 
         Returns:
@@ -56,17 +56,19 @@ def get_metadata_for_gse_ids(gse_list: list, save_to_file: bool = True) -> list:
     metadata_collection = []
 
     db = SRAweb()
-    for gse_id in gse_list:
+    for erp_id in accession_id_list:
         try:
-            srp_df = db.gse_to_srp(gse_id)
-            study_accession = srp_df['study_accession'].iloc[0]
-            metadata = db.sra_metadata(study_accession, detailed=True)
+            # srp_df = db.gse_to_srp(gse_id)
+            # study_accession = srp_df['study_accession'].iloc[0]
+            metadata_df = db.sra_metadata(erp_id, detailed=True)
+            # metadata_df.to_csv("{}.tsv".format(erp_id), sep="\t", index=False)
 
             # track metadata results
-            metadata_subset = metadata[['run_accession', 'experiment_desc', 'source_name', 'library_layout']]
+            col_names = [['run_accession', 'experiment_desc', 'source_name', 'library_layout']]
+            metadata_subset = [col for col in col_names if col in metadata_df.columns]
             metadata_collection.append(metadata_subset)
         except Exception as e:
-            error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
+            error_message = f"Error: pysradb was unable to retrieve data for gse id {erp_id} \n {e}"
             print(error_message)
             time.sleep(0.5)
         time.sleep(0.5)

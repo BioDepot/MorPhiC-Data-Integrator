@@ -189,13 +189,14 @@ def morphic_data():
             "study_title": study_content["study_title"],
             "target_genes": study_content["target_genes"],
             "readout_assay": study_content["readout_assay"],
+            "erp_accession": study["accessions"][0],
             "geo_accession": study["accessions"][1]
         }
         data.append(new_study)
 
     # Create a Form from available gse ids
-    morphic_geo_ids = [study["geo_accession"] for study in data]
-    MorphicForm = create_morphic_form(morphic_geo_ids)
+    morphic_erp_ids = [study["erp_accession"] for study in data]
+    MorphicForm = create_morphic_form(morphic_erp_ids)
     form = MorphicForm()
     
     # Save submitted gse ids
