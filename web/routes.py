@@ -1,3 +1,8 @@
+import queue
+import signal
+import time
+import subprocess
+import threading
 import pandas as pd
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
@@ -6,19 +11,131 @@ from web.apis import sra_web_api
 from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
 from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form, create_morphic_form
-import json
 import requests
 from werkzeug.utils import secure_filename
+import json
+from collections import defaultdict
+
 
 import uuid
 import os
 import socket
 import io
 
-UPLOAD_FOLDER = 'uploads'
+BWB_SCHED_DIR=os.path.expanduser("~/SCHED_STORAGE")
+STORAGE_ID='storageID'
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+class JobManager:
+    def __init__(self):
+        self.queue = queue.Queue()
+        self.current_job = None
+        self.lock = threading.Lock()
+        self.jobs = {}          # job_id -> job info
+        self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
+        self.worker_thread.start()
+
+    def submit(self, cmd):
+        job_id = str(uuid.uuid4())
+        job_info = {
+            "id": job_id,
+            "cmd": cmd,
+            "status": "queued",
+            "result": None,
+            "start_time": None,
+            "end_time": None,
+            "container_name": job_id  # container will use job_id as name
+        }
+        with self.lock:
+            self.jobs[job_id] = job_info
+        self.queue.put(job_id)
+        return job_id
+
+    def worker_loop(self):
+        while True:
+            job_id = self.queue.get()
+
+            with self.lock:
+                job = self.jobs[job_id]
+                job["status"] = "running"
+                job["start_time"] = time.time()
+                self.current_job = job_id
+
+            # modify cmd to include --name
+            cmd_with_name = job["cmd"].replace("docker run", f"docker run --name {job_id}")
+
+            try:
+                proc = subprocess.Popen(
+                    cmd_with_name,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+
+                with self.lock:
+                    job["proc"] = proc  # store process if needed
+
+                stdout, stderr = proc.communicate()
+
+                with self.lock:
+                    if job["status"] == "canceled":
+                        job["result"] = "Job was canceled."
+                    elif proc.returncode == 0:
+                        job["status"] = "done"
+                        job["result"] = stdout.decode()
+                    else:
+                        job["status"] = f"error: {stderr.decode()}"
+
+            except Exception as e:
+                with self.lock:
+                    job["status"] = "error"
+                    job["result"] = str(e)
+
+            finally:
+                with self.lock:
+                    job["end_time"] = time.time()
+                    self.current_job = None
+                    job.pop("proc", None)
+
+            time.sleep(0.1)
+
+    def cancel_running_job(self, job_id):
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if not job:
+                return False, "not found"
+            if job["status"] != "running":
+                return False, "not running"
+            job["status"] = "canceled"
+
+        # kill docker container by name
+        try:
+            subprocess.run(
+                ["docker", "kill", job["container_name"]],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True, "killed"
+        except subprocess.CalledProcessError as e:
+            return False, f"docker kill failed: {e.stderr.decode()}"
+
+    def get_status(self, job_id):
+        with self.lock:
+            if job_id not in self.jobs:
+                return {"error": "job not found"}
+            job = self.jobs[job_id]
+            position = None
+            if job["status"] == "queued":
+                ids_in_queue = list(self.queue.queue)
+                position = ids_in_queue.index(job_id) + 1 if job_id in ids_in_queue else None
+            return {
+                "id": job_id,
+                "status": job["status"],
+                "queue_position": position,
+                "result": job["result"] if job["status"] in ("done", "error") else None,
+            }
+
+JOB_MANAGER = JobManager()
 
 @app.route("/")
 def landing():
@@ -57,7 +174,7 @@ def get_download_data():
         return jsonify({'error': 'A search with amount of lines is required'}), 400
 
     response_file = SampleExplorerAPI().get_download_file(user_uuid, lines)
-    
+
     if response_file is None:
         return jsonify({'error': 'Error getting download file'}), 500
     zip_file = io.BytesIO(response_file.content)
@@ -139,13 +256,13 @@ def search_results():
         search_results = sample_explorer_utils.reshape_data(search_results)
 
         gse_ids_in_search_results = sample_explorer_utils.get_unique_gse_ids(search_results)
-        
+
         # retrieve previously saved gse id's with sample types, Bulk or Single-cell, format: {'gse_id': 'sample-type'}
         if session.get('gse_sample_type') is None:
             # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk'}
             session['gse_sample_type'] = {}
         saved_sample_types = session.get('gse_sample_type', {})
-        
+
         # diff: gse id's in search results - saved gse ids with sample types
         gse_ids_without_sample_types = set(gse_ids_in_search_results) - set(saved_sample_types.keys())
 
@@ -169,7 +286,7 @@ def search_results():
             if selected_studies:
                 session['gse_ids'] = selected_studies
                 return redirect('/metadata')
-        
+
         return render_template('search_results.html', data=search_results, form=form)
     return render_template('search_results.html')
 
@@ -180,7 +297,7 @@ def morphic_data():
 
     if morphic_full_data is None:
         return render_template("morphic_data.html", error_message="Error loading data")
-    
+
     studies = morphic_full_data['_embedded']['studies']
     data = []
     for study in studies:
@@ -198,10 +315,11 @@ def morphic_data():
     morphic_erp_ids = [study["erp_accession"] for study in data]
     MorphicForm = create_morphic_form(morphic_erp_ids)
     form = MorphicForm()
-    
+
     # Save submitted gse ids
     if form.validate_on_submit():
         selected_ids = [box.id for box in form if box.data and box.type == 'BooleanField']
+        print("Setting gse id")
         session['gse_ids'] = selected_ids
 
     # Update form with previously saved inputs
@@ -261,7 +379,7 @@ def metadata():
         session.modified = True
         with open("srr_id_groups.json", "w") as json_file:
             json.dump(form_selected_metadata, json_file, indent=4)
-    
+
     # update form with previously saved inputs
     for dropdown in form:
         if dropdown.type == 'SelectField':
@@ -282,41 +400,294 @@ def create_group():
         group_b_name = form.group_b.data
         session['user_selected_metadata'] = {
             'groups': [
-                {"name": group_a_name, "samples": []}, 
+                {"name": group_a_name, "samples": []},
                 {"name": group_b_name, "samples": []}
-            ], 
+            ],
             'samples': {}
         }
         session.modified = True
     return redirect('/metadata')
 
-# for rendering visualization
-@app.route("/run-bwb", methods=['POST'])
+@app.route("/cancel-job/<job_id>", methods=["POST"])
+def cancel_job(job_id):
+    with JOB_MANAGER.lock:
+        job = JOB_MANAGER.jobs.get(job_id)
+        if not job:
+            return jsonify({"error": "not found"}), 404
+
+    if job["status"] == "queued":
+        try:
+            JOB_MANAGER.queue.queue.remove(job_id)
+            job["status"] = "canceled"
+            return jsonify({"status": "canceled"})
+        except ValueError:
+            pass
+
+    ok, msg = JOB_MANAGER.cancel_running_job(job_id)
+    if ok:
+        return jsonify({"status": "killed"})
+    else:
+        return jsonify({"error": msg}), 400
+
+@app.route("/job-status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    return jsonify(JOB_MANAGER.get_status(job_id))
+
+def write_metadata_json(samples, srr_groups, output_path):
+    """
+    Write metadata JSON in the format expected by BWB workflows.
+
+    Expected output structure:
+    {
+      "groups": [
+        {
+          "name": "<group_name>",
+          "samples": [
+            {
+              "srr_id": "<sample_name>",
+              "layout": "SINGLE" | "PAIRED"
+            }
+          ]
+        }
+      ]
+    }
+
+    Parameters
+    ----------
+    samples : list of dict
+        Each dict must contain:
+        - name   : sample identifier
+        - group  : group/condition name
+        - layout : SINGLE or PAIRED
+        
+    srr_groups : list of dict or None
+        Groups from session metadata, each containing:
+        - name    : group name
+        - samples : list of SRR IDs
+        
+    output_path : str
+        Path where metadata JSON will be written
+    """
+
+    grouped = defaultdict(list)
+
+    # Add uploaded FASTQ samples
+    for sample in samples:
+        grouped[sample["group"]].append({
+            "srr_id": sample["name"],
+            "layout": sample["layout"]
+        })
+    
+    # Add SRR ID samples from session metadata
+    if srr_groups:
+        for group in srr_groups:
+            group_name = group.get("name")
+            srr_samples = group.get("samples", [])
+            
+            for srr_id in srr_samples:
+                # Assume SRR samples are PAIRED by default (can be adjusted)
+                grouped[group_name].append({
+                    "srr_id": srr_id,
+                    "layout": "PAIRED"  # or derive from metadata if available
+                })
+
+    metadata = {
+        "groups": [
+            {
+                "name": group_name,
+                "samples": group_samples
+            }
+            for group_name, group_samples in grouped.items()
+        ]
+    }
+
+    with open(output_path, "w") as fh:
+        json.dump(metadata, fh, indent=2)
+
+
+# Key assumptions of bulkrna.json: 
+#   - All paired end fastq files are named "sample_1.fastq" and "sample_2.fastq"
+#   - There is an entry in metadata.json corresponding to each SRR ID / user uploaded file.
+#   - If the sample name "sample" (key "srr_id" in metadata.json, which is actually kind of a misnomer)
+#     exists, then the file "sample_1.fastq" (and possibly its R2) are present in the directory passed
+#     as Start.fastqdir.
+@app.route("/run-bwb", methods=["POST"])
 def run_bwb():
     form = BwbForm()
 
-    if form.validate_on_submit():
+    if not form.validate_on_submit():
+        # Form-level validation will ensure all sample fields are correct
+        return render_template("dash.html", form=form, status=-1)
 
-        # selected srr id's: {'group_name': ['srr_id',]}
-        srr_ids = session.get('srr_ids')
+    randStr = str(uuid.uuid4())
+    upload_root = os.path.join(BWB_SCHED_DIR, STORAGE_ID, randStr)
+    os.makedirs(upload_root, exist_ok=True)
 
-        # Read type
-        read_type = form.read_type.data
+    srr_metadata = session.get('user_selected_metadata')
+    print(srr_metadata)
+    srr_groups = None
+    
+    if srr_metadata:
+        srr_groups = srr_metadata.get("groups", [])
 
-        # file upload
-        f = form.file.data
-        if f:
-            filename1 = secure_filename(f.filename)
-        f_r2 = form.file_r2.data
-        if f_r2:
-            filename2 = secure_filename(f_r2.filename)
+    sample_indices = sorted(
+        set(
+            key.split("[", 1)[1].split("]", 1)[0]
+            for key in request.form
+            if key.startswith("samples[") and key.endswith("][name]")
+        )
+    )
 
-        # workflow based on aligment name
-        workflow = form.workflow.data
-        
-        # return redirect(url_for('dash'))
-        return render_template('dash.html', form=form, status=1)
-    return render_template('dash.html', form=form, status=-1)
+    if not sample_indices and not srr_groups:
+        form.workflow.errors.append("No samples or SRR IDs were provided.")
+        return render_template("dash.html", form=form, status=-1)
+
+    # Enforce all samples share the same layout (if samples provided)
+    first_layout = None
+    if sample_indices:
+        first_layout = request.form.get(f"samples[{sample_indices[0]}][layout]")
+        if first_layout not in {"SINGLE", "PAIRED"}:
+            form.workflow.errors.append("Invalid read layout for the first sample.")
+            return render_template("dash.html", form=form, status=-1)
+
+    samples = []
+    for idx in sample_indices:
+        prefix = f"samples[{idx}]"
+
+        name   = request.form.get(f"{prefix}[name]")
+        group  = request.form.get(f"{prefix}[group]")
+        layout = request.form.get(f"{prefix}[layout]")
+
+        # All layouts must match
+        if layout != first_layout:
+            form.workflow.errors.append(
+                f"Sample {name or idx} has layout {layout}, "
+                f"but all samples must be {first_layout}."
+            )
+            return render_template("dash.html", form=form, status=-1)
+
+        r1 = request.files.get(f"{prefix}[r1]")
+        r2 = request.files.get(f"{prefix}[r2]")
+
+        # Create per-sample directory
+        sample_dir = upload_root
+        os.makedirs(sample_dir, exist_ok=True)
+
+        # Save FASTQ files with names based on user-given sample name
+        r1_path = None
+        if r1 and r1.filename:
+            # Use sample name with _1 suffix
+            r1_filename = f"{name}_1.fastq"
+            r1_path = os.path.join(sample_dir, r1_filename)
+            r1.save(r1_path)
+
+        r2_path = None
+        if layout == "PAIRED":
+            if not r2 or not r2.filename:
+                form.workflow.errors.append(
+                    f"Sample {name}: R2 FASTQ is required for paired-end layout."
+                )
+                return render_template("dash.html", form=form, status=-1)
+            # Use sample name with _2 suffix
+            r2_filename = f"{name}_2.fastq"
+            r2_path = os.path.join(sample_dir, r2_filename)
+            r2.save(r2_path)
+
+        samples.append({
+            "name": name,
+            "group": group,
+            "layout": layout,
+            "r1": r1_path,
+            "r2": r2_path,
+        })
+
+    metadata_path = os.path.join(upload_root, "metadata.json")
+    metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
+    write_metadata_json(
+        samples=samples,
+        srr_groups=srr_groups,
+        output_path=metadata_path
+    )
+
+    srr_ids = []
+    if srr_groups:
+        for group in srr_groups:
+            srr_ids.extend(group.get("samples", []))
+
+    srr_ids = []
+    if srr_groups:
+        for group in srr_groups:
+            srr_ids.extend(group.get("samples", []))
+    
+    srrIds = '[' + ','.join(srr_ids) + ']'
+    if srr_ids:
+        print("SRR IDs:", ",".join(srr_ids))
+    else:
+        print("SRR IDs: None")
+    cmd = (
+        f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+        f"-v \"$(pwd)\":/wfs "
+        f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+        f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+        f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+        f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+        f"-p Start.srridsAll={srrIds} "
+        f"-p Start.fastqdir=/data/{randStr} "
+        f"-p Start.metadata_json={metadata_cnt_path} "
+        f"/wfs/bulkrna.json"
+    )
+
+    print(cmd)
+    job_id = JOB_MANAGER.submit(cmd)
+
+    return render_template(
+        "dash.html",
+        form=form,
+        status=1,
+        job_id=job_id
+    )
+
+# TODO: Update this to have per-job directories later.
+@app.route("/heatmap/<job_id>")
+def heatmap(job_id):
+    """
+    Serve the final workflow image for a completed job.
+    """
+
+    # Defensive: job_id should be a UUID-like string
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/heatmap.png"
+    if not os.path.exists(image_path):
+        abort(404)
+
+    return send_file(
+        image_path,
+        mimetype="image/png",
+        conditional=True
+    )
+
+# TODO: Update this to have per-job directories later.
+@app.route("/volcano/<job_id>")
+def volcano(job_id):
+    """
+    Serve the final workflow image for a completed job.
+    """
+
+    # Defensive: job_id should be a UUID-like string
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/volcano_plot.png"
+    if not os.path.exists(image_path):
+        abort(404)
+
+    return send_file(
+        image_path,
+        mimetype="image/png",
+        conditional=True
+    )
 
 @app.route("/dash")
 @app.route("/visualize")

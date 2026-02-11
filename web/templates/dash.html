@@ -1,255 +1,317 @@
 {% extends "layout.html" %}
+
 {% block script %}
-<!-- 
-put your custom script or styling here
--->
+<head>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // Update file label when file has been uploaded
-    const fileInputs = document.querySelectorAll('.custom-file-input');
+document.addEventListener("DOMContentLoaded", () => {
 
-    function handleFileInputChange(event) {
-      const fileName = event.target.files[0] ? event.target.files[0].name : "File types: .fastq";
-      const label = event.target.nextElementSibling;
-      label.textContent = fileName;
-    };
+  /* =========================
+     Job status polling
+     ========================= */
+  const jobId        = "{{ job_id | default('') }}";
+  const statusBox    = document.getElementById("job-status-box");
+  const statusText   = document.getElementById("job-status-text");
+  const queueText    = document.getElementById("job-queue-position");
+  const resultBox    = document.getElementById("job-result");
+  const cancelBtn    = document.getElementById("cancel-job-btn");
 
-    fileInputs.forEach(input => {
-      input.addEventListener('change', handleFileInputChange)
+  let pollTimer = null;
+
+  function renderText(text) {
+    resultBox.innerHTML = `
+      <pre style="white-space:pre-wrap; background:#f8f9fa; padding:8px;">
+${text || ""}
+      </pre>`;
+  }
+
+  function renderImage(jobId) {
+    resultBox.innerHTML = `
+      <div class="text-center">
+        <h5 class="mb-3">Workflow completed successfully</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Heatmap</h6>
+            <img
+              src="/heatmap/${jobId}?t=${Date.now()}"
+              class="img-fluid"
+              alt="Heatmap"
+            >
+          </div>
+          <div class="col-md-6">
+            <h6>Volcano Plot</h6>
+            <img
+              src="/volcano/${jobId}?t=${Date.now()}"
+              class="img-fluid"
+              alt="Volcano Plot"
+            >
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateStatus() {
+    fetch(`/job-status/${jobId}`)
+      .then(r => r.json())
+      .then(data => {
+        const status = data.status || "unknown";
+        statusText.textContent = status;
+
+        if (data.queue_position !== null && data.queue_position !== undefined) {
+          queueText.textContent = `Position in queue: ${data.queue_position}`;
+        } else {
+          queueText.textContent = "";
+        }
+
+        switch (status) {
+          case "queued":
+          case "running":
+            cancelBtn.style.display = "inline-block";
+            if (data.result) {
+              renderText(data.result);
+            }
+            break;
+
+          case "done":
+          case "success":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderImage(jobId);
+            break;
+
+          case "error":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderText(data.result || "Workflow failed.");
+            break;
+
+          case "canceled":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderText("Job was canceled.");
+            break;
+        }
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  }
+
+  if (jobId) {
+    statusBox.style.display = "block";
+    updateStatus();
+    pollTimer = setInterval(updateStatus, 2000);
+
+    cancelBtn.addEventListener("click", () => {
+      const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        .getAttribute("content");
+
+      fetch(`/cancel-job/${jobId}`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken
+        }
+      }).then(updateStatus);
     });
+  }
 
+  /* =========================
+     Dynamic sample handling
+     ========================= */
+  let sampleIndex = 0;
+  const container = document.getElementById("samples-container");
+  const addBtn    = document.getElementById("add-sample-btn");
 
-    // Toggle file inputs for paired-end or single-end
-    function toggleFileInputs() {
-      const readType = document.getElementById("read_type");
-      const pairedFields = document.getElementById("paired-field");
-      const singleField = document.getElementById("single-field");
+  function enforceUniformLayout(layout) {
+    document.querySelectorAll(".read-type").forEach(rt => {
+      rt.value = layout;
+      const r2 = rt.closest(".form-row").querySelector(".r2-field");
+      r2.style.display = layout === "PAIRED" ? "block" : "none";
+    });
+  }
 
-      if (readType.value == "paired") {
-        pairedFields.style.display = "block";
-        singleField.style.display = "none";
-      } else {
-        pairedFields.style.display = "none";
-        singleField.style.display = "block";
-      }
+  // Get groups from session metadata
+  const sessionGroups = {{ session.get('user_selected_metadata', {}).get('groups', []) | tojson | safe }};
+  
+  function addSampleRow(defaultLayout = "SINGLE") {
+    const card = document.createElement("div");
+    card.className = "card mb-3 p-3";
+
+    // Build group options dynamically
+    let groupOptions = '';
+    if (sessionGroups && sessionGroups.length > 0) {
+      groupOptions = sessionGroups.map(group => 
+        `<option value="${group.name}">${group.name}</option>`
+      ).join('');
+    } else {
+      // Fallback if no session groups
+      groupOptions = `
+        <option value="group_a">Group A</option>
+        <option value="group_b">Group B</option>
+      `;
     }
 
-    const readTypeInput = document.getElementById("read_type")
-    readTypeInput.addEventListener('change', toggleFileInputs)
-  })
+    card.innerHTML = `
+      <div class="form-row align-items-end">
+
+        <div class="col-md-3">
+          <label>Sample name</label>
+          <input name="samples[${sampleIndex}][name]"
+                 class="form-control"
+                 required>
+        </div>
+
+        <div class="col-md-2">
+          <label>Group</label>
+          <select name="samples[${sampleIndex}][group]"
+                  class="form-control"
+                  required>
+            ${groupOptions}
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label>Read layout</label>
+          <select name="samples[${sampleIndex}][layout]"
+                  class="form-control read-type">
+            <option value="SINGLE">Single-end</option>
+            <option value="PAIRED">Paired-end</option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label>FASTQ R1</label>
+          <input type="file"
+                 name="samples[${sampleIndex}][r1]"
+                 class="form-control"
+                 accept=".fastq"
+                 required>
+        </div>
+
+        <div class="col-md-2 r2-field" style="display:none;">
+          <label>FASTQ R2</label>
+          <input type="file"
+                 name="samples[${sampleIndex}][r2]"
+                 class="form-control"
+                 accept=".fastq">
+        </div>
+
+        <div class="col-md-1">
+          <button type="button"
+                  class="btn btn-danger btn-sm remove-sample">
+            ✕
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+
+    const readType = card.querySelector(".read-type");
+    const r2Field  = card.querySelector(".r2-field");
+    const remove   = card.querySelector(".remove-sample");
+
+    readType.value = defaultLayout;
+    r2Field.style.display = defaultLayout === "PAIRED" ? "block" : "none";
+
+    readType.addEventListener("change", e => {
+      enforceUniformLayout(e.target.value);
+    });
+
+    remove.addEventListener("click", () => card.remove());
+
+    sampleIndex++;
+  }
+
+  addBtn.addEventListener("click", () => addSampleRow("SINGLE"));
+  addSampleRow("SINGLE");
+});
 </script>
 {% endblock script %}
 
-
 {% block my_content %}
-<!-- Sample Visuals -->
 <div class="content container">
+
   <h1 class="pt-3">Run workflows using Bwb</h1>
 
-  <p class="card-text mb-5">Customize input parameters or analytical modules in the Biodepot platform.</p>
+  <div id="job-status-box"
+       class="alert alert-info mt-3"
+       style="display:none;">
+    <h4>Job Status</h4>
+    <p id="job-status-text">Checking…</p>
+    <p id="job-queue-position"></p>
+    <div id="job-result"></div>
 
-  <!-- Navigation Tabs -->
-  <ul class="nav nav-tabs" id="myTab" role="tablist">
-    <li class="nav-item">
-      <a class="nav-link active" id="parameter-tab" data-toggle="tab" href="#parameter" role="tab"
-        aria-controls="parameter" aria-selected="true">Run</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" id="visuals-tab" data-toggle="tab" href="#visuals" role="tab" aria-controls="visuals"
-        aria-selected="false">Visuals</a>
-    </li>
-  </ul>
-
-  <!-- Tab: Form for Bwb input parameters -->
-  <div class="tab-content mt-4 mb-4" id="myTabContent">
-    <div class="tab-pane fade show active" id="parameter" role="tabpanel" aria-labelledby="home-tab">
-      <form method="POST" action="{{url_for('run_bwb')}}" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
-        <section class="container mb-5">
-          <h2 class="text-left mb-3">Selected samples</h2>
-          <div class="card">
-            {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
-            <div class="card-header">
-              <h3 class="card-title">
-                SRR ID's 
-                <small><a href="/metadata" class="ml-2">Edit</a></small>
-              </h3>
-            </div>
-            <!-- /.card-header -->
-            {% endif %}
-            <div class="card-body">
-              <!-- METADATA SELECTED BY USER -->
-              {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
-                <dl>
-                  {% for group in session.get('user_selected_metadata', {}).get('groups', []) %}
-                    <dt>{{ group["name"] | string }}</dt>
-                    <dd class="border px-3 py-1">
-                      {{ group["samples"] | join(', ') }}
-                    </dd>
-                  {% endfor %}
-                </dl>
-              {% else %}
-                <p>Find relevant studies and select samples from MorPhiC</p>
-                <a href="/morphic" class="btn btn-outline-primary">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
-              {% endif %}
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card -->
-        </section>
-
-        <section class="container mb-5">
-          <h2 class="text-left mt-4 mb-3">Upload your data</h2>
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Upload a FASTQ file</h3>
-              <div class="card-tools">
-                <!-- Buttons, labels, and many other things can be placed here! -->
-                <!-- Here is a label for example -->
-                <span class="badge badge-primary"></span>
-              </div>
-              <!-- /.card-tools -->
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-              <div class="form-group">
-                <label for="{{ form.read_type.id }}">Read type</label>
-                {{ form.read_type(class="form-control") }}
-              </div>
-
-              <div id="single-field" {% if form.read_type.data == 'paired' %} style="display: none;"{% endif %}>
-                <div class="form-group">
-                  <label for="{{ form.file.id }}">file upload</label>
-                  <div class="input-group mb-3">
-                    <div class="custom-file">
-                      {{ form.file(class="custom-file-input") }}
-                      <label class="custom-file-label" for="{{ form.file.id }}" aria-describedby="{{ form.file.id }}">File types: .fastq</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div id="paired-field" {% if form.read_type.data == 'single' %} style="display: none;"{% endif %}>
-                <div class="form-group">
-                  <label for="{{ form.file.id }}">R1 file upload</label>
-                  <div class="input-group mb-3">
-                    <div class="custom-file">
-                      {{ form.file(class="custom-file-input") }}
-                      <label class="custom-file-label" for="{{ form.file.id }}" aria-describedby="{{ form.file.id }}">File types: .fastq</label>
-                    </div>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="{{ form.file_r2.id }}">R2 file upload</label>
-                  <div class="input-group mb-3">
-                    <div class="custom-file">
-                      {{ form.file_r2(class="custom-file-input") }}
-                      <label class="custom-file-label" for="{{ form.file_r2.id }}" aria-describedby="{{ form.file_r2.id }}">File types: .fastq</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {% for error in form.file.errors %}
-                <div id="file-error" class="text-danger">File 1: {{ error }}</div>
-              {% endfor %}
-              {% for error in form.file_r2.errors %}
-                <div id="file-r2-error" class="text-danger">File 2: {{ error }}</div>
-              {% endfor %}
-
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card -->
-        </section>
-
-        <!-- Run workflow -->
-        <section class="container mb-5">
-          <hr />
-
-          <div class="row">
-            <div class="col-md-6">
-              <!-- Run MorPhiC Bulk-RNA-seq Workflow -->
-              <div class="card h-100">
-                <div class="card-header border-0">
-                  <h2 class="card-title font-weight-bold">Run MorPhiC Bulk-RNA-seq Workflow</h2>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body pt-0 d-flex flex-column">
-                  <ul class="mb-3 pl-3">
-                    <li>Run workflow uing Bwb</li>
-                    <li>Produces downstream analysis plots</li>
-                  </ul>
-          
-                  <button type="submit" class="btn btn-primary btn-block mt-auto">
-                    <i class="fa fa-play pr-2"></i> Run MorPhiC Bulk-RNA-seq Workflow
-                  </button>
-                </div>
-                <!-- /.card-body -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- /.col -->
-
-            <div class="col-md-6">
-              <!-- Edit a workflow -->
-              <div class="card h-100">
-                <div class="card-header border-0">
-                  <h2 class="card-title font-weight-bold">Customize Workflow</h2>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body pt-0 d-flex flex-column">
-                  <ul class="mb-3 pl-3">
-                    <li>Open Bwb locally to customize a workflow</li>
-                  </ul>
-                  <a class="btn btn-primary btn-block mt-auto {% if not session['bwb_opened'] %} disabled {% endif %}"
-                    href="http://127.0.0.1:5000/bwb" target="_blank" rel="noopener noreferrer">
-                    <img src="{{ url_for('static', filename='images/orange-biodepot.svg') }}" alt="" width="15" height="20">
-                    <span class="pl-2">Customize Workflow</span>
-                  </a>
-                </div>
-                <!-- /.card-body -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
-        </section>
-
-      </form>
-    </div>
-
-    <!-- Tab: Visuals -->
-    <div class="tab-pane fade" id="visuals" role="tabpanel" aria-labelledby="profile-tab">
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card card-primary card-outline">
-            <div class="card-body">
-              <div style="height: 300px; padding: 0px; position: relative;">
-                <img class="card-img-top" src="{{ url_for('static', filename='images/image.png') }}" alt="" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: auto; height: 300px;" width="904" height="600">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="card card-primary card-outline">
-            <div class="card-body">
-              <div style="height: 300px; padding: 0px; position: relative;">
-                <img class="card-img-top" src="{{ url_for('static', filename='images/image2.png') }}" alt="" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: auto; height: 300px;" width="904" height="600">
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <!-- <img class="card-img-top" src="{{ url_for('static', filename='images/plot.png') }}" alt=""> -->
-      <!-- <p>Setting up a predictive classifier for the most significant genes.</p> -->
-    </div>
+    <button id="cancel-job-btn"
+            class="btn btn-danger mt-2"
+            style="display:none;">
+      Cancel Job
+    </button>
   </div>
 
-</div>
-<!-- /.card -->
+  <p class="card-text mb-4">
+    Upload FASTQ files, assign samples to groups, and run RNA-seq workflows.
+    All samples must use the same read layout.
+  </p>
 
+  <form method="POST"
+        action="{{ url_for('run_bwb') }}"
+        enctype="multipart/form-data">
+
+    {{ form.hidden_tag() }}
+
+    <!-- SRR IDs and Groups Section -->
+    <section class="container mb-5">
+      <h2 class="text-left mb-3">Selected samples</h2>
+      <div class="card">
+        {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
+        <div class="card-header">
+          <h3 class="card-title">
+            SRR ID's 
+            <small><a href="/metadata" class="ml-2">Edit</a></small>
+          </h3>
+        </div>
+        {% endif %}
+        <div class="card-body">
+          {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
+            <dl>
+              {% for group in session.get('user_selected_metadata', {}).get('groups', []) %}
+                <dt>{{ group["name"] | string }}</dt>
+                <dd class="border px-3 py-1">
+                  {{ group["samples"] | join(', ') }}
+                </dd>
+              {% endfor %}
+            </dl>
+          {% else %}
+            <p>Find relevant studies and select samples from MorPhiC</p>
+            <a href="/morphic" class="btn btn-outline-primary">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload FASTQ Files Section -->
+    <section class="container mb-5">
+      <h2 class="mb-3">Upload FASTQ files</h2>
+      <div id="samples-container"></div>
+
+      <button type="button"
+              id="add-sample-btn"
+              class="btn btn-secondary mt-2">
+        Add sample
+      </button>
+    </section>
+
+    <section class="container mb-5">
+      <hr />
+      <button type="submit" class="btn btn-primary">
+        <i class="fa fa-play pr-2"></i> Run Workflow
+      </button>
+    </section>
+  </form>
+</div>
 {% endblock my_content %}
