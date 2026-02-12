@@ -103,16 +103,11 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                 <p>Explore</p>
                             </a>
                         </li>
+                        {% if session.get('gse_ids') %}
                         <li class="nav-item">
-                            <a href="/search" class="nav-link {{ 'active' if request.path == '/search'  else '' }}">
-                                <i class="nav-icon fas fa-search"></i>
-                                <p>Search</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/search-results" class="nav-link {{ 'active' if request.path == '/search-results'  else '' }}">
+                            <a href="/morphic" class="nav-link {{ 'active' if request.path == '/morphic'  else '' }}">
                                 <i class="fa fa-table nav-icon"></i>
-                                <p>Search Results</p>
+                                <p>MorPhiC Data</p>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -121,6 +116,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                 <p>Metadata</p>
                             </a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a href="/visualize" class="nav-link {{ 'active' if request.path == '/visualize'  else '' }}" role="menuitem">
                                 <i class="nav-icon fas fa-cogs"></i>

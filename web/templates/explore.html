@@ -2,14 +2,16 @@
 {% block script %}
 <style>
     .card-link {
-	    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+
     .card-link:focus {
         outline: 3px solid red;
     }
+
     .card-link:hover {
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
         transform: scale(1.01);
     }
 </style>
@@ -61,43 +63,19 @@
             <div class="col-md-6">
                 <div class="row">
                     <div class="col-12">
-                        <a href="/search" class="text-body">
-                            <!-- style="background: repeating-linear-gradient(45deg, #4d9884, #4d928f, #0e776e, #2e70a0);" -->
-                            <div class="card card-link">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-2 d-flex justify-content-center align-items-center h3 m-0">
-                                            <i class="fas fa-search"></i>
-                                        </div>
-                                        <div class="col d-flex flex-column justify-content-center">
-                                            <h1 class="h4">Search with SampleExplorer</h1>
-                                            <p class="m-0">Search for publicly available transcriptomics datasets from
-                                                GEO
-                                                via text
-                                                and/or gene set queries leveraging language models.</p>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="card shadow-none">
+                            <div class="card-body">
+                                <h2 class="h4">About the Morphic program</h2>
+                                <p class="card-text">The MorPhiC program aims to develop a consistent catalog of
+                                    molecular
+                                    and cellular phenotypes for null alleles for every human gene by using in-vitro
+                                    multicellular systems.</p>
+                                <a href="https://morphic.bio/" target="_blank" rel="noopener noreferrer">Learn
+                                    more</a>
                             </div>
-                        </a>
-                    </div>
-                    <!-- /.col -->
-                    <div class="col-12">
-                        <a href="/dash" class="text-body">
-                            <div class="card card-link">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-2 d-flex justify-content-center align-items-center h3 m-0">
-                                            <i class="fas fa-upload"></i>
-                                        </div>
-                                        <div class="col d-flex flex-column justify-content-center">
-                                            <h1 class="h4">Upload your data</h1>
-                                            <p>Use your own private fastq files</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
                     </div>
                     <!-- /.col -->
                 </div>
