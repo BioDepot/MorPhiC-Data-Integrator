@@ -111,6 +111,17 @@
     <div class="row">
       <div class="col-12">
         <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Data Catalogue</h2>
+            <div class="card-tools">
+              <form action="morphic/refresh-data" method="get">
+                <button type="submit" class="btn btn-tool" aria-label="Refresh data">
+                  <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          <!-- /.card-title -->
           <div class="card-body">
             <div class="dataTables_wrapper dt-bootstrap4">
               <!-- {{ table | safe }} -->
@@ -139,8 +150,8 @@
                         </a>
                       </td>
                       <td>
-                        <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}"
-                          target="_blank" rel="noopener noreferrer">
+                        <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}" target="_blank"
+                          rel="noopener noreferrer">
                           {{ row["erp_accession"] }}
                         </a>
                       </td>

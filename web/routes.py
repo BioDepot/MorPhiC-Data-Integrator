@@ -292,12 +292,20 @@ def search_results():
 
 @app.route("/morphic", methods=['GET', 'POST'])
 def morphic_data():
-    morphic_api = MorphicAPI()
-    morphic_full_data = morphic_api.get_data()
+    # Load MorPhiC Data
+    data_file_name = 'morphic_data.json'
+    morphic_full_data = utils.load_json_file(data_file_name)
+    
+    # Get MorPhiC Data
+    if morphic_full_data is None or session.get('morphic_refresh_data', True):
+        morphic_full_data = MorphicAPI().get_data()
+        utils.save_json_file(morphic_full_data, data_file_name)
+        session['morphic_refresh_data'] = False
 
     if morphic_full_data is None:
         return render_template("morphic_data.html", error_message="Error loading data")
 
+    # Select relevant study information
     studies = morphic_full_data['_embedded']['studies']
     data = []
     for study in studies:
@@ -328,6 +336,11 @@ def morphic_data():
             checkbox.data = True
 
     return render_template("morphic_data.html", form=form, data=data)
+
+@app.route('/morphic/refresh-data', methods=['GET'])
+def morphic_refresh_data():
+    session['morphic_refresh_data'] = True
+    return redirect('/morphic')
 
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
