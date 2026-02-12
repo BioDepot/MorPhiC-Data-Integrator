@@ -184,9 +184,11 @@
                     <tr>
                       <th>group</th>
                       <th>run_accession</th>
+                      <th>study_accession</th>
+                      <th>derived from</th>
                       <th>experiment_desc</th>
-                      <th>source_name</th>
                       <th>library_layout</th>
+                      <th>library_strategy</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -195,9 +197,11 @@
                       <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
 
                       <td>{{ row["run_accession"] }}</td>
+                      <td>{{ row["study_accession"] }}</td>
+                      <td>{{ row["derivedfrom"] }}</td>
                       <td>{{ row["experiment_desc"] }}</td>
-                      <td>{{ row["source_name"] }}</td>
                       <td>{{ row["library_layout"] }}</td>
+                      <td>{{ row["library_strategy"] }}</td>
                     </tr>
                     {% endfor %}
                   </tbody>

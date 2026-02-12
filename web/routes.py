@@ -348,16 +348,20 @@ def metadata():
     gse_ids = session.get('gse_ids')
     if gse_ids is None or not gse_ids:
         return render_template('metadata.html', error_message="Please select a study to view metadata")
+    
+    # get metadata for new id's
+    error_message = None
     if gse_ids != session.get('prev_gse_ids_metadata'):
         # fetch metadata for gse_id's
         api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
-        if api_response is None:
-            error_message = f"No results were found for: {', '.join(gse_ids)}"
-            return render_template('metadata.html', error_message=error_message)
+        if api_response is not None and api_response and api_response.get('ids_with_no_metadata'):
+            error_message = f"No results were found for: {', '.join(api_response.get('ids_with_no_metadata', []))}"
         session['prev_gse_ids_metadata'] = gse_ids
 
     # read saved csv metadata
-    metadata_df = pd.read_csv('metadata.csv')
+    metadata_df = utils.load_csv_file_as_df('metadata.csv')
+    if metadata_df is None:
+        return render_template('metadata.html', error_message="No metadata found" if error_message is None else error_message)
 
     # create Forms
     srr_ids = metadata_df['run_accession']
@@ -403,7 +407,14 @@ def metadata():
 
     available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form, group_names=available_groups)# group_names=srr_groups)
+    return render_template(
+        'metadata.html',
+        data=metadata,
+        form=form,
+        group_form=select_group_form,
+        group_names=available_groups,
+        error_message=error_message
+    )
 
 @app.route('/create-group', methods=['POST'])
 def create_group():
