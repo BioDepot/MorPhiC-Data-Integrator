@@ -1,5 +1,4 @@
-# Covid Dashboard
-Welcome to the Bwb dashboard
+# Interactive Data Integration Dashboard
 
 ## Getting Started
 ### Prequisites
@@ -51,3 +50,6 @@ Run specific tests like unit tests:
 ```
 PYTHONPATH=. pytest -m unit
 ```
+
+## Scheduler and workflows
+
