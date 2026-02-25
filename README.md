@@ -2,6 +2,11 @@
 Welcome to the Bwb dashboard
 
 ## Getting Started
+### External dependencies
+This repo depends on code from the following repositories. These are installed / run automatically by the dashboard source.
+	- BWB SCHEDULER: Source code at https://github.com/Patrick-McKeever/bwb\_scheduler, docker image at `patrickmckeever/bwb-scheduler:latest`
+	- MORPHIC Bulk RNA seq workflow: Source code at https://github.com/morphic-bio/Bulk-RNA-seq/
+
 ### Prequisites
 Have python and Virtual Environments installed. Here is the python version I am using:
 
