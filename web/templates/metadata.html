@@ -57,7 +57,7 @@
             <nav>
               <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/morphic" class="btn btn-dark rounded-circle p-1 mb-auto mt-auto"
+                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto"
                     aria-label="Go to MorPhiC data">
                     <img class="img-circle"
                       style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
@@ -68,11 +68,11 @@
                     <p class="small text-muted p-0 m-0">Explore relevant data</p>
                   </div>
                 </li>
-                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: #343a40;">
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: #17a2b8;">
                 </div>
 
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/metadata" class="btn btn-dark rounded-circle px-2 py-1 mb-auto mt-auto"
+                  <a href="/metadata" class="btn btn-info rounded-circle px-2 py-1 mb-auto mt-auto"
                     aria-label="Go to metatada">
                     <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
                   </a>
@@ -118,14 +118,14 @@
             <form action="{{url_for('create_group')}}" method="POST">
               {{ group_form.hidden_tag() }}
               <!-- Button trigger modal -->
-              <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-toggle="modal"
+              <button type="button" class="btn btn-sm btn-dark rounded-pill px-3" data-toggle="modal"
                 data-target="#groupModal">
-                <i class="fa fa-plus pr-2"></i> New Group
+                <i class="fa fa-plus pr-2" aria-hidden="true"></i> New Group
               </button>
               <!-- AVAILABLE GROUPS -->
               {% if group_names is iterable and group_names|length >= 2 %}
-              <button type="button" class="btn btn-sm bg-gray-dark rounded-pill px-3">{{ group_names[0] }}</button>
-              <button type="button" class="btn btn-sm bg-gray-dark rounded-pill px-3">{{ group_names[1] }}</button>
+              <button type="button" class="btn btn-sm btn-default rounded-pill px-3">{{ group_names[0] }}</button>
+              <button type="button" class="btn btn-sm btn-default rounded-pill px-3">{{ group_names[1] }}</button>
               {% endif %}
 
               <!-- CREATE GROUPS -->
@@ -154,7 +154,7 @@
 
                     <div class="modal-footer border-0">
                       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                      <button type="submit" class="btn btn-primary">Create</button>
+                      <button type="submit" class="btn btn-info">Create</button>
                     </div>
                   </div>
                 </div>
@@ -220,11 +220,6 @@
     <!-- /.row -->
   </div>
 </section>
-<section>
-  <a href="/visualize" class="btn btn-primary back-to-top">
-    Next <i class="fas fa-arrow-right px-1"></i>
-  </a>
-</section>
 {% endif %}
 
 {% endblock my_content %}
@@ -232,7 +227,7 @@
 {% set fixed_footer_class = "layout-footer-fixed" %}
 {% block nav_footer %}
 <nav class="d-flex justify-content-between">
-  <a href="/morphic" class="d-flex align-items-end mt-1">
+  <a href="/morphic" class="d-flex align-items-end mt-1 text-dark">
     <i class="fas fa-chevron-left m-1 p-1" aria-hidden="true"></i>
     <div class="px-2 mb-1">
       <span class="small">Previous</span>
@@ -240,7 +235,7 @@
     </div>
   </a>
 
-  <a href="/visualize" class="d-flex align-items-end mt-1">
+  <a href="/visualize" class="d-flex align-items-end mt-1 text-dark">
     <div class="px-2 mb-1 text-right">
       <span class="small">Next</span>
       <div>Use SRR ID's, upload supporting files, and run a workflow</div>

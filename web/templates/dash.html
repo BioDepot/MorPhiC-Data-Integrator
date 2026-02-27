@@ -265,14 +265,14 @@ ${text || ""}
     {{ form.hidden_tag() }}
 
     <!-- SRR IDs and Groups Section -->
-    <section class="container mb-5">
+    <section class="mb-5">
       <h2 class="text-left mb-3">Selected samples</h2>
       <div class="card">
         {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
         <div class="card-header">
           <h3 class="card-title">
             SRR ID's 
-            <small><a href="/metadata" class="ml-2">Edit</a></small>
+            <small><a href="/metadata" class="ml-2 text-info">Edit</a></small>
           </h3>
         </div>
         {% endif %}
@@ -288,14 +288,14 @@ ${text || ""}
             </dl>
           {% else %}
             <p>Find relevant studies and select samples from MorPhiC</p>
-            <a href="/morphic" class="btn btn-outline-primary">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
+            <a href="/morphic" class="btn btn-outline-info">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
           {% endif %}
         </div>
       </div>
     </section>
 
     <!-- Upload FASTQ Files Section -->
-    <section class="container mb-5">
+    <section class="mb-5">
       <h2 class="mb-3">Upload FASTQ files</h2>
       <div id="samples-container"></div>
 
@@ -306,9 +306,9 @@ ${text || ""}
       </button>
     </section>
 
-    <section class="container mb-5">
+    <section class="mb-5 pb-5">
       <hr />
-      <button type="submit" class="btn btn-primary">
+      <button type="submit" class="btn btn-info">
         <i class="fa fa-play pr-2"></i> Run Workflow
       </button>
     </section>

@@ -56,11 +56,11 @@
             <nav>
               <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/morphic" class="btn btn-dark rounded-circle p-1 mb-auto mt-auto"
+                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto"
                     aria-label="Go to MorPhiC data">
                     <img class="img-circle"
                       style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
-                      src="{{ url_for('static', filename='images/morphic-symbol.png') }}" alt="">
+                      src="{{ url_for('static', filename='images/morphic-symbol.svg') }}" alt="">
                   </a>
                   <div class="d-flex flex-column">
                     <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
@@ -112,7 +112,7 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Data Catalogue</h2>
+            <h2 class="card-title"><b>Data Catalog</b></h2>
             <div class="card-tools">
               <form action="morphic/refresh-data" method="get">
                 <button type="submit" class="btn btn-tool" aria-label="Refresh data">
@@ -145,13 +145,13 @@
 
                       <td>
                         <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ row['geo_accession'] }}"
-                          target="_blank" rel="noopener noreferrer">
+                          target="_blank" rel="noopener noreferrer" class="text-info">
                           {{ row["geo_accession"] }}
                         </a>
                       </td>
                       <td>
                         <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}" target="_blank"
-                          rel="noopener noreferrer">
+                          rel="noopener noreferrer" class="text-info">
                           {{ row["erp_accession"] }}
                         </a>
                       </td>
@@ -185,7 +185,7 @@
 {% set fixed_footer_class = "layout-footer-fixed" %}
 {% block nav_footer %}
 <nav class="d-flex justify-content-between">
-  <a href="/" class="d-flex align-items-end mt-1">
+  <a href="/" class="d-flex align-items-end mt-1 text-dark">
     <i class="fas fa-chevron-left m-1 p-1" aria-hidden="true"></i>
     <div class="px-2 mb-1">
       <span class="small">Previous</span>
@@ -193,7 +193,7 @@
     </div>
   </a>
 
-  <a href="/metadata" class="d-flex align-items-end mt-1">
+  <a href="/metadata" class="d-flex align-items-end mt-1 text-dark">
     <div class="px-2 mb-1">
       <span class="small">Next</span>
       <div>Metadata</div>
