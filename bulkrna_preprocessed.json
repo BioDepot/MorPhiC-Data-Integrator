@@ -1,0 +1,141 @@
+{
+	"Nodes": {
+		"13": {
+			"Id": 13,
+			"ImageName": "python",
+			"ImageTag": "3.11-slim",
+			"Title": "merge counts",
+            "Command": [
+                "python -c \"import os,json,csv;S=set(os.environ[\\\"SAMPLES\\\"][1:-1].split(\\\",\\\"));inp=os.environ[\\\"PREP_CNTS\\\"];out=os.path.join(os.environ[\\\"TAB_DIR\\\"],\\\"genesCounts.csv\\\");r=csv.reader(open(inp),delimiter=\\\"\\t\\\");w=csv.writer(open(out,\\\"w\\\",newline=\\\"\\\"),delimiter=\\\"\\t\\\");h=next(r);idx=[0]+[i for i,x in enumerate(h) if x in S];w.writerow([h[i] for i in idx]);[w.writerow([row[i] for i in idx]) for row in r]\""
+            ],
+			"ArgTypes": {
+				"tablesDir": {
+					"type": "directory",
+					"argument": false,
+					"flag": null,
+					"env": "TAB_DIR",
+					"label": "output of manually processed counts",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"preprocessedCnts": {
+					"type": "file",
+					"argument": false,
+					"flag": null,
+					"env": "PREP_CNTS",
+					"label": "Preprocessed counts",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"samplesToRetain": {
+					"type": "text list",
+					"argument": false,
+					"flag": null,
+					"env": "SAMPLES",
+					"label": "Samples to retain from preprocessed counts",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+				"tablesDir",
+				"preprocessedCnts",
+                "samplesToRetain"
+			],
+			"ResourceReqs": {
+				"MemMb": 4000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"10": {
+			"Id": 10,
+			"ImageName": "brycenofu/notebook-r-dashboard",
+			"ImageTag": "latest",
+			"Title": "heatmap",
+			"Command": [
+                "jupyter nbconvert --execute /app/dashboard_differential_expression_analysis.ipynb --to notebook --output /data/dashboard_differential_expression_analysis_output.ipynb || ls _bwb{counts_dir}/volcano_plot.png || exit 1"
+			],
+			"ArgTypes": {
+				"work_dir": {
+					"type": "directory",
+					"argument": false,
+					"flag": null,
+					"env": "work_dir",
+					"label": "Work dir",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"metadata_json": {
+					"type": "file",
+					"argument": false,
+					"flag": null,
+					"env": "metadata_json",
+					"label": "Metadata JSON",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"counts_dir": {
+					"type": "directory",
+					"argument": false,
+					"flag": null,
+					"env": "counts_dir",
+					"label": "Counts directory",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"tablesDir": false
+			},
+			"RequiredParams": [
+				"counts_dir",
+				"work_dir",
+                "metadata_json"
+			],
+			"ResourceReqs": {
+				"MemMb": 1000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		}
+	},
+	"NodeBaseProps": {
+        "13": {
+		    "tablesDir": null,
+		    "preprocessedCnts": null,
+            "samplesToRetain": null
+        },
+        "10": {
+			"work_dir": "/data",
+			"metadata_json": null,
+			"counts_dir": null
+        }
+	},
+	"Links": [
+		{
+			"SourceNodeId": 13,
+			"SinkNodeId": 10,
+			"SourceChannel": "tablesDir",
+			"SinkChannel": "counts_dir"
+		}
+    ]
+}

@@ -1,0 +1,1527 @@
+{
+    "_embedded": {
+        "studies": [
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-08-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq7_Reversion",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aimed to phenotype iPSC-derived cortical brain organoids that contained corrections (reversions to wt) for homozygous null alleles for transcription factor PAX6 and to phenotype iPSC-derived extra-embryonic cell lineages that had contained homozygous null alleles for transcription factors PPARG, EPAS1, GCM1, and GRHL1. The original homozygous mutant lines were created by introducing a premature termination codon and frameshift (PTC+1) approach. Here in these clones, these mutations were reverted back to wt and restored gene function. The homozygous null alleles for the five genes studied here showed pronounced transcriptomic changes compared to the parental line, the data provided here indicate, upon reversion of the PTC+1 mutations back to wt, the normal wt transcriptomic response was largely restored indicating specificity of the engineered alleles in manipulating the respective gene\u2019s function.",
+                    "study_title": "Study 7- RNA-seq of male KOLF2.2J hiPSC-derived differentiated cells for lines in which the original mutation to create null alleles was reverted back to wildtype.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "EPAS1",
+                        "GCM1",
+                        "GRHL1",
+                        "PPARG",
+                        "PAX6"
+                    ]
+                },
+                "submissionDate": "2024-12-07T09:35:47.104Z",
+                "updateDate": "2025-06-18T12:50:15.683Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "5490ed64-ae99-4c07-a9ef-b075a50bb38c"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:50:15.287Z",
+                "accessions": [
+                    "ERP166966",
+                    "GSE288287"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "675416f3e0e750692acd5eb1",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675416f3e0e750692acd5eb1&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675416f3e0e750692acd5eb1&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675416f3e0e750692acd5eb1&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675416f3e0e750692acd5eb1/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq11",
+                    "model_organ_systems": [
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to gather information on iPSC-derived cortical brain organoids differentiated in six different time points. Bulk RNA sequencing (RNA-seq) was performed at days 3, 4, 5, 20, 25, and 32 post-initiation of differentiation. The resulting dataset provides a foundational control reference for assessing the roles of various transcription factors previously manipulated in cortical organoid models.",
+                    "study_title": "Study 11- RNA-seq of male KOLF2.2J hiPSC-derived cortical brain organoids during different time points.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        ""
+                    ]
+                },
+                "submissionDate": "2025-06-12T15:12:52.537Z",
+                "updateDate": "2025-07-30T16:01:27.801Z",
+                "user": "d632c264-a081-70e7-dc9d-b1a5fcd62f3a",
+                "lastModifiedUser": "d632c264-a081-70e7-dc9d-b1a5fcd62f3a",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "db42e0b4-ad22-426e-ae6f-94a972f29fd8"
+                },
+                "events": [],
+                "contentLastModified": "2025-07-30T16:01:27.408Z",
+                "accessions": [
+                    "ERP174176",
+                    "GSE303979"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "684aee747f49937dd5e5bac3",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=684aee747f49937dd5e5bac3&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=684aee747f49937dd5e5bac3&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=684aee747f49937dd5e5bac3&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/684aee747f49937dd5e5bac3/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-04-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq2_ExtraEmbryonic",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Extra-embryonic mesenchyme"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived trophoblast lines that contain homozygous null alleles for transcription factors expressed within the extra-embryonic lineage, with a focus on differentiation toward either primitive syncytium or extra-embryonic mesenchymal cells, depending on the TF being analyzed. Null alleles were generated using three distinct genetic engineering approaches: full protein coding region deletion (KO), critical exon deletion (CE), and insertion of a premature termination codon with frameshift (PTC+1). RNA-seq data was generated after 6 days of initiating differentiation from iPSCs. The study included the homozygous null alleles for the following transcription factors: MEIS1, MXD1, MEIS2, RUNX1, MEF2C, NCOA3, and BHLHE40. This analysis provided insight into the differences between the various CRISPR-Cas9-based approaches and the impact of loss of function for these transcription factors in trophoblast lineage differentiation",
+                    "study_title": "Study 2- RNA-seq of male KOLF2.2J hiPSC-derived trophoblast cell lines homozygous null for seven different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "MEIS1",
+                        "MXD1",
+                        "MEIS2",
+                        "RUNX1",
+                        "MEF2C",
+                        "NCOA3",
+                        "BHLHE40"
+                    ]
+                },
+                "submissionDate": null,
+                "updateDate": "2025-06-18T12:43:27.954Z",
+                "user": null,
+                "lastModifiedUser": null,
+                "type": "Study",
+                "uuid": {
+                    "uuid": "d022417a-a914-467a-bcdf-d22adc0c3cd5"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:43:27.466Z",
+                "accessions": [
+                    "ERP166375",
+                    "GSE288289"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "672cd18c11ad644c9a5434cc",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672cd18c11ad644c9a5434cc&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672cd18c11ad644c9a5434cc&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672cd18c11ad644c9a5434cc&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672cd18c11ad644c9a5434cc/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq08",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Extra-embryonic mesenchyme"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived trophoblast lines that contain homozygous null alleles for transcription factors expressed within the extra-embryonic lineage, with a focus on differentiation toward either primitive syncytium or extra-embryonic mesenchymal cells, depending on the TF being analyzed. Null alleles were generated by insertion of a premature termination codon with frameshift (PTC+1). RNA-seq data was generated after 6 days of initiating differentiation from iPSCs. The study included the homozygous null alleles for the following transcription factors: DLX3, MSX2, VGLL1, MAFB, NR2F2, ELF5, ASCL2, HIF1A, and TP63. Notably, the hypoxia-inducible factor HIF1A as well as ELF5, ASCL2, and TP63 were evaluated under both 20% oxygen and 3% (~ level present at peri-implantation) oxygen concentrations. This analysis provided insight into the impact of loss of function for these transcription factors in trophoblast lineage differentiation.",
+                    "study_title": "Study 8- RNA-seq of male KOLF2.2J hiPSC-derived trophoblast cell lines homozygous null for nine different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "DLX3",
+                        "MSX2",
+                        "VGLL1",
+                        "NR2F2",
+                        "MAFB",
+                        "ASCL2",
+                        "ELF5",
+                        "HIF1A",
+                        "TP63",
+                        "ISL1"
+                    ]
+                },
+                "submissionDate": "2025-06-10T15:56:13.147Z",
+                "updateDate": "2025-07-30T15:59:17.979Z",
+                "user": "d632c264-a081-70e7-dc9d-b1a5fcd62f3a",
+                "lastModifiedUser": "d632c264-a081-70e7-dc9d-b1a5fcd62f3a",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "f10f7df4-acf6-4776-a57e-9be68414bfce"
+                },
+                "events": [],
+                "contentLastModified": "2025-07-30T15:59:17.510Z",
+                "accessions": [
+                    "ERP174174",
+                    "GSE302997"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "6848559d7dad846dcaf687e9",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=6848559d7dad846dcaf687e9&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=6848559d7dad846dcaf687e9&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=6848559d7dad846dcaf687e9&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/6848559d7dad846dcaf687e9/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "g-kirsammer@northwestern.edu"
+                    ],
+                    "contact_first_name": "Gina",
+                    "contact_surname": "Kirsammer",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "NW",
+                    "label": "NW_RNASeq_dataset",
+                    "model_organ_systems": [
+                        "iPSC"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "AID Knock-in of inducible C-terminal degron"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "",
+                    "study_title": "Auxin-inducible-degron KO 2 genes",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "RBBP4",
+                        "CHD1"
+                    ]
+                },
+                "submissionDate": "2024-12-15T13:44:53.043Z",
+                "updateDate": "2025-01-30T14:42:47.749Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "ac27fcd9-e04b-4564-bd46-6543f8249d2d"
+                },
+                "events": [],
+                "contentLastModified": "2025-01-06T16:32:58.127Z",
+                "accessions": [
+                    "ERP167215",
+                    "GSE288398"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "675edd55e0e750692acd76ab",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675edd55e0e750692acd76ab&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675edd55e0e750692acd76ab&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=675edd55e0e750692acd76ab&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/675edd55e0e750692acd76ab/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq10",
+                    "model_organ_systems": [
+                        "Endoderm",
+                        "Mesoderm"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived early endoderm and mesoderm that contain homozygous null alleles for the following transcription factors: ISL1, NKX2-1, and EOMES. Null alleles were generated using insertion of a premature termination codon with frameshift (PTC+1) in the case of ISL1 or full protein coding region deletion (KO) for NKX2-1 and EOMES. RNA-seq data was generated after 5 days of initiating differentiation from iPSCs.  This analysis allowed the investigation of early embryonic development, cell fate mapping, and lineage analysis.",
+                    "study_title": "Study 10- RNA-seq of male KOLF2.2J hiPSC-derived endoderm and mesoderm homozygous null for three different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "ISL1",
+                        "EOMES",
+                        "NKX2-1"
+                    ]
+                },
+                "submissionDate": "2025-07-11T12:55:45.242Z",
+                "updateDate": "2025-07-30T15:51:47.149Z",
+                "user": "alexkoci",
+                "lastModifiedUser": "alexkoci",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "d76446d7-c6ca-471e-96bc-b4087c079e31"
+                },
+                "events": [],
+                "contentLastModified": "2025-07-11T13:42:49.109Z",
+                "accessions": [
+                    "ERP174177",
+                    "GSE303919"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "687109d1b20db81eeb5b8dec",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=687109d1b20db81eeb5b8dec&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=687109d1b20db81eeb5b8dec&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=687109d1b20db81eeb5b8dec&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/687109d1b20db81eeb5b8dec/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "ashirb@arcinstitute.org"
+                    ],
+                    "contact_first_name": "Ashir",
+                    "contact_surname": "Borah",
+                    "dracc_data_sharing_date": "2024-08-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "UCSF",
+                    "label": "UCSF_Bulk_EB_Timecourse",
+                    "model_organ_systems": [
+                        "Embryoid Body"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study characterizes the transcriptional changes associated with embryoid body formation. Samples in triplicate were collected before aggregation, immediately following aggregation, and then on days 2, 4, 6, 8, and 10 of  EB differentiation",
+                    "study_title": "Bulk RNAseq of differentiation timecourse",
+                    "supplementary_links": [],
+                    "target_genes": []
+                },
+                "submissionDate": "2025-01-17T13:54:06.729Z",
+                "updateDate": "2025-01-30T14:41:48.416Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "f6abc480-2d0f-4570-abe0-b1ca4631325e"
+                },
+                "events": [],
+                "contentLastModified": "2025-01-22T11:53:25.115Z",
+                "accessions": [
+                    "ERP167638",
+                    "GSE288399"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "678a60fef134490727a451cd",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678a60fef134490727a451cd&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678a60fef134490727a451cd&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678a60fef134490727a451cd&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678a60fef134490727a451cd/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "distribution": {
+                        "database": "European Nucleotide Archive",
+                        "accession": "ERP166192"
+                    },
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-05-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq4_ExEm_brain",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Extra-embryonic mesenchyme",
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aimed to phenotype iPSC-derived cortical brain organoids that contain homozygous null alleles for transcription factors DMRTA1 and TBR1 and to phenotype iPSC-derived extra-embryonic cell lineages that contain homozygous null alleles for transcription factors OVOL1, PITX1, LMO2, and ZBTB7C. Null alleles were generated by the insertion of a premature termination codon with frameshift (PTC+1). This analysis provided insight into the impact of loss of function for these transcription factors in the respective cell lineages.",
+                    "study_title": "Study 4- RNA-seq of male KOLF2.2J hiPSC-derived cortical brain organoids and extra-embryonic lineages homozygous null for six different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "DMRTA1",
+                        "TBR1",
+                        "OVOL1",
+                        "PITX1",
+                        "LMO2",
+                        "ZBTB7C"
+                    ]
+                },
+                "submissionDate": null,
+                "updateDate": "2025-06-18T12:45:05.286Z",
+                "user": null,
+                "lastModifiedUser": null,
+                "type": "Study",
+                "uuid": {
+                    "uuid": "d2657f13-70fb-4e7d-a057-2402c0f5ff61"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:45:04.972Z",
+                "accessions": [
+                    "ERP166192",
+                    "GSE287843"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "672e167ae81dd970544b9f62",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672e167ae81dd970544b9f62&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672e167ae81dd970544b9f62&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=672e167ae81dd970544b9f62&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/672e167ae81dd970544b9f62/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "WIBJ2"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-08-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq6_Diverse",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aimed to phenotype iPSC-derived cortical brain organoids that contain homozygous null alleles for transcription factor PAX6 and to phenotype iPSC-derived extra-embryonic cell lineages that contain homozygous null alleles for transcription factors PPARG, EPAS1, GCM1, and GRHL1. Null alleles were generated by the insertion of a premature termination codon with frameshift (PTC+1). This analysis provided insight into the impact of loss of function for these transcription factors in the respective cell lineages.",
+                    "study_title": "Study 6- RNA-seq of female WIBJ2 hiPSC-derived cortical brain organoids and extra-embryonic lineages homozygous null for five different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "EPAS1",
+                        "GCM1",
+                        "GRHL1",
+                        "PPARG",
+                        "PAX6"
+                    ]
+                },
+                "submissionDate": "2024-11-12T14:40:13.084Z",
+                "updateDate": "2025-06-18T12:47:09.427Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "87cd7027-f8d7-453a-b389-85d3aa228a5b"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:47:09.032Z",
+                "accessions": [
+                    "ERP166272",
+                    "GSE288286"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "673368cde81dd970544bac49",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673368cde81dd970544bac49&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673368cde81dd970544bac49&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673368cde81dd970544bac49&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673368cde81dd970544bac49/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq09",
+                    "model_organ_systems": [
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived cortical brain organoids that contain homozygous null alleles for transcription factors expressed in the early neuroectoderm. Null alleles were generated using insertion of a premature termination codon with frameshift (PTC+1). RNA-seq data was generated at the indicated day post initiation of differentiation from hiPSCs. The study included the homozygous null alleles for the following transcription factors: EMX2, FOXG1, POU3F2, SOX1, HES5, SOX21, POU3F1 and SP8. This analysis provided insight into the impact of loss of function for these transcription factors in cortical brain organoid differentiation.",
+                    "study_title": "Study 9- RNA-seq of male KOLF2.2J hiPSC-derived cortical brain organoids homozygous null for eight different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "EMX2",
+                        "FOXG1",
+                        "POU3F2",
+                        "SOX1",
+                        "HES5",
+                        "POU3F1",
+                        "SOX21",
+                        "SP8"
+                    ]
+                },
+                "submissionDate": "2025-06-10T16:38:14.031Z",
+                "updateDate": "2025-07-30T16:00:09.188Z",
+                "user": "alexkoci",
+                "lastModifiedUser": "alexkoci",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "7fe85dd0-ed3c-4047-9e89-b70be5cb3ca7"
+                },
+                "events": [],
+                "contentLastModified": "2025-07-30T16:00:08.801Z",
+                "accessions": [
+                    "ERP174175",
+                    "GSE303918"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "68485f767dad846dcaf68b11",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=68485f767dad846dcaf68b11&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=68485f767dad846dcaf68b11&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=68485f767dad846dcaf68b11&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/68485f767dad846dcaf68b11/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-04-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq_Neuroectoderm",
+                    "model_organ_systems": [
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived cortical brain organoids that contain homozygous null alleles for transcription factors expressed in the early neuroectoderm. Null alleles were generated using three distinct genetic engineering approaches: full coding region deletion (KO), critical exon deletion (CE), and insertion of a premature termination codon with frameshift (PTC+1). RNA-seq data was generated at the indicated day post initiation of differentiation from hiPSCs. The study included the homozygous null alleles for the following transcription factors: LHX9, RFX4, PAX6, OTX1, LHX5, and FEZF2. This analysis provided insight into the differences between the various CRISPR-Cas9-based approaches and the impact of loss of function for these transcription factors in cortical brain organoid differentiation.",
+                    "study_title": "Study 3- RNA-seq of male KOLF2.2J hiPSC-derived cortical brain organoids homozygous null for six different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "RFX4",
+                        "OTX1",
+                        "LHX5",
+                        "LHX9",
+                        "FEZF2",
+                        "PAX6"
+                    ]
+                },
+                "submissionDate": "2024-11-20T09:47:27.534Z",
+                "updateDate": "2025-06-18T12:48:28.670Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "92a6db4f-a87f-400c-9fd7-3a561640be20"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:48:28.029Z",
+                "accessions": [
+                    "ERP166466",
+                    "GSE287558"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "673db02fe0e750692acd27fe",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673db02fe0e750692acd27fe&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673db02fe0e750692acd27fe&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=673db02fe0e750692acd27fe&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/673db02fe0e750692acd27fe/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-10-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq_ExtraEmbryonic",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Extra-embryonic mesoderm"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aims to phenotype iPSC-derived trophoblast lines that contain homozygous null alleles for transcription factors expressed within the extra-embryonic lineage, with a focus on differentiation toward either primitive syncytium or extra-embryonic mesenchymal cells, depending on the TF being analyzed. Null alleles were generated using three distinct genetic engineering approaches: full protein coding region deletion (KO), critical exon deletion (CE), and insertion of a premature termination codon with frameshift (PTC+1). RNA-seq data was generated after 6 days of initiating differentiation from iPSCs. The study included the homozygous null alleles for the following transcription factors: GRHL1, POU2F3, EPAS1, FOSB, GCM1, PPARG, and ISL1. Notably, the hypoxia-inducible factor EPAS1 was evaluated under both 20% oxygen and 3% (~ level present at peri-implantation) oxygen concentrations. This analysis provided insight into the differences between the various CRISPR-Cas9-based approaches and the impact of loss of function for these transcription factors in trophoblast lineage differentiation.",
+                    "study_title": "Study 1- RNA-seq of male KOLF2.2J hiPSC-derived trophoblast cell lines homozygous null for seven different transcription factors.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "GRHL1",
+                        "POU2F3",
+                        "EPAS1",
+                        "FOSB",
+                        "GCM1",
+                        "PPARG",
+                        "ISL1"
+                    ]
+                },
+                "submissionDate": "2024-12-03T09:57:18.596Z",
+                "updateDate": "2025-06-18T12:49:27.012Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "b09edb83-ac92-4703-9380-af3be413d8b0"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:49:26.461Z",
+                "accessions": [
+                    "ERP166747",
+                    "GSE288288"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "674ed5fee0e750692acd504c",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=674ed5fee0e750692acd504c&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=674ed5fee0e750692acd504c&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=674ed5fee0e750692acd504c&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/674ed5fee0e750692acd504c/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "KOLF2.2J"
+                    ],
+                    "contact_emails": [
+                        "bill.flynn@jax.org"
+                    ],
+                    "contact_first_name": "Bill",
+                    "contact_surname": "Flynn",
+                    "dracc_data_sharing_date": "2024-08-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "JAX",
+                    "label": "JAX_RNAseq5_ExE_CBO",
+                    "model_organ_systems": [
+                        "Primitive syncytium",
+                        "Cortical brain organoid"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "RNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "This study aimed to phenotype iPSC-derived cortical brain organoids that contain homozygous null alleles for transcription factors SIX3 and NR2F1 and to phenotype iPSC-derived extra-embryonic cell lineages that contain homozygous null alleles for transcription factors HEY1, HOPX, MAFF, TWIST2, DLX4, DLX5, and DLX6 and the splicing factor MBNL2. Null alleles were generated by the insertion of a premature termination codon with frameshift (PTC+1). This analysis provided insight into the impact of loss of function for these transcription factors in the respective cell lineages.",
+                    "study_title": "Study 5- RNA-seq of male KOLF2.2J hiPSC-derived cortical brain organoids and extra-embryonic lineages homozygous null for nine different transcription factors and one RNA splicing factor.",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "HEY1",
+                        "MBNL2",
+                        "DLX4",
+                        "DLX5",
+                        "DLX6",
+                        "HOPX",
+                        "MAFF",
+                        "TWIST2",
+                        "MBNL3",
+                        "SIX3",
+                        "NR2F1"
+                    ]
+                },
+                "submissionDate": null,
+                "updateDate": "2025-06-18T12:46:11.548Z",
+                "user": null,
+                "lastModifiedUser": null,
+                "type": "Study",
+                "uuid": {
+                    "uuid": "033739f1-124a-415f-a347-6b7586c9142f"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T12:46:11.220Z",
+                "accessions": [
+                    "ERP166212",
+                    "GSE287844"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "67333c2911ad644c9a54421c",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=67333c2911ad644c9a54421c&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=67333c2911ad644c9a54421c&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=67333c2911ad644c9a54421c&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/67333c2911ad644c9a54421c/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "H1",
+                        "HUES8"
+                    ],
+                    "contact_emails": [
+                        "choh@mskcc.org"
+                    ],
+                    "contact_first_name": "Hyein",
+                    "contact_surname": "Cho",
+                    "dracc_data_sharing_date": "2024-02-01",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "MSKCC",
+                    "label": "MSK_Pooled_scRNA-seq",
+                    "model_organ_systems": [
+                        "Gastruloid",
+                        "Neural differentiation",
+                        "Pancreatic differentiation"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 KO"
+                    ],
+                    "readout_assay": "multiplexed scRNA-seq",
+                    "sequencing_platforms": [],
+                    "study_description": "",
+                    "study_title": "scRNA-seq study of pooled KO in pancreatic differentiation",
+                    "supplementary_links": [],
+                    "target_genes": [
+                        "PDX1",
+                        "HES1",
+                        "NEUROD1",
+                        "PAX6",
+                        "NKX2-2",
+                        "ARX",
+                        "GATA6",
+                        "GATA4",
+                        "FOXA2",
+                        "FOXA1",
+                        "RFX6",
+                        "GLIS3",
+                        "HHEX",
+                        "UBA6",
+                        "OTUD5",
+                        "TADA2B",
+                        "KDM2B",
+                        "GSC",
+                        "ONECUT1",
+                        "MNX1",
+                        "TET1",
+                        "TET2",
+                        "TET3",
+                        "NANOG",
+                        "BCOR",
+                        "NEUROG3",
+                        "BMPR1A",
+                        "TLE3",
+                        "NKX6-1",
+                        "PBX1",
+                        "QSER1",
+                        "PROSER1",
+                        "HNF4A"
+                    ]
+                },
+                "submissionDate": "2025-01-20T11:00:27.695Z",
+                "updateDate": "2025-04-15T15:00:25.996Z",
+                "user": "dipayan",
+                "lastModifiedUser": "dipayan",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "eedfaa47-846a-4f2d-88ba-58956641037e"
+                },
+                "events": [],
+                "contentLastModified": "2025-02-06T10:56:37.042Z",
+                "accessions": [
+                    "ERP168459",
+                    "GSE288587"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": true,
+                "id": "678e2ccbf134490727a45a8c",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678e2ccbf134490727a45a8c&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678e2ccbf134490727a45a8c&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=678e2ccbf134490727a45a8c&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/678e2ccbf134490727a45a8c/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            },
+            {
+                "described_by": null,
+                "schema_version": null,
+                "schema_type": null,
+                "content": {
+                    "biological_sample_types": [
+                        "cell line"
+                    ],
+                    "cell_line_names": [
+                        "H1"
+                    ],
+                    "contact_emails": [],
+                    "contact_first_name": "",
+                    "contact_surname": "",
+                    "dracc_data_sharing_date": "",
+                    "duo_codes": [
+                        "NRES"
+                    ],
+                    "institute": "MSKCC",
+                    "label": "MSK_CRISPR_KO_gRNA_enrichment_pluripotency regulation",
+                    "model_organ_systems": [
+                        "Definitive endoderm",
+                        "Neuroectoderm"
+                    ],
+                    "other_comments": "",
+                    "perturbation_type": [
+                        "CRISPR-Cas9 screen"
+                    ],
+                    "readout_assay": "gRNA sequencing",
+                    "sequencing_platforms": [],
+                    "study_description": "",
+                    "study_title": "Parallel genome-scale CRISPR-Cas9 screens uncouple human pluripotent stem cell identity versus fitness",
+                    "supplementary_links": [],
+                    "target_genes": []
+                },
+                "submissionDate": "2025-01-08T16:35:37.060Z",
+                "updateDate": "2025-06-18T13:18:10.578Z",
+                "user": "",
+                "lastModifiedUser": "",
+                "type": "Study",
+                "uuid": {
+                    "uuid": "09a160f7-64eb-4e4d-9142-a2131bc45282"
+                },
+                "events": [],
+                "contentLastModified": "2025-06-18T13:18:10.421Z",
+                "accessions": [
+                    "SRP532381",
+                    "GSE277069"
+                ],
+                "validationState": "Draft",
+                "validationErrors": null,
+                "graphValidationErrors": null,
+                "isUpdate": false,
+                "releaseStatus": "Public",
+                "hasOpenSubmission": false,
+                "id": "677ea959e0e750692acdbd38",
+                "_links": {
+                    "self": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38"
+                    },
+                    "study": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38"
+                    },
+                    "validating": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38/validatingEvent"
+                    },
+                    "rawDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=677ea959e0e750692acdbd38&type=raw",
+                        "title": "Raw datasets for this study"
+                    },
+                    "processedDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=677ea959e0e750692acdbd38&type=processed",
+                        "title": "Processed datasets for this study"
+                    },
+                    "analysisDatasets": {
+                        "href": "/datasets/search/byStudyAndType?id=677ea959e0e750692acdbd38&type=analysis",
+                        "title": "Analysis datasets for this study"
+                    },
+                    "submissionEnvelopes": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38/submissionEnvelopes",
+                        "title": "Access or create new submission envelopes"
+                    },
+                    "datasets": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38/datasets"
+                    },
+                    "submissionEnvelope": {
+                        "href": "https://api.ingest.dev.archive.morphic.bio/studies/677ea959e0e750692acdbd38/submissionEnvelope",
+                        "title": "A single submission envelope"
+                    }
+                }
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "https://api.ingest.dev.archive.morphic.bio/studies/search/findByReleaseStatus?releaseStatus=PUBLIC&page=0&size=20"
+        }
+    },
+    "page": {
+        "size": 20,
+        "totalElements": 15,
+        "totalPages": 1,
+        "number": 0
+    }
+}

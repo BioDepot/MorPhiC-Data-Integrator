@@ -1,4 +1,5 @@
 import queue
+import shutil
 import signal
 import time
 import subprocess
@@ -499,7 +500,8 @@ def write_metadata_json(samples, srr_groups, output_path):
     for sample in samples:
         grouped[sample["group"]].append({
             "srr_id": sample["name"],
-            "layout": sample["layout"]
+            "layout": sample["layout"],
+            "preprocessed": False
         })
     
     # Add SRR ID samples from session metadata
@@ -512,7 +514,8 @@ def write_metadata_json(samples, srr_groups, output_path):
                 # Assume SRR samples are PAIRED by default (can be adjusted)
                 grouped[group_name].append({
                     "srr_id": srr_id,
-                    "layout": "PAIRED"  # or derive from metadata if available
+                    "layout": "PAIRED",# or derive from metadata if available
+                    "preprocessed": True
                 })
 
     metadata = {
@@ -544,6 +547,7 @@ def run_bwb():
         return render_template("dash.html", form=form, status=-1)
 
     randStr = str(uuid.uuid4())
+    shutil.copy("./mergedCounts.tsv", os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv"))
     upload_root = os.path.join(BWB_SCHED_DIR, STORAGE_ID, randStr)
     os.makedirs(upload_root, exist_ok=True)
 
@@ -575,6 +579,7 @@ def run_bwb():
             return render_template("dash.html", form=form, status=-1)
 
     samples = []
+    userUploadedFiles = False
     for idx in sample_indices:
         prefix = f"samples[{idx}]"
 
@@ -600,6 +605,7 @@ def run_bwb():
         # Save FASTQ files with names based on user-given sample name
         r1_path = None
         if r1 and r1.filename:
+            userUploadedFiles = True
             # Use sample name with _1 suffix
             r1_filename = f"{name}_1.fastq"
             r1_path = os.path.join(sample_dir, r1_filename)
@@ -625,6 +631,7 @@ def run_bwb():
             "r2": r2_path,
         })
 
+    print(f"USER UPLOADED FILES: {userUploadedFiles}")
     metadata_path = os.path.join(upload_root, "metadata.json")
     metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
     write_metadata_json(
@@ -648,18 +655,35 @@ def run_bwb():
         print("SRR IDs:", ",".join(srr_ids))
     else:
         print("SRR IDs: None")
-    cmd = (
-        f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
-        f"-v \"$(pwd)\":/wfs "
-        f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
-        f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
-        f"patrickmckeever/bwb-scheduler:latest bwbSched run "
-        f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-        f"-p Start.srridsAll={srrIds} "
-        f"-p Start.fastqdir=/data/{randStr} "
-        f"-p Start.metadata_json={metadata_cnt_path} "
-        f"/wfs/bulkrna.json"
-    )
+
+    if userUploadedFiles:
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p Start.fastqdir=/data/{randStr} "
+            f"-p Start.metadata_json={metadata_cnt_path} "
+            f"-p Start.samplesToRetain={srrIds} "
+            f"-p Start.preprocessedCnts=/data/mergedCounts.tsv "
+            f"/wfs/bulkrna_full.json"
+        )
+    else:
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p 10.metadata_json=/data/metadata3.json "
+            f"-p 13.samplesToRetain={srrIds} "
+            f"-p 13.tablesDir=/data/processing/Tables "
+            f"-p 13.preprocessedCnts=/data/mergedCounts.tsv "
+            f"/wfs/bulkrna_preprocessed.json"
+        )
 
     print(cmd)
     job_id = JOB_MANAGER.submit(cmd)
