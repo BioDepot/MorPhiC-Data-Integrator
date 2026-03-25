@@ -1,13 +1,10 @@
 {% extends "layout.html" %}
-
 {% block script %}
 <head>
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
   /* =========================
      Job status polling
      ========================= */
@@ -17,16 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const queueText    = document.getElementById("job-queue-position");
   const resultBox    = document.getElementById("job-result");
   const cancelBtn    = document.getElementById("cancel-job-btn");
-
   let pollTimer = null;
-
   function renderText(text) {
     resultBox.innerHTML = `
       <pre style="white-space:pre-wrap; background:#f8f9fa; padding:8px;">
 ${text || ""}
       </pre>`;
   }
-
   function renderImage(jobId) {
     resultBox.innerHTML = `
       <div class="text-center">
@@ -52,20 +46,17 @@ ${text || ""}
       </div>
     `;
   }
-
   function updateStatus() {
     fetch(`/job-status/${jobId}`)
       .then(r => r.json())
       .then(data => {
         const status = data.status || "unknown";
         statusText.textContent = status;
-
         if (data.queue_position !== null && data.queue_position !== undefined) {
           queueText.textContent = `Position in queue: ${data.queue_position}`;
         } else {
           queueText.textContent = "";
         }
-
         switch (status) {
           case "queued":
           case "running":
@@ -74,20 +65,17 @@ ${text || ""}
               renderText(data.result);
             }
             break;
-
           case "done":
           case "success":
             cancelBtn.style.display = "none";
             clearInterval(pollTimer);
             renderImage(jobId);
             break;
-
           case "error":
             cancelBtn.style.display = "none";
             clearInterval(pollTimer);
             renderText(data.result || "Workflow failed.");
             break;
-
           case "canceled":
             cancelBtn.style.display = "none";
             clearInterval(pollTimer);
@@ -99,17 +87,14 @@ ${text || ""}
         console.error(err);
       });
   }
-
   if (jobId) {
     statusBox.style.display = "block";
     updateStatus();
     pollTimer = setInterval(updateStatus, 2000);
-
     cancelBtn.addEventListener("click", () => {
       const csrfToken = document
         .querySelector('meta[name="csrf-token"]')
         .getAttribute("content");
-
       fetch(`/cancel-job/${jobId}`, {
         method: "POST",
         headers: {
@@ -118,14 +103,12 @@ ${text || ""}
       }).then(updateStatus);
     });
   }
-
   /* =========================
      Dynamic sample handling
      ========================= */
   let sampleIndex = 0;
   const container = document.getElementById("samples-container");
   const addBtn    = document.getElementById("add-sample-btn");
-
   function enforceUniformLayout(layout) {
     document.querySelectorAll(".read-type").forEach(rt => {
       rt.value = layout;
@@ -133,47 +116,35 @@ ${text || ""}
       r2.style.display = layout === "PAIRED" ? "block" : "none";
     });
   }
-
   // Get groups from session metadata
   const sessionGroups = {{ session.get('user_selected_metadata', {}).get('groups', []) | tojson | safe }};
-  
+
+  function buildGroupOptions() {
+    if (sessionGroups && sessionGroups.length > 0) {
+      return sessionGroups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+    }
+    return `<option value="group_a">Group A</option><option value="group_b">Group B</option>`;
+  }
+
   function addSampleRow(defaultLayout = "SINGLE") {
     const card = document.createElement("div");
     card.className = "card mb-3 p-3";
-
-    // Build group options dynamically
-    let groupOptions = '';
-    if (sessionGroups && sessionGroups.length > 0) {
-      groupOptions = sessionGroups.map(group => 
-        `<option value="${group.name}">${group.name}</option>`
-      ).join('');
-    } else {
-      // Fallback if no session groups
-      groupOptions = `
-        <option value="group_a">Group A</option>
-        <option value="group_b">Group B</option>
-      `;
-    }
-
     card.innerHTML = `
       <div class="form-row align-items-end">
-
         <div class="col-md-3">
           <label>Sample name</label>
           <input name="samples[${sampleIndex}][name]"
                  class="form-control"
                  required>
         </div>
-
         <div class="col-md-2">
           <label>Group</label>
           <select name="samples[${sampleIndex}][group]"
                   class="form-control"
                   required>
-            ${groupOptions}
+            ${buildGroupOptions()}
           </select>
         </div>
-
         <div class="col-md-2">
           <label>Read layout</label>
           <select name="samples[${sampleIndex}][layout]"
@@ -182,7 +153,6 @@ ${text || ""}
             <option value="PAIRED">Paired-end</option>
           </select>
         </div>
-
         <div class="col-md-2">
           <label>FASTQ R1</label>
           <input type="file"
@@ -191,7 +161,6 @@ ${text || ""}
                  accept=".fastq"
                  required>
         </div>
-
         <div class="col-md-2 r2-field" style="display:none;">
           <label>FASTQ R2</label>
           <input type="file"
@@ -199,7 +168,6 @@ ${text || ""}
                  class="form-control"
                  accept=".fastq">
         </div>
-
         <div class="col-md-1">
           <button type="button"
                   class="btn btn-danger btn-sm remove-sample">
@@ -208,36 +176,70 @@ ${text || ""}
         </div>
       </div>
     `;
-
     container.appendChild(card);
-
     const readType = card.querySelector(".read-type");
     const r2Field  = card.querySelector(".r2-field");
     const remove   = card.querySelector(".remove-sample");
-
     readType.value = defaultLayout;
     r2Field.style.display = defaultLayout === "PAIRED" ? "block" : "none";
-
     readType.addEventListener("change", e => {
       enforceUniformLayout(e.target.value);
     });
-
     remove.addEventListener("click", () => card.remove());
-
     sampleIndex++;
   }
 
   addBtn.addEventListener("click", () => addSampleRow("SINGLE"));
   addSampleRow("SINGLE");
+
+  /* =========================
+     Dynamic SRR ID handling
+     ========================= */
+  let srrIndex = 0;
+  const srrContainer = document.getElementById("srr-container");
+  const addSrrBtn    = document.getElementById("add-srr-btn");
+
+  function addSrrRow() {
+    const card = document.createElement("div");
+    card.className = "card mb-2 p-3";
+    card.innerHTML = `
+      <div class="form-row align-items-end">
+        <div class="col-md-5">
+          <label>SRR Accession ID</label>
+          <input name="srr_entries[${srrIndex}][id]"
+                 class="form-control"
+                 placeholder="e.g. SRR123456"
+                 pattern="[SDE]RR[0-9]+"
+                 title="Enter a valid SRA run accession (e.g. SRR123456)">
+        </div>
+        <div class="col-md-5">
+          <label>Group</label>
+          <select name="srr_entries[${srrIndex}][group]"
+                  class="form-control">
+            ${buildGroupOptions()}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="button"
+                  class="btn btn-danger btn-sm remove-srr">
+            ✕
+          </button>
+        </div>
+      </div>
+    `;
+    srrContainer.appendChild(card);
+    card.querySelector(".remove-srr").addEventListener("click", () => card.remove());
+    srrIndex++;
+  }
+
+  addSrrBtn.addEventListener("click", addSrrRow);
 });
 </script>
 {% endblock script %}
 
 {% block my_content %}
 <div class="content container">
-
   <h1 class="pt-3">Run workflows using Bwb</h1>
-
   <div id="job-status-box"
        class="alert alert-info mt-3"
        style="display:none;">
@@ -245,25 +247,20 @@ ${text || ""}
     <p id="job-status-text">Checking…</p>
     <p id="job-queue-position"></p>
     <div id="job-result"></div>
-
     <button id="cancel-job-btn"
             class="btn btn-danger mt-2"
             style="display:none;">
       Cancel Job
     </button>
   </div>
-
   <p class="card-text mb-4">
     Upload FASTQ files, assign samples to groups, and run RNA-seq workflows.
     All samples must use the same read layout.
   </p>
-
   <form method="POST"
         action="{{ url_for('run_bwb') }}"
         enctype="multipart/form-data">
-
     {{ form.hidden_tag() }}
-
     <!-- SRR IDs and Groups Section -->
     <section class="mb-5">
       <h2 class="text-left mb-3">Selected samples</h2>
@@ -271,7 +268,7 @@ ${text || ""}
         {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
         <div class="card-header">
           <h3 class="card-title">
-            SRR ID's 
+            SRR ID's
             <small><a href="/metadata" class="ml-2 text-info">Edit</a></small>
           </h3>
         </div>
@@ -293,19 +290,29 @@ ${text || ""}
         </div>
       </div>
     </section>
-
     <!-- Upload FASTQ Files Section -->
     <section class="mb-5">
       <h2 class="mb-3">Upload FASTQ files</h2>
       <div id="samples-container"></div>
-
       <button type="button"
               id="add-sample-btn"
               class="btn btn-secondary mt-2">
         Add sample
       </button>
     </section>
-
+    <!-- Additional SRR IDs Section -->
+    <section class="mb-5">
+      <h2 class="mb-1">Additional SRR IDs <small class="text-muted">(optional)</small></h2>
+      <p class="text-muted mb-3">
+        Specify extra SRA run accessions to include. Each ID will be downloaded and assigned to the selected group.
+      </p>
+      <div id="srr-container"></div>
+      <button type="button"
+              id="add-srr-btn"
+              class="btn btn-secondary mt-2">
+        Add SRR ID
+      </button>
+    </section>
     <section class="mb-5 pb-5">
       <hr />
       <button type="submit" class="btn btn-info">

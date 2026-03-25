@@ -1,4 +1,5 @@
 import queue
+import re
 import shutil
 import signal
 import time
@@ -458,42 +459,7 @@ def cancel_job(job_id):
 def job_status(job_id):
     return jsonify(JOB_MANAGER.get_status(job_id))
 
-def write_metadata_json(samples, srr_groups, output_path):
-    """
-    Write metadata JSON in the format expected by BWB workflows.
-
-    Expected output structure:
-    {
-      "groups": [
-        {
-          "name": "<group_name>",
-          "samples": [
-            {
-              "srr_id": "<sample_name>",
-              "layout": "SINGLE" | "PAIRED"
-            }
-          ]
-        }
-      ]
-    }
-
-    Parameters
-    ----------
-    samples : list of dict
-        Each dict must contain:
-        - name   : sample identifier
-        - group  : group/condition name
-        - layout : SINGLE or PAIRED
-        
-    srr_groups : list of dict or None
-        Groups from session metadata, each containing:
-        - name    : group name
-        - samples : list of SRR IDs
-        
-    output_path : str
-        Path where metadata JSON will be written
-    """
-
+def write_metadata_json(samples, srr_groups, srr_entries, output_path):
     grouped = defaultdict(list)
 
     # Add uploaded FASTQ samples
@@ -504,33 +470,34 @@ def write_metadata_json(samples, srr_groups, output_path):
             "preprocessed": False
         })
     
-    # Add SRR ID samples from session metadata
+    # Add SRR ID samples from session metadata (preprocessed)
     if srr_groups:
         for group in srr_groups:
             group_name = group.get("name")
-            srr_samples = group.get("samples", [])
-            
-            for srr_id in srr_samples:
-                # Assume SRR samples are PAIRED by default (can be adjusted)
+            for srr_id in group.get("samples", []):
                 grouped[group_name].append({
                     "srr_id": srr_id,
-                    "layout": "PAIRED",# or derive from metadata if available
+                    "layout": "PAIRED",
                     "preprocessed": True
                 })
 
+    # Add manually-entered SRR entries (non-preprocessed, with explicit group)
+    for entry in (srr_entries or []):
+        grouped[entry["group"]].append({
+            "srr_id": entry["id"],
+            "layout": "PAIRED",
+            "preprocessed": False
+        })
+
     metadata = {
         "groups": [
-            {
-                "name": group_name,
-                "samples": group_samples
-            }
+            {"name": group_name, "samples": group_samples}
             for group_name, group_samples in grouped.items()
         ]
     }
 
     with open(output_path, "w") as fh:
         json.dump(metadata, fh, indent=2)
-
 
 # Key assumptions of bulkrna.json: 
 #   - All paired end fastq files are named "sample_1.fastq" and "sample_2.fastq"
@@ -550,6 +517,9 @@ def run_bwb():
     shutil.copy("./mergedCounts.tsv", os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv"))
     upload_root = os.path.join(BWB_SCHED_DIR, STORAGE_ID, randStr)
     os.makedirs(upload_root, exist_ok=True)
+
+    raw = form.sra_ids.data or ""
+    sra_ids = [s.strip() for s in re.split(r'[\s,]+', raw) if s.strip()]
 
     srr_metadata = session.get('user_selected_metadata')
     print(srr_metadata)
@@ -634,9 +604,21 @@ def run_bwb():
     print(f"USER UPLOADED FILES: {userUploadedFiles}")
     metadata_path = os.path.join(upload_root, "metadata.json")
     metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
+
+    srr_entries = []
+    i = 0
+    while True:
+        srr_id    = request.form.get(f"srr_entries[{i}][id]", "").strip()
+        srr_group = request.form.get(f"srr_entries[{i}][group]", "").strip()
+        if not srr_id and not srr_group:
+            break
+        if srr_id:
+            srr_entries.append({"id": srr_id, "group": srr_group})
+        i += 1
     write_metadata_json(
         samples=samples,
         srr_groups=srr_groups,
+        srr_entries=srr_entries,
         output_path=metadata_path
     )
 
@@ -656,7 +638,9 @@ def run_bwb():
     else:
         print("SRR IDs: None")
 
-    if userUploadedFiles:
+    manual_sra_ids = [e["id"] for e in srr_entries]
+    sraIds = '[' + ','.join(manual_sra_ids) + ']'
+    if userUploadedFiles or len(manual_sra_ids) > 0:
         cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
             f"-v \"$(pwd)\":/wfs "
@@ -667,6 +651,7 @@ def run_bwb():
             f"-p Start.fastqdir=/data/{randStr} "
             f"-p Start.metadata_json={metadata_cnt_path} "
             f"-p Start.samplesToRetain={srrIds} "
+            f"-p Start.srridsAll={sraIds} "
             f"-p Start.preprocessedCnts=/data/mergedCounts.tsv "
             f"/wfs/bulkrna_full.json"
         )

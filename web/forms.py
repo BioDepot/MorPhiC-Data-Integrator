@@ -69,6 +69,7 @@ class BwbForm(FlaskForm):
     """
     file = FileField('fastq', validators=[Optional(), FileAllowed(['fastq'], 'Only .fastq allowed')])
     file_r2 = FileField('fastq', validators=[Optional(), FileAllowed(['fastq'], 'Only .fastq allowed')])
+    sra_ids = TextAreaField('SRA IDs', validators=[Optional()])
     read_type = SelectField(
         'read_type',
         choices=[('single', 'Single-end'), ('paired', 'Paired-end')],
