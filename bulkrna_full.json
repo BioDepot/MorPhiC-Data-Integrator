@@ -2987,8 +2987,8 @@
 		},
 		"10": {
 			"Id": 10,
-			"ImageName": "brycenofu/notebook-r-dashboard",
-			"ImageTag": "latest",
+			"ImageName": "patrickmckeever/rnotebook",
+			"ImageTag": "0.2",
 			"Title": "heatmap",
 			"Command": [
                 "jupyter nbconvert --execute /app/dashboard_differential_expression_analysis.ipynb --to notebook --output /data/dashboard_differential_expression_analysis_output.ipynb || ls _bwb{counts_dir}/volcano_plot.png || exit 1"
