@@ -1,15 +1,154 @@
 {% extends "layout.html" %}
 {% block script %}
+<style>
+  input[type=number] {
+    appearance: textfield;
+  }
+</style>
 <script>
-  // Submit form when checkboxes are checked/unchecked
   document.addEventListener("DOMContentLoaded", function () {
+    // Submit form when checkboxes are checked/unchecked
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
       checkbox.addEventListener('change', function () {
         this.form.submit();
-      })
-    })
-  })
+      });
+    });
+
+    const external_gse_form = document.getElementById("external_gse_form");
+    const list = document.getElementById("item-list");
+
+    // Handle form submit for external GEO ID
+    external_gse_form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(external_gse_form);
+
+      try {
+        const stopLoading = showLoading("Checking if GSE ID is bulk RNA-seq...");
+
+        const response = await fetch("/external_geo_id", {
+          method: "POST",
+          body: formData
+        });
+
+        stopLoading();
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const geoId = data.data;
+          let message = `${geoId ? geoId : "ID"} was successfully added`;
+          showMessage(message, "success");
+
+          addItemToDOM(geoId);
+          external_gse_form.reset();
+        } else {
+          throw new Error(data.error || "Request failed");
+        }
+      } catch (err) {
+        console.log("Something went wrong, could not add item");
+        showMessage(err, "warning");
+        throw err
+      }
+    });
+
+    // Load GEO ID items on page load
+    async function loadItems() {
+      try {
+        const response = await fetch("/external_geo_id");
+        if (!response.ok) {
+          throw new Error("Failed to load external GEO accession IDs");
+        };
+        const data = await response.json();
+        const items = data.data;
+
+        list.replaceChildren()
+        items.forEach(addItemToDOM);
+      } catch (err) {
+        showMessage(err, "warning");
+      }
+    }
+
+    // Add GEO ID item to DOM
+    function addItemToDOM(item) {
+      const li = document.createElement("li");
+      li.classList.add("list-inline-item");
+
+      const btn = document.createElement("button");
+      btn.classList.add("btn", "btn-outline-dark", "rounded-pill");
+
+      const label = document.createElement("span");
+      label.textContent = item;
+
+      const chipRemoveIcon = document.createElement("span");
+      // chipRemoveIcon.setAttribute('aria-hidden', 'true');
+      chipRemoveIcon.setAttribute("aria-label", "Remove")
+      chipRemoveIcon.classList.add("fa", "fa-times", "pl-2");
+
+      btn.appendChild(label);
+      btn.appendChild(chipRemoveIcon);
+      btn.onclick = () => deleteItem(item, li);
+
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+
+    // Delete GEO ID item
+    async function deleteItem(id, element) {
+      const formated_id = String(id).replace(/\D/g, "");
+      console.log(`FORMATED ID: ${formated_id}`);
+      const formData = new FormData(external_gse_form);
+      try {
+        response = await fetch(`/external_geo_id/${formated_id}`, {
+          method: "DELETE",
+          body: formData
+        });
+        if (!response.ok) {
+          throw new Error("Failed to remove external GEO accession IDs");
+        };
+
+        element.remove();
+      } catch (err) {
+        console.log(err);
+        showMessage(err, "warning");
+      }
+    }
+
+    // Show message, types: "info", "success", "warning", "danger"
+    function showMessage(message, type = "info") {
+      const div = document.createElement("div");
+      div.className = `alert alert-${type}`;
+      div.textContent = message;
+
+      document.getElementById("ext_geo_id_cb").appendChild(div);
+
+      setTimeout(() => div.remove(), 6000);
+    }
+
+    // Show loading overlay
+    function showLoading(message = "Loading...") {
+      const div = document.createElement("div");
+      div.classList.add("overlay");
+
+      const icon = document.createElement("i");
+      icon.classList.add("fas", "fa-2x", "fa-sync-alt", "fa-spin");
+      icon.setAttribute('aria-hidden', 'true');
+
+      const span = document.createElement("span");
+      span.textContent = message;
+
+      div.appendChild(icon);
+      div.appendChild(span);
+
+      document.getElementById("external-geo-card").appendChild(div);
+
+      return () => div.remove();
+    }
+
+    // Initial load of GEO ID items
+    loadItems();
+  });
 </script>
 {% endblock script %}
 
@@ -63,8 +202,8 @@
                       src="{{ url_for('static', filename='images/morphic-symbol.svg') }}" alt="">
                   </a>
                   <div class="d-flex flex-column">
-                    <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
-                    <p class="small text-muted p-0 m-0">Explore relevant data</p>
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Identify Data</h4>
+                    <p class="small text-muted p-0 m-0">Identify relevant data</p>
                   </div>
                 </li>
                 <div
@@ -121,7 +260,7 @@
               </form>
             </div>
           </div>
-          <!-- /.card-title -->
+          <!-- /.card-header -->
           <div class="card-body">
             <div class="dataTables_wrapper dt-bootstrap4">
               <!-- {{ table | safe }} -->
@@ -167,6 +306,39 @@
               <!-- /.col -->
             </div>
             <!-- /.dataTables_wrapper -->
+          </div>
+        </div>
+        <!-- /.card -->
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+
+    <div class="row">
+      <div class="col">
+        <div id="external-geo-card" class="card">
+          <div class="card-header">
+            <h2 class="card-title"><b>External Data from GEO Series</b></h2>
+          </div>
+          <!-- /.card-header -->
+          <div id="ext_geo_id_cb" class="card-body">
+            <form id="external_gse_form" class="form-inline">
+              {{ geo_id_form.hidden_tag() }}
+              <div class="form-group flex-fill">
+                <div class="input-group mb-3 mr-sm-2 flex-fill">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="geo-prefix">GSE</span>
+                  </div>
+                  <label class="sr-only" for="geo_acc_id">GEO Accession ID</label>
+                  {{ geo_id_form.geo_acc_id(class="form-control") }}
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary mb-3" id="submit-geo-acc-id">Add</button>
+            </form>
+          </div>
+          <!-- /.card-body -->
+          <div class="card-footer">
+            <ul id="item-list" class="list-inline"></ul>
           </div>
         </div>
         <!-- /.card -->

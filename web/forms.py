@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField, BooleanField
+from wtforms import StringField, TextAreaField, SelectField, IntegerRangeField, BooleanField, IntegerField
 from flask_wtf.file import FileField, FileAllowed
-from wtforms.validators import DataRequired, Regexp, Optional
+from wtforms.validators import DataRequired, Regexp, Optional, NumberRange
 
 class SearchForm(FlaskForm):
     """
@@ -218,3 +218,19 @@ def create_morphic_form(studies_data):
         setattr(MorphicForm, gse_id, checkbox)
 
     return MorphicForm
+
+class ExternalID(FlaskForm):
+    """
+    Form for creating a new GEO Accession ID.
+    
+    Attributes:
+        geo_acc_id (IntegerField): A text field where the user enters GEO Accession ID, with no prefix.
+    """
+    geo_acc_id = IntegerField(
+        'GEO Accession ID',
+        render_kw={"placeholder": "eg. GSE224615"},
+        validators=[
+            DataRequired(message="Please enter a GEO Accession ID"),
+            NumberRange(min=1, message="ID must be positive")
+        ]
+    )

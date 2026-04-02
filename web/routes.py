@@ -12,7 +12,7 @@ from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
 from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
-from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form, create_morphic_form
+from .forms import SearchForm, BwbForm, GroupForm, ExternalID, create_results_table_form, create_srr_form, create_morphic_form
 import requests
 from werkzeug.utils import secure_filename
 import json
@@ -337,7 +337,112 @@ def morphic_data():
         if checkbox.type == 'BooleanField' and session.get('gse_ids') and checkbox.id in session.get('gse_ids'):
             checkbox.data = True
 
-    return render_template("morphic_data.html", form=form, data=data)
+    # Create a Form for user submitted GEO ID's
+    geo_id_form = ExternalID()
+
+    return render_template("morphic_data.html", form=form, data=data, geo_id_form=geo_id_form)
+
+@app.route('/external_geo_id', methods=['POST'])
+def create_external_geo_id():
+    """
+    Create a new external GEO ID (GSE series) when study is bulk RNA-seq.
+
+    Status Codes:
+        201 Created: Successfully added GEO ID's
+        400 Bad Request: Missing or invalid input
+        409 Conflict: GEO ID already exists or not bulk RNA-seq
+        422 Unprocessable Entity: GEO ID is not or could not determine is bulk RNA-seq
+    """
+    
+    try:
+        # Create a Form for user submitted GEO ID's
+        form = ExternalID()
+
+        if not form.validate_on_submit():
+            return jsonify({"success": False, "error": form.geo_acc_id.errors}), 400
+        
+        geo_id = form.geo_acc_id.data
+
+        # Check if previously submitted GEO ID
+        if f"GSE{geo_id}" in session.get('external_gse_ids', []) or f"GSE{geo_id}" in session.get('gse_ids', []):
+            return jsonify({"success": False, "error": "External GEO accession ID already exists"}), 409
+
+        # Get metadata for GEO ID
+        metadata_df = sra_web_api.get_metadata_for_accession_id(f"GSE{geo_id}")
+
+        if metadata_df is None or metadata_df.empty:
+            return jsonify({"success": False, "error": "Could not find metadata for external GEO accession ID"}), 422
+        
+        # Normalize columns
+        metadata_df.columns = [c.lower() for c in metadata_df.columns]
+        
+        # Check organism
+        is_human = metadata_df['organism_name'].str.contains("Homo sapiens", case=False, na=False).any()
+
+        # Check RNA-seq
+        is_rnaseq = metadata_df['library_strategy'].str.contains("RNA-seq", case=False, na=False).any()
+
+        # Check bulk vs single-cell
+        is_single_cell = metadata_df.apply(
+            lambda row: any(
+                kw in str(row).lower()
+                for kw in ["single-cell", "scrna", "10x", "smart-seq"]
+            ), axis=1
+        ).any()
+
+        is_bulk = is_rnaseq and not is_single_cell
+
+        if not (is_human and is_rnaseq and is_bulk):
+            return jsonify({"success": False, "error": "GEO accession ID was not bulk RNA-seq"}), 422
+        # Save GEO ID
+        external_gse_ids = set(session.get('external_gse_ids', []))
+        external_gse_ids.add(f"GSE{geo_id}")
+        session['external_gse_ids'] = list(external_gse_ids)
+        session.modified = True
+
+        return jsonify({"success": True, "data": f"GSE{geo_id}"}), 201
+    except Exception as error:
+        print(f"Error creating external geo id: {error}")
+        return jsonify({"success": False, "error": "Failed to add external GEO accession ID"}), 500
+
+@app.route('/external_geo_id', methods=['GET'])
+def get_external_geo_id():
+    """
+    Retrieve external GEO ID's
+    
+    Status Codes:
+        200 OK: Successfully Retrieves GEO ID's
+    """
+
+    try:
+        # Get saved GEO ID's
+        external_gse_ids = session.get('external_gse_ids', [])
+
+        return jsonify({"success": True, "data": external_gse_ids}), 200
+    except Exception:
+        return jsonify({"success": False, "error": "Could not get external GEO accession IDs"}), 500
+    
+@app.route('/external_geo_id/<int:geo_id>', methods=['DELETE'])
+def delete_external_geo_id(geo_id):
+    """
+    Delete external GEO ID by its ID
+
+    Status Codes:
+        200 OK: GEO ID successfully deleted
+        404 Not Found: GEO ID does not exist
+    """
+    try:
+        if not session.get('external_gse_ids'):
+            return jsonify({"success": False, "error": "GEO accesion ID was not found"}), 404
+
+        external_gse_ids = set(session.get('external_gse_ids', []))
+        external_gse_ids.discard(f"GSE{geo_id}")
+        session['external_gse_ids'] = list(external_gse_ids)
+
+        return jsonify({"success": True, "data": f"GSE{geo_id}"}), 200
+    except Exception:
+        return jsonify({"success": False, "error": "Failed to delete GEO accession IDs"}), 500
+
 
 @app.route('/morphic/refresh-data', methods=['GET'])
 def morphic_refresh_data():
@@ -346,36 +451,77 @@ def morphic_refresh_data():
 
 @app.route('/metadata', methods=['GET', 'POST'])
 def metadata():
-    # get user selected gse id's
+    # Get user selected gse id's
     gse_ids = session.get('gse_ids')
-    if gse_ids is None or not gse_ids:
+    external_gse_ids = session.get('external_gse_ids')
+    
+    if not gse_ids and not external_gse_ids:
         return render_template('metadata.html', error_message="Please select a study to view metadata")
     
-    # get metadata for new id's
+    # Create form for experiment groups
+    user_selected_metadata = session.get('user_selected_metadata', {})
+    if user_selected_metadata is not None and user_selected_metadata and user_selected_metadata.get('groups'):
+        group_names  = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
+        select_group_form = GroupForm(group_a=group_names[0], group_b=group_names[1])
+    else:
+        select_group_form = GroupForm()
+    available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
+
+    # Set variables to make avaiblable for the template
+    context = {'group_form': select_group_form, 'group_names': available_groups}
+
+    # Retrieve metadata table, form, and error message for ID's
+    if gse_ids:
+        metadata_context = metadata_for_studies(gse_ids, 'prev_gse_ids_metadata', 'metadata.csv')
+        context.update(metadata_context)
+    if external_gse_ids:
+        external_metadata_context = metadata_for_studies(external_gse_ids, 'prev_external_gse_ids_metadata', 'metadata_external.csv')
+        if external_metadata_context.get('data'):
+            context['external_data'] = external_metadata_context['data']
+        if external_metadata_context.get('form'):
+            context['external_form'] = external_metadata_context['form']
+        if external_metadata_context.get('error_message'):
+            context['error_message'] = f"{context.get('error_message', "")} {external_metadata_context.get('error_message', "")}"
+
+    return render_template('metadata.html', **context)
+
+def metadata_for_studies(gse_ids, prev_gse_ids_metadata, file_name):
+    """
+    Gets metadata for study ids (GSE or ERP series), creates form, saves form selections to session, saves metadata to file
+    
+    Parameters
+    ----------
+    gse_ids : list of str
+        Study ID's, each id must GSE or SRP series
+    prev_gse_ids_metadata : str
+        Session name for storing previously submitted GEO ID's     
+    file_name : str
+        file name where metadata will be written, example: 'metadata.csv'
+    """
+
+    # Get metadata for new id's
     error_message = None
-    if gse_ids != session.get('prev_gse_ids_metadata'):
+    if gse_ids != session.get(prev_gse_ids_metadata):
         # fetch metadata for gse_id's
-        api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
+        api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, file_name=file_name)
         if api_response is not None and api_response and api_response.get('ids_with_no_metadata'):
-            error_message = f"No results were found for: {', '.join(api_response.get('ids_with_no_metadata', []))}"
-        session['prev_gse_ids_metadata'] = gse_ids
+            error_message = f"No results were found for: {', '.join(api_response.get('ids_with_no_metadata', []))}."
+        session[prev_gse_ids_metadata] = gse_ids
 
-    # read saved csv metadata
-    metadata_df = utils.load_csv_file_as_df('metadata.csv')
+    # Read saved csv metadata
+    metadata_df = utils.load_csv_file_as_df(file_name)
     if metadata_df is None:
-        return render_template('metadata.html', error_message="No metadata found" if error_message is None else error_message)
+        return {'error_message': "No metadata found" if error_message is None else error_message}
 
-    # create Forms
+    # Create Forms
     srr_ids = metadata_df['run_accession']
     user_selected_metadata = session.get('user_selected_metadata', {})
     if user_selected_metadata is not None and user_selected_metadata and user_selected_metadata.get('groups'):
         group_names  = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
 
         SRRForm = create_srr_form(set(srr_ids), group_names)
-        select_group_form = GroupForm(group_a=group_names[0], group_b=group_names[1])
     else:
         SRRForm = create_srr_form(set(srr_ids))
-        select_group_form = GroupForm()
     form = SRRForm()
 
     if form.validate_on_submit():
@@ -393,13 +539,13 @@ def metadata():
                         group_info['samples'].remove(new_srr_id)
                 form_selected_metadata.get('samples')[new_srr_id] = new_group_name
 
-        # save selected ids
+        # Save selected ids
         session['user_selected_metadata'] = form_selected_metadata
         session.modified = True
         with open("srr_id_groups.json", "w") as json_file:
             json.dump(form_selected_metadata, json_file, indent=4)
 
-    # update form with previously saved inputs
+    # Update form with previously saved inputs
     for dropdown in form:
         if dropdown.type == 'SelectField':
             if user_selected_metadata is not None and isinstance(user_selected_metadata, dict) and user_selected_metadata:
@@ -407,16 +553,16 @@ def metadata():
                 if metadata_samples:
                     dropdown.data = metadata_samples.get(dropdown.id)
 
-    available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
+    # available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
     metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template(
-        'metadata.html',
-        data=metadata,
-        form=form,
-        group_form=select_group_form,
-        group_names=available_groups,
-        error_message=error_message
-    )
+
+    context = {
+        'data': metadata,
+        'form': form
+    }
+    if error_message:
+        context['error_message'] = error_message
+    return context
 
 @app.route('/create-group', methods=['POST'])
 def create_group():
@@ -433,6 +579,43 @@ def create_group():
         }
         session.modified = True
     return redirect('/metadata')
+
+@app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])
+def is_human_bulk_rna_seq(srr_id):
+    """Determines if SRR ID is human bulk RNA-seq"""
+
+    try:
+        # Get metadata for SRR ID
+        metadata_df = sra_web_api.get_metadata_for_accession_id(srr_id)
+
+        if metadata_df is None or metadata_df.empty:
+            return jsonify({"error": "Could not determine if SRR ID is human bulk RNA-seq"}), 422
+        
+        # Normalize columns
+        metadata_df.columns = [c.lower() for c in metadata_df.columns]
+        
+        # Check organism
+        is_human = metadata_df['organism_name'].str.contains("Homo sapiens", case=False, na=False).any()
+
+        # Check RNA-seq
+        is_rnaseq = metadata_df['library_strategy'].str.contains("RNA-seq", case=False, na=False).any()
+
+        # Check bulk vs single-cell
+        is_single_cell = metadata_df.apply(
+            lambda row: any(
+                kw in str(row).lower()
+                for kw in ["single-cell", "scrna", "10x", "smart-seq"]
+            ), axis=1
+        ).any()
+
+        is_bulk = is_rnaseq and not is_single_cell
+
+        if not (is_human and is_rnaseq and is_bulk):
+            return jsonify({"error": "SRR ID was not bulk RNA-seq"}), 422
+
+        return jsonify({"id": srr_id, "is_human_bulk_rna_seq": is_human and is_rnaseq and is_bulk}), 200
+    except Exception:
+        return jsonify({"error": "Something went wrong"}), 500
 
 @app.route("/cancel-job/<job_id>", methods=["POST"])
 def cancel_job(job_id):
