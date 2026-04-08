@@ -297,6 +297,7 @@ def morphic_data():
     # Load MorPhiC Data
     data_file_name = 'morphic_data.json'
     morphic_full_data = utils.load_json_file(data_file_name)
+    print(morphic_full_data)
     
     # Get MorPhiC Data
     if morphic_full_data is None or session.get('morphic_refresh_data', True):
@@ -721,6 +722,24 @@ def volcano(job_id):
         mimetype="image/png",
         conditional=True
     )
+
+@app.route("/counts/<job_id>")
+def counts(job_id):
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+
+    counts_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/genesCounts.csv"
+    if not os.path.exists(counts_path):
+        abort(404)
+
+    return send_file(
+        counts_path,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="genesCounts.csv"
+    )
+
+
 
 @app.route("/dash")
 @app.route("/visualize")
