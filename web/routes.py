@@ -616,10 +616,6 @@ def is_human_bulk_rna_seq(srr_id):
         return jsonify({"id": srr_id, "is_human_bulk_rna_seq": is_human and is_rnaseq and is_bulk}), 200
     except Exception:
         return jsonify({"error": "Something went wrong"}), 500
-    
-@app.route('/download_counts')
-def download_counts():
-    return jsonify({"error": "Error downloading file"}), 501
 
 @app.route("/cancel-job/<job_id>", methods=["POST"])
 def cancel_job(job_id):
