@@ -1,46 +1,4 @@
 {% extends "layout.html" %}
-{% block script %}
-<!-- 
-put your custom script or styling here
--->
-
-<script>
-  // Fetch download data
-  async function downloadZipFile() {
-    const response = await fetch('/download_data');
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch download')
-    }
-
-    const blob = await response.blob()
-    console.log("got blob back")
-
-    const url = window.URL.createObjectURL(blob)
-
-    // Create temporary link element to trigger download
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'results-data.zip'
-    document.body.appendChild(a)
-    a.click();
-    document.body.removeChild(a);
-
-    // Revoke object url after download
-    window.URL.revokeObjectURL(url);
-  }
-
-  // Submit form when checkboxes are checked/unchecked
-  document.addEventListener("DOMContentLoaded", function () {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', function () {
-        this.form.submit();
-      })
-    })
-  })
-</script>
-{% endblock script %}
 
 {% block my_content %}
 <section class="content-header">
@@ -50,25 +8,28 @@ put your custom script or styling here
         <h1>Search Results</h1>
       </div>
       <div class="col-12">
-        <p class="mt-2">Explore relevant studies</p>
+        <p class="mt-2">Explore relevant studies. Check the studies you want to include and click <strong>Proceed to Metadata</strong>.</p>
       </div>
     </div>
   </div>
 </section>
-<!-- /.content-header -->
-<!-- DOWNLOAD SEARCH RESULTS -->
+
 <section class="content">
   <div class="container-fluid">
     <div class="row">
       <div class="col-12">
-        <div class="d-flex mb-3">
-          <button class="btn btn-secondary" onclick="downloadZipFile()">Download</button>
+        <div class="d-flex mb-3" style="gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="downloadZipFile()">Download results</button>
+          <a id="proceed-btn" href="/metadata" class="btn btn-info">
+            Proceed to Metadata
+            <span id="proceed-count" class="badge badge-light ml-1"></span>
+          </a>
         </div>
       </div>
     </div>
   </div>
 </section>
-<!-- /.content -->
+
 <section class="content mb-4">
   <div class="container-fluid">
     <div class="row">
@@ -79,172 +40,224 @@ put your custom script or styling here
               <div class="card card-lightblue card-outline card-outline-tabs">
                 {% if data %}
                 <div class="card-header pt-0 pl-0 pb-0 border-bottom-0">
-                  <!-- NAV TABS -->
                   <ul class="nav nav-tabs" id="myTab" role="tablist">
                     <li class="nav-item">
-                      <a class="nav-link active" id="expansion-tab" data-toggle="tab" href="#expansion" role="tab"
-                        aria-controls="expansion" aria-selected="true">Relevant Expansion Studies</a>
+                      <a class="nav-link active" id="expansion-tab" data-toggle="tab" href="#expansion"
+                         role="tab" aria-controls="expansion" aria-selected="true">Expansion Studies</a>
                     </li>
                     <li class="nav-item">
-                      <a class="nav-link" id="samples-tab" data-toggle="tab" href="#samples" role="tab"
-                        aria-controls="samples" aria-selected="false">Revelevant Samples</a>
+                      <a class="nav-link" id="samples-tab" data-toggle="tab" href="#samples"
+                         role="tab" aria-controls="samples" aria-selected="false">Samples</a>
                     </li>
                     <li class="nav-item">
-                      <a class="nav-link" id="seed-tab" data-toggle="tab" href="#seed" role="tab"
-                        aria-controls="contact" aria-selected="false">Relevant Seed Studies</a>
+                      <a class="nav-link" id="seed-tab" data-toggle="tab" href="#seed"
+                         role="tab" aria-controls="seed" aria-selected="false">Seed Studies</a>
                     </li>
                   </ul>
-                  <!-- /.nav-tabs -->
                 </div>
-                <!-- /.card-header -->
 
-                <!-- Display data -->
                 <div class="card-body">
-                  <form action="{{url_for('search_results')}}" method="POST">
-                    {{ form.hidden_tag() }}
-                    <div class="tab-content" id="myTabContent">
-                      <!-- TAB CONTENT: Expansion Studies -->
-                      <div class="tab-pane fade show active" id="expansion" role="tabpanel"
-                        aria-labelledby="expansion-tab">
-                        <table class="table table-bordered table-striped dataTable dtr-inline">
-                          <caption>
-                            Expansion Studies
-                          </caption>
-                          <thead>
-                            <tr>
-                              <th scope="col"></th>
-                              <th scope="col">gse_id</th>
-                              <th scope="col">gse_id_text</th>
-                              <th scope="col">index</th>
-                              <th scope="col">similarity score</th>
-                              <th scope="col">sample type</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for study in data["data"]["expansion_studies"] %}
-                            <tr>
-                              <th>{{ form[study["gse_id"]|string] }}</th>
-                              <th scope="row">
-                                <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ study['gse_id'] }}"
-                                  target="_blank" rel="noopener noreferrer">
-                                  {{ study["gse_id"] }}
-                                </a>
-                              </th>
-                              <td>{{ study["gse_id_text"] }}</td>
-                              <td>{{ study["index"] }}</td>
-                              <td>{{ study["similarity_score"] }}</td>
-                              <td>{{ study["sample_type"] }}</td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                      <!-- /.tab-pane -->
+                  <div class="tab-content" id="myTabContent">
 
-                      <!-- TAB CONTENT: Relevant Samples -->
-                      <div class="tab-pane fade" id="samples" role="tabpanel" aria-labelledby="samples-tab">
-                        <table class="table table-bordered table-striped dataTable dtr-inline">
-                          <caption>
-                            Samples
-                          </caption>
-                          <thead>
-                            <tr>
-                              <th scope="col"></th>
-                              <th scope="col">series_id</th>
-                              <th scope="col">title</th>
-                              <th scope="col">source_name_ch1</th>
-                              <th scope="col">extract_protocol_ch1</th>
-                              <th scope="col">characteristics_ch1</th>
-                              <th scope="col">sample type</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for sample in data["data"]["samples"] %}
-                            <tr>
-                              <td>{{ form[sample["series_id"]|string] }}</td>
-                              <th scope="row">
-                                <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['series_id'] }}"
-                                  target="_blank" rel="noopener noreferrer">
-                                  {{ sample["series_id"] }}
-                                </a>
-                              </th>
-                              <td>{{ sample["title"] }}</td>
-                              <td>{{ sample["source_name_ch1"] }}</td>
-                              <td>{{ sample["extract_protocol_ch1"] }}</td>
-                              <td>
-                                <ul>
-                                  {% for characteristics in sample["characteristics_ch1"].split(",") %}
-                                  <li>{{ characteristics }}</li>
-                                  {% endfor %}
-                                </ul>
-                              </td>
-                              <td>{{ sample["sample_type"] }}</td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                      <!-- /.tab-pane -->
-
-                      <!-- TAB CONTENT: Seed Studies -->
-                      <div class="tab-pane fade" id="seed" role="tabpanel" aria-labelledby="seed-tab">
-                        <table class="table table-bordered table-striped dataTable dtr-inline">
-                          <caption>
-                            Seed Studies
-                          </caption>
-                          <thead>
-                            <tr>
-                              <th scope="col"></th>
-                              <th scope="col">gse_id</th>
-                              <th scope="col">gse_id_text</th>
-                              <th scope="col">similarity_score</th>
-                              <th scope="col">similarity_source</th>
-                              <th scope="col">sample type</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for sample in data["data"]["seed_studies"] %}
-                            <tr>
-                              <td>{{ form[sample["gse_id"]|string] }}</td>
-                              <th scope="row">
-                                <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['gse_id'] }}"
-                                  target="_blank" rel="noopener noreferrer">
-                                  {{ sample["gse_id"] }}
-                                </a>
-                              </th>
-                              <td>{{ sample["gse_id_text"] }}</td>
-                              <td>{{ sample["similarity_score"] }}</td>
-                              <td>{{ sample["similarity_source"] }}</td>
-                              <td>{{ sample["sample_type"] }}</td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                      <!-- /.tab-pane -->
+                    <!-- Expansion Studies -->
+                    <div class="tab-pane fade show active" id="expansion" role="tabpanel">
+                      <table class="table table-bordered table-striped">
+                        <caption>Expansion Studies</caption>
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>gse_id</th>
+                            <th>gse_id_text</th>
+                            <th>index</th>
+                            <th>similarity score</th>
+                            <th>sample type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for study in data["data"]["expansion_studies"] %}
+                          <tr>
+                            <td>
+                              <input type="checkbox"
+                                     class="result-cb"
+                                     data-gse="{{ study['gse_id'] }}"
+                                     value="{{ study['gse_id'] }}">
+                            </td>
+                            <td>
+                              <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ study['gse_id'] }}"
+                                 target="_blank" rel="noopener noreferrer">
+                                {{ study["gse_id"] }}
+                              </a>
+                            </td>
+                            <td>{{ study["gse_id_text"] }}</td>
+                            <td>{{ study["index"] }}</td>
+                            <td>{{ study["similarity_score"] }}</td>
+                            <td>{{ study["sample_type"] }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
                     </div>
-                    <!-- .tab-content -->
-                  </form>
+
+                    <!-- Samples -->
+                    <div class="tab-pane fade" id="samples" role="tabpanel">
+                      <table class="table table-bordered table-striped">
+                        <caption>Samples</caption>
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>series_id</th>
+                            <th>title</th>
+                            <th>source_name_ch1</th>
+                            <th>extract_protocol_ch1</th>
+                            <th>characteristics_ch1</th>
+                            <th>sample type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for sample in data["data"]["samples"] %}
+                          <tr>
+                            <td>
+                              <input type="checkbox"
+                                     class="result-cb"
+                                     data-gse="{{ sample['series_id'] }}"
+                                     value="{{ sample['series_id'] }}">
+                            </td>
+                            <td>
+                              <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['series_id'] }}"
+                                 target="_blank" rel="noopener noreferrer">
+                                {{ sample["series_id"] }}
+                              </a>
+                            </td>
+                            <td>{{ sample["title"] }}</td>
+                            <td>{{ sample["source_name_ch1"] }}</td>
+                            <td>{{ sample["extract_protocol_ch1"] }}</td>
+                            <td>
+                              <ul>
+                                {% for c in sample["characteristics_ch1"].split(",") %}
+                                <li>{{ c }}</li>
+                                {% endfor %}
+                              </ul>
+                            </td>
+                            <td>{{ sample["sample_type"] }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <!-- Seed Studies -->
+                    <div class="tab-pane fade" id="seed" role="tabpanel">
+                      <table class="table table-bordered table-striped">
+                        <caption>Seed Studies</caption>
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>gse_id</th>
+                            <th>gse_id_text</th>
+                            <th>similarity_score</th>
+                            <th>similarity_source</th>
+                            <th>sample type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for sample in data["data"]["seed_studies"] %}
+                          <tr>
+                            <td>
+                              <input type="checkbox"
+                                     class="result-cb"
+                                     data-gse="{{ sample['gse_id'] }}"
+                                     value="{{ sample['gse_id'] }}">
+                            </td>
+                            <td>
+                              <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ sample['gse_id'] }}"
+                                 target="_blank" rel="noopener noreferrer">
+                                {{ sample["gse_id"] }}
+                              </a>
+                            </td>
+                            <td>{{ sample["gse_id_text"] }}</td>
+                            <td>{{ sample["similarity_score"] }}</td>
+                            <td>{{ sample["similarity_source"] }}</td>
+                            <td>{{ sample["sample_type"] }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
                 </div>
-                <!-- /.card-body -->
                 {% endif %}
               </div>
-              <!-- /.card -->
-
             </div>
           </div>
         </div>
-        <!-- /.dataTables_wrapper -->
       </div>
     </div>
   </div>
 </section>
-{% if data %}
-<section>
-  <a href="/metadata" class="btn btn-primary back-to-top">
-    Next <i class="fas fa-arrow-right px-1"></i>
-  </a>
-</section>
-{% endif %}
-
 {% endblock my_content %}
+
+{% block body_script %}
+<script>
+const STATE_KEY = 'morphicdi_state';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveState(s) { localStorage.setItem(STATE_KEY, JSON.stringify(s)); }
+function getSelectedIds() { return loadState().selected_ids || []; }
+
+function toggleId(id) {
+  const state = loadState();
+  const ids   = state.selected_ids || [];
+  const idx   = ids.indexOf(id);
+  if (idx === -1) ids.push(id); else ids.splice(idx, 1);
+  state.selected_ids = ids;
+  saveState(state);
+}
+
+function updateProceedBtn() {
+  const ids   = getSelectedIds();
+  const badge = document.getElementById('proceed-count');
+  if (badge) badge.textContent = ids.length > 0 ? ids.length : '';
+}
+
+function syncCheckboxes() {
+  const ids = getSelectedIds();
+  document.querySelectorAll('.result-cb').forEach(cb => {
+    cb.checked = ids.includes(cb.dataset.gse);
+  });
+  updateProceedBtn();
+}
+
+async function downloadZipFile() {
+  const response = await fetch('/download_data');
+  if (!response.ok) { alert('Failed to download results'); return; }
+  const blob = await response.blob();
+  const url  = window.URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'results-data.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  syncCheckboxes();
+
+  document.querySelectorAll('.result-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      toggleId(cb.dataset.gse);
+      // Keep all checkboxes for the same ID in sync across tabs
+      document.querySelectorAll(`.result-cb[data-gse="${cb.dataset.gse}"]`).forEach(other => {
+        other.checked = cb.checked;
+      });
+      updateProceedBtn();
+    });
+  });
+});
+</script>
+{% endblock body_script %}

@@ -1,133 +1,86 @@
 {% extends "layout.html" %}
 {% block script %}
-<head>
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-</head>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   /* =========================
-     Job status polling
+     State helpers
      ========================= */
-  const jobId        = "{{ job_id | default('') }}";
-  const statusBox    = document.getElementById("job-status-box");
-  const statusText   = document.getElementById("job-status-text");
-  const queueText    = document.getElementById("job-queue-position");
-  const resultBox    = document.getElementById("job-result");
-  const cancelBtn    = document.getElementById("cancel-job-btn");
-  let pollTimer = null;
-  function renderText(text) {
-    resultBox.innerHTML = `
-      <pre style="white-space:pre-wrap; background:#f8f9fa; padding:8px;">
-${text || ""}
-      </pre>`;
+  const STATE_KEY = 'morphicdi_state';
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
+    catch { return {}; }
   }
-    function renderImage(jobId) {
-    resultBox.innerHTML = `
-      <div class="text-center">
-        <h5 class="mb-3">Workflow completed successfully</h5>
-        <div class="row">
-          <div class="col-md-6">
-            <h6>Heatmap</h6>
-            <img
-              src="/heatmap/${jobId}?t=${Date.now()}"
-              class="img-fluid"
-              alt="Heatmap"
-            >
-          </div>
-          <div class="col-md-6">
-            <h6>Volcano Plot</h6>
-            <img
-              src="/volcano/${jobId}?t=${Date.now()}"
-              class="img-fluid"
-              alt="Volcano Plot"
-            >
-            <div class="mt-2">
-              <a href="/counts/${jobId}"
-                 class="btn btn-success btn-sm">
-                <i class="fa fa-download pr-1"></i> Download Counts
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  function updateStatus() {
-    fetch(`/job-status/${jobId}`)
-      .then(r => r.json())
-      .then(data => {
-        const status = data.status || "unknown";
-        statusText.textContent = status;
-        if (data.queue_position !== null && data.queue_position !== undefined) {
-          queueText.textContent = `Position in queue: ${data.queue_position}`;
-        } else {
-          queueText.textContent = "";
-        }
-        switch (status) {
-          case "queued":
-          case "running":
-            cancelBtn.style.display = "inline-block";
-            if (data.result) {
-              renderText(data.result);
-            }
-            break;
-          case "done":
-          case "success":
-            cancelBtn.style.display = "none";
-            clearInterval(pollTimer);
-            renderImage(jobId);
-            break;
-          case "error":
-            cancelBtn.style.display = "none";
-            clearInterval(pollTimer);
-            renderText(data.result || "Workflow failed.");
-            break;
-          case "canceled":
-            cancelBtn.style.display = "none";
-            clearInterval(pollTimer);
-            renderText("Job was canceled.");
-            break;
-        }
-      })
-      .catch(err => {
-        console.error(err);
-      });
-  }
-  if (jobId) {
-    statusBox.style.display = "block";
-    updateStatus();
-    pollTimer = setInterval(updateStatus, 2000);
-    cancelBtn.addEventListener("click", () => {
-      const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        .getAttribute("content");
-      fetch(`/cancel-job/${jobId}`, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": csrfToken
-        }
-      }).then(updateStatus);
-    });
-  }
+  function getGroups()      { return loadState().groups || []; }
+  function getAssignments() { return loadState().sample_assignments || {}; }
+
   /* =========================
-     Dynamic sample handling
+     Build srr_metadata_json for form submission
+     ========================= */
+  function buildSrrMetadata() {
+    const groups      = getGroups();
+    const assignments = getAssignments();
+    if (groups.length < 2) return null;
+
+    const grouped = {};
+    for (const g of groups) grouped[g.name] = [];
+    for (const [srrId, groupName] of Object.entries(assignments)) {
+      if (grouped[groupName] !== undefined) grouped[groupName].push(srrId);
+    }
+    return {
+      groups: groups.map(g => ({ name: g.name, samples: grouped[g.name] || [] }))
+    };
+  }
+
+  /* =========================
+     Render selected SRR summary
+     ========================= */
+  function renderSrrSummary() {
+    const groups      = getGroups();
+    const assignments = getAssignments();
+    const container   = document.getElementById('srr-summary-body');
+    const card        = document.getElementById('srr-summary-card');
+    const emptyMsg    = document.getElementById('srr-summary-empty');
+
+    if (groups.length < 2 || Object.keys(assignments).length === 0) {
+      card.style.display  = 'none';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    card.style.display  = 'block';
+    emptyMsg.style.display = 'none';
+
+    const grouped = {};
+    for (const g of groups) grouped[g.name] = [];
+    for (const [srrId, groupName] of Object.entries(assignments)) {
+      if (grouped[groupName] !== undefined) grouped[groupName].push(srrId);
+    }
+
+    container.innerHTML = groups.map(g => `
+      <dt class="col-sm-3">${g.name}</dt>
+      <dd class="col-sm-9 border px-3 py-1">
+        ${grouped[g.name].length > 0 ? grouped[g.name].join(', ') : '<em class="text-muted">None assigned</em>'}
+      </dd>`).join('');
+  }
+
+  /* =========================
+     Dynamic sample (FASTQ) handling
      ========================= */
   let sampleIndex = 0;
   const container = document.getElementById("samples-container");
   const addBtn    = document.getElementById("add-sample-btn");
+
   function enforceUniformLayout(layout) {
     document.querySelectorAll(".read-type").forEach(rt => {
       rt.value = layout;
-      const r2 = rt.closest(".form-row").querySelector(".r2-field");
-      r2.style.display = layout === "PAIRED" ? "block" : "none";
+      rt.closest(".form-row").querySelector(".r2-field").style.display =
+        layout === "PAIRED" ? "block" : "none";
     });
   }
-  // Get groups from session metadata
-  const sessionGroups = {{ session.get('user_selected_metadata', {}).get('groups', []) | tojson | safe }};
 
   function buildGroupOptions() {
-    if (sessionGroups && sessionGroups.length > 0) {
-      return sessionGroups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+    const groups = getGroups();
+    if (groups.length >= 2) {
+      return groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
     }
     return `<option value="group_a">Group A</option><option value="group_b">Group B</option>`;
   }
@@ -139,59 +92,43 @@ ${text || ""}
       <div class="form-row align-items-end">
         <div class="col-md-3">
           <label>Sample name</label>
-          <input name="samples[${sampleIndex}][name]"
-                 class="form-control"
-                 required>
+          <input name="samples[${sampleIndex}][name]" class="form-control" required>
         </div>
         <div class="col-md-2">
           <label>Group</label>
-          <select name="samples[${sampleIndex}][group]"
-                  class="form-control"
-                  required>
+          <select name="samples[${sampleIndex}][group]" class="form-control" required>
             ${buildGroupOptions()}
           </select>
         </div>
         <div class="col-md-2">
           <label>Read layout</label>
-          <select name="samples[${sampleIndex}][layout]"
-                  class="form-control read-type">
+          <select name="samples[${sampleIndex}][layout]" class="form-control read-type">
             <option value="SINGLE">Single-end</option>
             <option value="PAIRED">Paired-end</option>
           </select>
         </div>
         <div class="col-md-2">
           <label>FASTQ R1</label>
-          <input type="file"
-                 name="samples[${sampleIndex}][r1]"
-                 class="form-control"
-                 accept=".fastq"
-                 required>
+          <input type="file" name="samples[${sampleIndex}][r1]"
+                 class="form-control" accept=".fastq" required>
         </div>
         <div class="col-md-2 r2-field" style="display:none;">
           <label>FASTQ R2</label>
-          <input type="file"
-                 name="samples[${sampleIndex}][r2]"
-                 class="form-control"
-                 accept=".fastq">
+          <input type="file" name="samples[${sampleIndex}][r2]"
+                 class="form-control" accept=".fastq">
         </div>
         <div class="col-md-1">
-          <button type="button"
-                  class="btn btn-danger btn-sm remove-sample">
-            ✕
-          </button>
+          <button type="button" class="btn btn-danger btn-sm remove-sample">&#x2715;</button>
         </div>
-      </div>
-    `;
+      </div>`;
     container.appendChild(card);
+
     const readType = card.querySelector(".read-type");
     const r2Field  = card.querySelector(".r2-field");
-    const remove   = card.querySelector(".remove-sample");
     readType.value = defaultLayout;
     r2Field.style.display = defaultLayout === "PAIRED" ? "block" : "none";
-    readType.addEventListener("change", e => {
-      enforceUniformLayout(e.target.value);
-    });
-    remove.addEventListener("click", () => card.remove());
+    readType.addEventListener("change", e => enforceUniformLayout(e.target.value));
+    card.querySelector(".remove-sample").addEventListener("click", () => card.remove());
     sampleIndex++;
   }
 
@@ -212,33 +149,120 @@ ${text || ""}
       <div class="form-row align-items-end">
         <div class="col-md-5">
           <label>SRR Accession ID</label>
-          <input name="srr_entries[${srrIndex}][id]"
-                 class="form-control"
+          <input name="srr_entries[${srrIndex}][id]" class="form-control"
                  placeholder="e.g. SRR123456"
                  pattern="[SDE]RR[0-9]+"
                  title="Enter a valid SRA run accession (e.g. SRR123456)">
         </div>
         <div class="col-md-5">
           <label>Group</label>
-          <select name="srr_entries[${srrIndex}][group]"
-                  class="form-control">
+          <select name="srr_entries[${srrIndex}][group]" class="form-control">
             ${buildGroupOptions()}
           </select>
         </div>
         <div class="col-md-2">
-          <button type="button"
-                  class="btn btn-danger btn-sm remove-srr">
-            ✕
-          </button>
+          <button type="button" class="btn btn-danger btn-sm remove-srr">&#x2715;</button>
         </div>
-      </div>
-    `;
+      </div>`;
     srrContainer.appendChild(card);
     card.querySelector(".remove-srr").addEventListener("click", () => card.remove());
     srrIndex++;
   }
 
   addSrrBtn.addEventListener("click", addSrrRow);
+
+  /* =========================
+     Form submission: inject srr_metadata_json
+     ========================= */
+  document.getElementById('bwb-form').addEventListener('submit', function () {
+    const meta = buildSrrMetadata();
+    document.getElementById('srr-metadata-json').value = meta ? JSON.stringify(meta) : '';
+  });
+
+  /* =========================
+     Job status polling
+     ========================= */
+  const jobId     = "{{ job_id | default('') }}";
+  const statusBox = document.getElementById("job-status-box");
+  const statusTxt = document.getElementById("job-status-text");
+  const queueTxt  = document.getElementById("job-queue-position");
+  const resultBox = document.getElementById("job-result");
+  const cancelBtn = document.getElementById("cancel-job-btn");
+  let pollTimer   = null;
+
+  function renderText(text) {
+    resultBox.innerHTML =
+      `<pre style="white-space:pre-wrap; background:#f8f9fa; padding:8px;">${text || ""}</pre>`;
+  }
+  function renderImage(jid) {
+    resultBox.innerHTML = `
+      <div class="text-center">
+        <h5 class="mb-3">Workflow completed successfully</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Heatmap</h6>
+            <img src="/heatmap/${jid}?t=${Date.now()}" class="img-fluid" alt="Heatmap">
+          </div>
+          <div class="col-md-6">
+            <h6>Volcano Plot</h6>
+            <img src="/volcano/${jid}?t=${Date.now()}" class="img-fluid" alt="Volcano Plot">
+            <div class="mt-2">
+              <a href="/counts/${jid}" class="btn btn-success btn-sm">
+                <i class="fa fa-download pr-1"></i> Download Counts
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+  function updateStatus() {
+    fetch(`/job-status/${jobId}`)
+      .then(r => r.json())
+      .then(data => {
+        const status = data.status || "unknown";
+        statusTxt.textContent = status;
+        queueTxt.textContent  =
+          (data.queue_position != null) ? `Position in queue: ${data.queue_position}` : '';
+        switch (status) {
+          case "queued": case "running":
+            cancelBtn.style.display = "inline-block";
+            if (data.result) renderText(data.result);
+            break;
+          case "done": case "success":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderImage(jobId);
+            break;
+          case "error":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderText(data.result || "Workflow failed.");
+            break;
+          case "canceled":
+            cancelBtn.style.display = "none";
+            clearInterval(pollTimer);
+            renderText("Job was canceled.");
+            break;
+        }
+      })
+      .catch(err => console.error(err));
+  }
+
+  if (jobId) {
+    statusBox.style.display = "block";
+    updateStatus();
+    pollTimer = setInterval(updateStatus, 2000);
+    cancelBtn.addEventListener("click", () => {
+      const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      fetch(`/cancel-job/${jobId}`, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrf }
+      }).then(updateStatus);
+    });
+  }
+
+  // Initialise summary on page load
+  renderSrrSummary();
 });
 </script>
 {% endblock script %}
@@ -246,79 +270,64 @@ ${text || ""}
 {% block my_content %}
 <div class="content container">
   <h1 class="pt-3">Run workflows using Bwb</h1>
-  <div id="job-status-box"
-       class="alert alert-info mt-3"
-       style="display:none;">
+
+  <div id="job-status-box" class="alert alert-info mt-3" style="display:none;">
     <h4>Job Status</h4>
-    <p id="job-status-text">Checking…</p>
+    <p id="job-status-text">Checking&hellip;</p>
     <p id="job-queue-position"></p>
     <div id="job-result"></div>
-    <button id="cancel-job-btn"
-            class="btn btn-danger mt-2"
-            style="display:none;">
-      Cancel Job
-    </button>
+    <button id="cancel-job-btn" class="btn btn-danger mt-2" style="display:none;">Cancel Job</button>
   </div>
+
   <p class="card-text mb-4">
     Upload FASTQ files, assign samples to groups, and run RNA-seq workflows.
     All samples must use the same read layout.
   </p>
-  <form method="POST"
-        action="{{ url_for('run_bwb') }}"
-        enctype="multipart/form-data">
+
+  <form id="bwb-form" method="POST" action="{{ url_for('run_bwb') }}" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
-    <!-- SRR IDs and Groups Section -->
+    <!-- Serialised client state — populated by JS on submit -->
+    <input type="hidden" id="srr-metadata-json" name="srr_metadata_json" value="">
+
+    <!-- Selected SRR IDs summary -->
     <section class="mb-5">
       <h2 class="text-left mb-3">Selected samples</h2>
-      <div class="card">
-        {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
+      <div id="srr-summary-card" class="card" style="display:none;">
         <div class="card-header">
           <h3 class="card-title">
-            SRR ID's
+            SRR IDs
             <small><a href="/metadata" class="ml-2 text-info">Edit</a></small>
           </h3>
         </div>
-        {% endif %}
         <div class="card-body">
-          {% if session.get('user_selected_metadata') and session.get('user_selected_metadata', {}).get('samples') %}
-            <dl>
-              {% for group in session.get('user_selected_metadata', {}).get('groups', []) %}
-                <dt>{{ group["name"] | string }}</dt>
-                <dd class="border px-3 py-1">
-                  {{ group["samples"] | join(', ') }}
-                </dd>
-              {% endfor %}
-            </dl>
-          {% else %}
-            <p>Find relevant studies and select samples from MorPhiC</p>
-            <a href="/morphic" class="btn btn-outline-info">Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i></a>
-          {% endif %}
+          <dl class="row mb-0" id="srr-summary-body"></dl>
         </div>
       </div>
+      <div id="srr-summary-empty">
+        <p class="text-muted">No MorPhiC samples selected yet.</p>
+        <a href="/morphic" class="btn btn-outline-info">
+          Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i>
+        </a>
+      </div>
     </section>
-    <!-- Upload FASTQ Files Section -->
+
+    <!-- Upload FASTQ Files -->
     <section class="mb-5">
       <h2 class="mb-3">Upload FASTQ files</h2>
       <div id="samples-container"></div>
-      <button type="button"
-              id="add-sample-btn"
-              class="btn btn-secondary mt-2">
-        Add sample
-      </button>
+      <button type="button" id="add-sample-btn" class="btn btn-secondary mt-2">Add sample</button>
     </section>
-    <!-- Additional SRR IDs Section -->
+
+    <!-- Additional SRR IDs -->
     <section class="mb-5">
       <h2 class="mb-1">Additional SRR IDs <small class="text-muted">(optional)</small></h2>
       <p class="text-muted mb-3">
         Specify extra SRA run accessions to include. Each ID will be downloaded and assigned to the selected group.
       </p>
       <div id="srr-container"></div>
-      <button type="button"
-              id="add-srr-btn"
-              class="btn btn-secondary mt-2">
-        Add SRR ID
-      </button>
+      <button type="button" id="add-srr-btn" class="btn btn-secondary mt-2">Add SRR ID</button>
     </section>
+
     <section class="mb-5 pb-5">
       <hr />
       <button type="submit" class="btn btn-info">

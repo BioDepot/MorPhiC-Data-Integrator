@@ -8,7 +8,8 @@
 			"Command": [
                 "mkdir -p /data/sra_cache _bwb{OutputDir}",
 				"prefetch --output-directory /data/sra_cache $SRAID",
-                "fastq-dump --split-files -O _bwb{OutputDir} /data/sra_cache/$SRAID/$SRAID.sra"
+                "SRA_PATH=$(find /data/sra_cache/\"$SRAID\" -maxdepth 1 \( -name \"$SRAID.sra\" -o -name \"$SRAID.sralite\" \) | head -n 1)",
+                "fastq-dump --split-files -O _bwb{OutputDir} $SRA_PATH"
 			],
 			"ArgTypes": {
 				"OutputDir": {
