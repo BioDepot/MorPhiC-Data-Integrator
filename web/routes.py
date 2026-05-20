@@ -307,18 +307,31 @@ def morphic_data():
     if morphic_full_data is None:
         return render_template("morphic_data.html", error_message="Error loading data")
 
+    # Extract GEO and ERP accession ids, ids other than GEO are defaulted to ERP
+    def extract_accessions(accessions: list) -> dict:
+        study_accessions = {"erp_accession": "", "geo_accession": ""}
+        for acc_id in accessions:
+            if "gse" in acc_id.lower():
+                study_accessions["geo_accession"] = acc_id
+            else:
+                study_accessions["erp_accession"] = acc_id
+        return study_accessions
+
     # Select relevant study information
     studies = morphic_full_data['_embedded']['studies']
     data = []
     for study in studies:
-        study_content = study["content"]
+        study_content = study.get("content", {})
+        study_accessions = study.get("accessions", [])
+        if not study_content and not study_accessions:
+            continue
+
         new_study = {
-            "study_title": study_content["study_title"],
-            "target_genes": study_content["target_genes"],
-            "readout_assay": study_content["readout_assay"],
-            "erp_accession": study["accessions"][0],
-            "geo_accession": study["accessions"][1]
+            "study_title": study_content.get("study_title", ""),
+            "target_genes": study_content.get("target_genes", ""),
+            "readout_assay": study_content.get("readout_assay", "")
         }
+        new_study.update(extract_accessions(study_accessions))
         data.append(new_study)
 
     # Create a Form from available gse ids
