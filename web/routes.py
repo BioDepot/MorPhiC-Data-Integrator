@@ -523,7 +523,7 @@ def run_bwb():
             f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
             f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-            f"-p 10.metadata_json=/data/metadata3.json "
+            f"-p 10.metadata_json={metadata_cnt_path} "
             f"-p 13.samplesToRetain={srrIds} "
             f"-p 13.tablesDir=/data/processing/Tables "
             f"-p 13.preprocessedCnts=/data/mergedCounts.tsv "
@@ -551,6 +551,13 @@ def volcano(job_id):
     if not os.path.exists(image_path):
         abort(404)
     return send_file(image_path, mimetype="image/png", conditional=True)
+
+@app.route("/pca/<job_id>")
+def pca(job_id):
+    if ".." in job_id or "/" in job_id:
+        return "Invalid job ID", 400
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/pca_plot.png"
+    return send_file(image_path, mimetype="image/png")
 
 @app.route("/counts/<job_id>")
 def counts(job_id):

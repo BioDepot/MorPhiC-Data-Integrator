@@ -199,19 +199,23 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="text-center">
         <h5 class="mb-3">Workflow completed successfully</h5>
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <h6>Heatmap</h6>
             <img src="/heatmap/${jid}?t=${Date.now()}" class="img-fluid" alt="Heatmap">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-4">
             <h6>Volcano Plot</h6>
             <img src="/volcano/${jid}?t=${Date.now()}" class="img-fluid" alt="Volcano Plot">
-            <div class="mt-2">
-              <a href="/counts/${jid}" class="btn btn-success btn-sm">
-                <i class="fa fa-download pr-1"></i> Download Counts
-              </a>
-            </div>
           </div>
+          <div class="col-md-4">
+            <h6>PCA Plot</h6>
+            <img src="/pca/${jid}?t=${Date.now()}" class="img-fluid" alt="PCA Plot">
+          </div>
+        </div>
+        <div class="mt-2">
+          <a href="/counts/${jid}" class="btn btn-success btn-sm">
+            <i class="fa fa-download pr-1"></i> Download Counts
+          </a>
         </div>
       </div>`;
   }
