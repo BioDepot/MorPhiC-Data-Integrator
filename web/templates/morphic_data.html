@@ -280,19 +280,31 @@
                   <tbody>
                     {% for row in data %}
                     <tr>
+                      {% if row.get("erp_accession") %}
                       <td>{{ form[row["erp_accession"]|string] }}</td>
+                      {% else %}
+                      <td></td>
+                      {% endif %}
 
                       <td>
+                        {% if row.get("geo_accession") %}
                         <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ row['geo_accession'] }}"
                           target="_blank" rel="noopener noreferrer" class="text-info">
                           {{ row["geo_accession"] }}
                         </a>
+                        {% else %}
+                        NA
+                        {% endif %}
                       </td>
                       <td>
+                        {% if row.get("erp_accession")}
                         <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}" target="_blank"
                           rel="noopener noreferrer" class="text-info">
                           {{ row["erp_accession"] }}
                         </a>
+                        {% else %}
+                        NA
+                        {% endif %}
                       </td>
                       <td>{{ row["study_title"] }}</td>
                       <td>{{ row["target_genes"] | join(", ") }}</td>
