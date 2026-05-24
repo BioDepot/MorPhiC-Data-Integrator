@@ -5,9 +5,17 @@
 			"ImageName": "biodepot/sratools-vdb",
 			"ImageTag": "3.0.5__3.0.5__bookworm-slim__e3b0c4429",
 			"Title": "fastqDump",
-			"Command": [
+			"Command_OLD": [
                 "if [ -n \"$SRAID\" ]; then mkdir -p /data/sra_cache _bwb{OutputDir}; prefetch --output-directory /data/sra_cache $SRAID; fastq-dump --split-files -O _bwb{OutputDir} /data/sra_cache/$SRAID/$SRAID.sra; fi"
 			],
+            "Command": [
+                "if [ -z $SRAID ]; then exit 0; fi",
+                "mkdir -p /data/sra_cache _bwb{OutputDir}",
+                "prefetch --output-directory /data/sra_cache $SRAID",
+                "SRA_PATH=$(find /data/sra_cache/\"$SRAID\" -maxdepth 1 \\( -name \"$SRAID.sra\" -o -name \"$SRAID.sralite\" \\) | head -n 1)",
+                "fastq-dump --split-files -O _bwb{OutputDir} $SRA_PATH"
+
+            ],
 			"ArgTypes": {
 				"OutputDir": {
 					"type": "directory",
@@ -2988,10 +2996,10 @@
 		"10": {
 			"Id": 10,
 			"ImageName": "patrickmckeever/rnotebook",
-			"ImageTag": "0.2",
+			"ImageTag": "0.3",
 			"Title": "heatmap",
 			"Command": [
-                "jupyter nbconvert --execute /app/dashboard_differential_expression_analysis.ipynb --to notebook --output /data/dashboard_differential_expression_analysis_output.ipynb || ls _bwb{counts_dir}/volcano_plot.png || exit 1"
+                "Rscript /app/pca.R"
 			],
 			"ArgTypes": {
 				"work_dir": {

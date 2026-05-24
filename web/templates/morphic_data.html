@@ -7,14 +7,6 @@
 </style>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Submit form when checkboxes are checked/unchecked
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', function () {
-        this.form.submit();
-      });
-    });
-
     const external_gse_form = document.getElementById("external_gse_form");
     const list = document.getElementById("item-list");
 
@@ -153,34 +145,17 @@
 {% endblock script %}
 
 {% block my_content %}
-
 <section class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
       <div class="col-12">
         <h1>MorPhiC Data</h1>
-        <p>Studies generated from the MorPhic Public Data Release</p>
+        <p>Studies generated from the MorPhiC Public Data Release. Select studies to include their samples in your analysis.</p>
       </div>
-      <!-- /.col -->
-    </div>
-    <!-- /.row -->
-  </div>
-  <!-- /.container-fluid -->
-</section>
-
-<!-- STATUS -->
-{% if error_message %}
-<section class="content">
-  <div class="container-fluid">
-    <div class="alert alert-danger rounded-lg border-danger bg-white" role="alert">
-      <i class="icon fas fa-exclamation-triangle pr-2 text-danger" aria-hidden="true"></i> {{ error_message | string }}
     </div>
   </div>
 </section>
-{% endif %}
 
-{% if data %}
-<!-- CONTENT -->
 <section class="content pb-5">
   <div class="container-fluid">
 
@@ -195,44 +170,33 @@
             <nav>
               <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto"
-                    aria-label="Go to MorPhiC data">
-                    <img class="img-circle"
-                      style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
+                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto" aria-label="Go to MorPhiC data">
+                    <img class="img-circle" style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
                       src="{{ url_for('static', filename='images/morphic-symbol.svg') }}" alt="">
                   </a>
                   <div class="d-flex flex-column">
-                    <h4 class="text-body mb-1" style="font-size: 1rem;">Identify Data</h4>
-                    <p class="small text-muted p-0 m-0">Identify relevant data</p>
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
+                    <p class="small text-muted p-0 m-0">Select studies</p>
                   </div>
                 </li>
-                <div
-                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
-                </div>
-
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);"></div>
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/metadata" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
-                    aria-label="Go to metatada">
+                  <a href="/metadata" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Go to metadata">
                     <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
                   </a>
                   <div class="d-flex flex-column">
                     <h4 class="text-body mb-1" style="font-size: 1rem;">Metadata</h4>
-                    <p class="small text-muted p-0 m-0">Select SRR ID's and assign groups</p>
+                    <p class="small text-muted p-0 m-0">Assign samples to groups</p>
                   </div>
                 </li>
-                <div
-                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
-                </div>
-
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);"></div>
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
-                    aria-label="Go to metatada">
+                  <a href="/visualize" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Run workflow">
                     <i class="fa fa-play" aria-hidden="true" style="font-size: 16px;"></i>
                   </a>
                   <div class="d-flex flex-column">
                     <h4 class="text-body mb-1" style="font-size: 1rem;">Run workflow</h4>
-                    <p class="small text-muted p-0 m-0 text-wrap" style="width: 8rem;">Upload external data and run
-                      workflow</p>
+                    <p class="small text-muted p-0 m-0 text-wrap" style="width: 8rem;">Upload external data and run workflow</p>
                   </div>
                 </li>
               </ol>
@@ -251,74 +215,49 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title"><b>MorPhiC Data Catalog</b></h2>
-            <div class="card-tools">
-              <form action="morphic/refresh-data" method="get">
-                <button type="submit" class="btn btn-tool" aria-label="Refresh data">
-                  <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                </button>
-              </form>
+            <h2 class="card-title">
+              <b>MorPhiC Data Catalog</b>
+              <span class="badge badge-info ml-2" id="selection-badge" style="display:none;">
+                <span id="selection-count">0</span> selected
+              </span>
+            </h2>
+            <div class="card-tools d-flex align-items-center" style="gap: 0.5rem;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-btn" style="display:none;">
+                Clear selection
+              </button>
+              <button type="button" class="btn btn-tool" id="refresh-btn" aria-label="Refresh data" title="Refresh data from MorPhiC API">
+                <i class="fas fa-sync-alt" aria-hidden="true"></i>
+              </button>
             </div>
           </div>
           <!-- /.card-header -->
           <div class="card-body">
-            <div class="dataTables_wrapper dt-bootstrap4">
-              <!-- {{ table | safe }} -->
-              <form action="{{url_for('morphic_data')}}" method="POST">
-                {{ form.hidden_tag() }}
-                <table id="morphic-table" class="table table-bordered table-hover dataTable dtr-inline">
-                  <thead>
-                    <tr>
-                      <th>Select</th>
-                      <th>gse_id</th>
-                      <th>era_id</th>
-                      <th>study_title</th>
-                      <th>target_genes</th>
-                      <th>readout_assay</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for row in data %}
-                    <tr>
-                      {% if row.get("erp_accession") %}
-                      <td>{{ form[row["erp_accession"]|string] }}</td>
-                      {% else %}
-                      <td></td>
-                      {% endif %}
-
-                      <td>
-                        {% if row.get("geo_accession") %}
-                        <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ row['geo_accession'] }}"
-                          target="_blank" rel="noopener noreferrer" class="text-info">
-                          {{ row["geo_accession"] }}
-                        </a>
-                        {% else %}
-                        NA
-                        {% endif %}
-                      </td>
-                      <td>
-                        {% if row.get("erp_accession")}
-                        <a href="https://www.ebi.ac.uk/ena/browser/view/{{ row['erp_accession'] }}" target="_blank"
-                          rel="noopener noreferrer" class="text-info">
-                          {{ row["erp_accession"] }}
-                        </a>
-                        {% else %}
-                        NA
-                        {% endif %}
-                      </td>
-                      <td>{{ row["study_title"] }}</td>
-                      <td>{{ row["target_genes"] | join(", ") }}</td>
-                      <td>{{ row.readout_assay }}</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                  <tfoot></tfoot>
-                </table>
-              </form>
-              <!-- /.col -->
+            <div id="loading-state" class="text-center py-5">
+              <div class="spinner-border text-info" role="status" style="width: 2rem; height: 2rem;">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted">Loading MorPhiC studies&hellip;</p>
             </div>
-            <!-- /.dataTables_wrapper -->
+            <div id="error-state" class="alert alert-danger" style="display:none;"></div>
+            <div id="table-container" style="display:none;">
+              <table id="morphic-table" class="table table-bordered table-hover dataTable dtr-inline">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">
+                      <input type="checkbox" id="select-all-cb" title="Select / deselect all">
+                    </th>
+                    <th>GEO ID</th>
+                    <th>ERP ID</th>
+                    <th>Study title</th>
+                    <th>Target genes</th>
+                    <th>Readout assay</th>
+                  </tr>
+                </thead>
+                <tbody id="morphic-table-body"></tbody>
+              </table>
+            </div>
           </div>
+          <!-- /.card-body -->
         </div>
         <!-- /.card -->
       </div>
@@ -326,6 +265,7 @@
     </div>
     <!-- /.row -->
 
+    <!-- External Data -->
     <div class="row">
       <div class="col">
         <div id="external-geo-card" class="card">
@@ -335,14 +275,14 @@
           <!-- /.card-header -->
           <div id="ext_geo_id_cb" class="card-body">
             <form id="external_gse_form" class="form-inline">
-              {{ geo_id_form.hidden_tag() }}
+              {{ form.hidden_tag() }}
               <div class="form-group flex-fill">
                 <div class="input-group mb-3 mr-sm-2 flex-fill">
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="geo-prefix">GSE</span>
                   </div>
                   <label class="sr-only" for="geo_acc_id">GEO Accession ID</label>
-                  {{ geo_id_form.geo_acc_id(class="form-control") }}
+                  {{ form.geo_acc_id(class="form-control") }}
                 </div>
               </div>
               <button type="submit" class="btn btn-primary mb-3" id="submit-geo-acc-id">Add</button>
@@ -360,10 +300,7 @@
     <!-- /.row -->
 
   </div>
-  <!-- /.container-fluid -->
 </section>
-{% endif %}
-
 {% endblock my_content %}
 
 {% set fixed_footer_class = "layout-footer-fixed" %}
@@ -376,11 +313,10 @@
       <div>Home</div>
     </div>
   </a>
-
   <a href="/metadata" class="d-flex align-items-end mt-1 text-dark">
-    <div class="px-2 mb-1">
+    <div class="px-2 mb-1 text-right">
       <span class="small">Next</span>
-      <div>Metadata</div>
+      <div>Assign samples to groups</div>
     </div>
     <i class="fas fa-chevron-right m-1 p-1" aria-hidden="true"></i>
   </a>
@@ -389,20 +325,160 @@
 
 {% block body_script %}
 <script>
-  $(document).ready(function () {
+const STATE_KEY = 'morphicdi_state';
+
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
+  } catch { return {}; }
+}
+
+function saveState(state) {
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+
+function getSelectedIds() {
+  return loadState().selected_ids || [];
+}
+
+function setSelectedIds(ids) {
+  const state = loadState();
+  state.selected_ids = ids;
+  saveState(state);
+}
+
+function toggleId(id) {
+  const ids = getSelectedIds();
+  const idx = ids.indexOf(id);
+  if (idx === -1) ids.push(id);
+  else ids.splice(idx, 1);
+  setSelectedIds(ids);
+}
+
+function updateUI() {
+  const ids = getSelectedIds();
+  const count = ids.length;
+
+  const badge = document.getElementById('selection-badge');
+  const countEl = document.getElementById('selection-count');
+  const clearBtn = document.getElementById('clear-btn');
+  const selectAllCb = document.getElementById('select-all-cb');
+
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
+  clearBtn.style.display = count > 0 ? 'inline-block' : 'none';
+  if (countEl) countEl.textContent = count;
+
+  // Sync individual checkboxes
+  document.querySelectorAll('.study-cb').forEach(cb => {
+    cb.checked = ids.includes(cb.dataset.erp);
+  });
+
+  // Sync select-all
+  if (selectAllCb) {
+    const allCbs = document.querySelectorAll('.study-cb');
+    selectAllCb.checked = allCbs.length > 0 && [...allCbs].every(cb => ids.includes(cb.dataset.erp));
+    selectAllCb.indeterminate = count > 0 && !selectAllCb.checked;
+  }
+}
+
+async function loadStudies(refresh = false) {
+  const loadingEl = document.getElementById('loading-state');
+  const errorEl   = document.getElementById('error-state');
+  const tableEl   = document.getElementById('table-container');
+
+  loadingEl.style.display = 'block';
+  errorEl.style.display   = 'none';
+  tableEl.style.display   = 'none';
+
+  try {
+    const url = refresh ? '/api/morphic-studies?refresh=true' : '/api/morphic-studies';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+    const studies = await resp.json();
+
+    const tbody = document.getElementById('morphic-table-body');
+    const ids = getSelectedIds();
+    tbody.innerHTML = studies.map(s => {
+      const genes = Array.isArray(s.target_genes) ? s.target_genes.join(', ') : (s.target_genes || '');
+      const checked = ids.includes(s.erp_accession) ? 'checked' : '';
+      return `<tr>
+        <td style="text-align:center; vertical-align:middle;">
+          <input type="checkbox" class="study-cb" data-erp="${s.erp_accession}" ${checked}>
+        </td>
+        <td>
+          <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${s.geo_accession}"
+             target="_blank" rel="noopener noreferrer" class="text-info">
+            ${s.geo_accession}
+          </a>
+        </td>
+        <td>
+          <a href="https://www.ebi.ac.uk/ena/browser/view/${s.erp_accession}"
+             target="_blank" rel="noopener noreferrer" class="text-info">
+            ${s.erp_accession}
+          </a>
+        </td>
+        <td>${s.study_title || ''}</td>
+        <td>${genes}</td>
+        <td>${s.readout_assay || ''}</td>
+      </tr>`;
+    }).join('');
+
+    // Destroy existing DataTable before re-initialising
+    if ($.fn.DataTable.isDataTable('#morphic-table')) {
+      $('#morphic-table').DataTable().destroy();
+    }
     $('#morphic-table').DataTable({
       paging: false,
       layout: {
         topStart: 'info',
         bottom: 'paging',
         bottomStart: null,
-        bottomEnd: null
+        bottomEnd: null,
       },
       order: [[1, 'asc']],
-      columnDefs: [
-        { orderable: false, targets: 0 } // disable sorting on checkbox column
-      ]
+      columnDefs: [{ orderable: false, targets: 0 }],
     });
+
+    document.querySelectorAll('.study-cb').forEach(cb => {
+      cb.addEventListener('change', () => {
+        toggleId(cb.dataset.erp);
+        updateUI();
+      });
+    });
+
+    document.getElementById('select-all-cb').addEventListener('change', function () {
+      const allErps = [...document.querySelectorAll('.study-cb')].map(c => c.dataset.erp);
+      const current = getSelectedIds();
+      if (this.checked) {
+        // Add all that aren't already present
+        const merged = [...new Set([...current, ...allErps])];
+        setSelectedIds(merged);
+      } else {
+        setSelectedIds(current.filter(id => !allErps.includes(id)));
+      }
+      updateUI();
+    });
+
+    loadingEl.style.display = 'none';
+    tableEl.style.display   = 'block';
+    updateUI();
+
+  } catch (err) {
+    loadingEl.style.display = 'none';
+    errorEl.style.display   = 'block';
+    errorEl.textContent     = `Error loading studies: ${err.message}`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadStudies();
+
+  document.getElementById('refresh-btn').addEventListener('click', () => loadStudies(true));
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    setSelectedIds([]);
+    updateUI();
   });
+});
 </script>
 {% endblock body_script %}

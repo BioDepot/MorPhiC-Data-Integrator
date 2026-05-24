@@ -12,7 +12,7 @@ from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
 from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
-from .forms import SearchForm, BwbForm, GroupForm, ExternalID, create_results_table_form, create_srr_form, create_morphic_form
+from .forms import SearchForm, BwbForm, ExternalID, create_results_table_form
 import requests
 from werkzeug.utils import secure_filename
 import json
@@ -24,7 +24,13 @@ import os
 import socket
 import io
 
-BWB_SCHED_DIR=os.path.expanduser("~/SCHED_STORAGE")
+if "BWB_SCHED_DIR" not in os.environ:
+    BWB_SCHED_DIR = os.path.expanduser("~/SCHED_STORAGE")
+    os.makedirs(BWB_SCHED_DIR, exist_ok=True)
+else:
+    BWB_SCHED_DIR = os.environ["BWB_SCHED_DIR"]
+    
+
 STORAGE_ID='storageID'
 
 class JobManager:
@@ -141,171 +147,131 @@ JOB_MANAGER = JobManager()
 
 @app.route("/")
 def landing():
-    return render_template('landing.html')
+    return render_template("landing.html")
 
 @app.route("/explore")
 def explore():
-    return render_template('explore.html')
+    return render_template("explore.html")
 
-# for bwb page
 @app.route("/bwb")
 def homepage():
-    return render_template('bwb_page.html')
+    return render_template("bwb_page.html")
 
-@app.route('/queue_position', methods=['GET'])
+@app.route("/queue_position", methods=["GET"])
 def get_queue():
-    # get user uuid
-    user_uuid = session.get('uuid')
+    user_uuid = session.get("uuid")
     if not user_uuid:
-        return jsonify({'error: search query is required'}), 400
-
+        return jsonify({"error": "search query is required"}), 400
     response = SampleExplorerAPI().get_queue_position(user_uuid)
-
     if response:
         return jsonify(response), 200
-    else:
-        return jsonify({'error': 'error getting queue position'}), 500
+    return jsonify({"error": "error getting queue position"}), 500
 
-@app.route('/download_data', methods=['GET'])
+@app.route("/download_data", methods=["GET"])
 def get_download_data():
-    # retrieve uuid and amount of lines
-    user_uuid = session.get('uuid')
-    lines = session.get('lines')
-
+    user_uuid = session.get("uuid")
+    lines = session.get("lines")
     if not user_uuid or not lines:
-        return jsonify({'error': 'A search with amount of lines is required'}), 400
-
+        return jsonify({"error": "A search with amount of lines is required"}), 400
     response_file = SampleExplorerAPI().get_download_file(user_uuid, lines)
-
     if response_file is None:
-        return jsonify({'error': 'Error getting download file'}), 500
+        return jsonify({"error": "Error getting download file"}), 500
     zip_file = io.BytesIO(response_file.content)
-    return send_file(zip_file, as_attachment=True, download_name='testing-search-results.zip', mimetype='application/zip')
+    return send_file(zip_file, as_attachment=True, download_name="testing-search-results.zip", mimetype="application/zip")
 
-@app.route("/search", methods=['GET','POST'])
+@app.route("/search", methods=["GET", "POST"])
 def search():
     form = SearchForm()
 
     if form.validate_on_submit():
-        # generate uuid
         user_uuid = str(uuid.uuid4())
 
-        # user inputs
         query = form.query.data
         genes = form.genes.data
         expansion_strategy = form.expansion_strategy.data
         size = form.size.data
 
-        # set search and expand from selected expansion strategy
-        if expansion_strategy == 'semantic_transcriptome':
-            search = 'semantic'
-            expand = 'transcriptome'
+        if expansion_strategy == "semantic_transcriptome":
+            search_type = "semantic"
+            expand = "transcriptome"
         else:
-            search = 'semantic'
-            expand = 'semantic'
+            search_type = "semantic"
+            expand = "semantic"
 
-        # check if search query and genes list is in input
         has_query = bool(query)
         has_genes = bool(genes)
 
-        # create a gene set from input genes
         if genes:
             genes = utils.format_genes_from_str_to_list(genes)
 
-        # make a query
-        q_response = SampleExplorerAPI().make_query(user_uuid, has_query, query, has_genes, genes, search, expand)
+        q_response = SampleExplorerAPI().make_query(user_uuid, has_query, query, has_genes, genes, search_type, expand)
 
-        # when successful status
         if "status" in q_response and q_response["status"] == "queued":
-            # save uuid for future use
-            session['uuid'] = user_uuid
-            # save lines for future use
+            session["uuid"] = user_uuid
             if size:
-                session['lines'] = int(size)
-            # remove session key for previous search results
-            if 'gse_sample_type' in session:
-                del session['gse_sample_type']
+                session["lines"] = int(size)
+            session.pop("gse_sample_type", None)
+            return render_template("search.html", result=q_response, success=True, form=form)
 
-            return render_template('search.html', result=q_response, success=True, form=form)
-        # when status is abnormal
         if "status" in q_response:
-            print("status:")
-            print(q_response["status"])
+            print("status:", q_response["status"])
+            return render_template("search.html", result=q_response, success=False, form=form)
 
-            return render_template('search.html', result=q_response, success=False, form=form)
+        return render_template("search.html", result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
 
-        # error after attempting to make a request
-        return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
-    return render_template('search.html', form=form)
+    return render_template("search.html", form=form)
 
-@app.route("/search/status", methods=['GET'])
+@app.route("/search/status", methods=["GET"])
 def search_status():
-    return render_template('search_status.html')
+    return render_template("search_status.html")
 
-# Search results
-@app.route("/search-results", methods=['GET', 'POST'])
+@app.route("/search-results", methods=["GET"])
 def search_results():
-    if 'uuid' in session and 'lines' in session:
-        user_uuid = session.get('uuid')
-        lines = session.get('lines')
+    if "uuid" not in session or "lines" not in session:
+        return render_template("search_results.html")
 
-        # get search results
-        search_results = SampleExplorerAPI().get_data_output(user_uuid, lines)
-        if not search_results:
-            return render_template('search_results.html')
+    user_uuid = session["uuid"]
+    lines = session["lines"]
 
-        # split comma separated gse_id's and remove duplicates
-        search_results = sample_explorer_utils.reshape_data(search_results)
+    results = SampleExplorerAPI().get_data_output(user_uuid, lines)
+    if not results:
+        return render_template("search_results.html")
 
-        gse_ids_in_search_results = sample_explorer_utils.get_unique_gse_ids(search_results)
+    results = sample_explorer_utils.reshape_data(results)
+    gse_ids_in_results = sample_explorer_utils.get_unique_gse_ids(results)
 
-        # retrieve previously saved gse id's with sample types, Bulk or Single-cell, format: {'gse_id': 'sample-type'}
-        if session.get('gse_sample_type') is None:
-            # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk'}
-            session['gse_sample_type'] = {}
-        saved_sample_types = session.get('gse_sample_type', {})
+    if session.get("gse_sample_type") is None:
+        session["gse_sample_type"] = {}
+    saved_sample_types = session.get("gse_sample_type", {})
 
-        # diff: gse id's in search results - saved gse ids with sample types
-        gse_ids_without_sample_types = set(gse_ids_in_search_results) - set(saved_sample_types.keys())
+    gse_ids_without_types = set(gse_ids_in_results) - set(saved_sample_types.keys())
+    library_strategies = sra_web_api.get_library_strategy_for_gse_ids(gse_ids_without_types)
+    saved_sample_types.update(library_strategies)
+    session["gse_sample_type"] = saved_sample_types
 
-        # fetch sample types for new gse id's
-        library_strategies = sra_web_api.get_library_strategy_for_gse_ids(gse_ids_without_sample_types)
+    results = sample_explorer_utils.add_sample_type_to_studies_data(saved_sample_types, results)
 
-        # save sample types: {'gse_id': 'sample-type'}
-        saved_sample_types.update(library_strategies)
-        session['gse_sample_type'] = saved_sample_types
+    ResultsTableForm = create_results_table_form(gse_ids_in_results)
+    form = ResultsTableForm()
 
-        # add sample type to search results
-        search_results = sample_explorer_utils.add_sample_type_to_studies_data(saved_sample_types, search_results)
+    return render_template("search_results.html", data=results, form=form)
 
-        # Use a Form for gse_id's in result data
-        ResultsTableForm = create_results_table_form(gse_ids_in_search_results)
-        form = ResultsTableForm()
+# ── JSON API endpoints ─────────────────────────────────────────────────────────
 
-        if form.validate_on_submit():
-            # list of selected/checked inputs
-            selected_studies = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
-            if selected_studies:
-                session['gse_ids'] = selected_studies
-                return redirect('/metadata')
-
-        return render_template('search_results.html', data=search_results, form=form)
-    return render_template('search_results.html')
-
-@app.route("/morphic", methods=['GET', 'POST'])
-def morphic_data():
-    # Load MorPhiC Data
-    data_file_name = 'morphic_data.json'
+@app.route("/api/morphic-studies", methods=["GET"])
+def api_morphic_studies():
+    """Return MorPhiC studies catalog as JSON. Pass ?refresh=true to bypass file cache."""
+    data_file_name = "morphic_data.json"
+    refresh = request.args.get("refresh", "false").lower() == "true"
     morphic_full_data = utils.load_json_file(data_file_name)
-    
-    # Get MorPhiC Data
-    if morphic_full_data is None or session.get('morphic_refresh_data', True):
+
+    if morphic_full_data is None or refresh:
         morphic_full_data = MorphicAPI().get_data()
-        utils.save_json_file(morphic_full_data, data_file_name)
-        session['morphic_refresh_data'] = False
+        if morphic_full_data:
+            utils.save_json_file(morphic_full_data, data_file_name)
 
     if morphic_full_data is None:
-        return render_template("morphic_data.html", error_message="Error loading data")
+        return jsonify({"error": "Error loading data"}), 500
 
     # Extract GEO and ERP accession ids, ids other than GEO are defaulted to ERP
     def extract_accessions(accessions: list) -> dict:
@@ -333,27 +299,27 @@ def morphic_data():
         }
         new_study.update(extract_accessions(study_accessions))
         data.append(new_study)
+    return jsonify(data)
 
-    # Create a Form from available gse ids
-    morphic_erp_ids = [study["erp_accession"] for study in data]
-    MorphicForm = create_morphic_form(morphic_erp_ids)
-    form = MorphicForm()
+@app.route("/api/fetch-metadata", methods=["POST"])
+def api_fetch_metadata():
+    """Fetch SRA run metadata for a list of accession IDs. Returns JSON."""
+    body = request.get_json(silent=True) or {}
+    gse_ids = body.get("gse_ids", [])
+    if not gse_ids:
+        return jsonify({"error": "No IDs provided"}), 400
 
-    # Save submitted gse ids
-    if form.validate_on_submit():
-        selected_ids = [box.id for box in form if box.data and box.type == 'BooleanField']
-        print("Setting gse id")
-        session['gse_ids'] = selected_ids
+    api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, file_name="metadata.csv")
+    ids_with_no_metadata = (api_response or {}).get("ids_with_no_metadata", [])
 
-    # Update form with previously saved inputs
-    for checkbox in form:
-        if checkbox.type == 'BooleanField' and session.get('gse_ids') and checkbox.id in session.get('gse_ids'):
-            checkbox.data = True
+    metadata_df = utils.load_csv_file_as_df("metadata.csv")
+    if metadata_df is None:
+        return jsonify({"error": "No metadata found", "ids_with_no_metadata": ids_with_no_metadata}), 404
 
-    # Create a Form for user submitted GEO ID's
-    geo_id_form = ExternalID()
-
-    return render_template("morphic_data.html", form=form, data=data, geo_id_form=geo_id_form)
+    return jsonify({
+        "metadata": json.loads(metadata_df.to_json(orient="records")),
+        "ids_with_no_metadata": ids_with_no_metadata,
+    })
 
 @app.route('/external_geo_id', methods=['POST'])
 def create_external_geo_id():
@@ -434,7 +400,7 @@ def get_external_geo_id():
         return jsonify({"success": True, "data": external_gse_ids}), 200
     except Exception:
         return jsonify({"success": False, "error": "Could not get external GEO accession IDs"}), 500
-    
+
 @app.route('/external_geo_id/<int:geo_id>', methods=['DELETE'])
 def delete_external_geo_id(geo_id):
     """
@@ -456,142 +422,24 @@ def delete_external_geo_id(geo_id):
     except Exception:
         return jsonify({"success": False, "error": "Failed to delete GEO accession IDs"}), 500
 
+# ── Page routes ────────────────────────────────────────────────────────────────
 
-@app.route('/morphic/refresh-data', methods=['GET'])
+@app.route("/morphic", methods=["GET"])
+def morphic_data():
+    form = ExternalID()
+    return render_template("morphic_data.html", form=form)
+
+@app.route("/morphic/refresh-data", methods=["GET"])
 def morphic_refresh_data():
-    session['morphic_refresh_data'] = True
-    return redirect('/morphic')
+    data_file_name = "morphic_data.json"
+    fresh = MorphicAPI().get_data()
+    if fresh:
+        utils.save_json_file(fresh, data_file_name)
+    return redirect("/morphic")
 
-@app.route('/metadata', methods=['GET', 'POST'])
+@app.route("/metadata", methods=["GET"])
 def metadata():
-    # Get user selected gse id's
-    gse_ids = session.get('gse_ids')
-    external_gse_ids = session.get('external_gse_ids')
-    
-    if not gse_ids and not external_gse_ids:
-        return render_template('metadata.html', error_message="Please select a study to view metadata")
-    
-    # Create form for experiment groups
-    user_selected_metadata = session.get('user_selected_metadata', {})
-    if user_selected_metadata is not None and user_selected_metadata and user_selected_metadata.get('groups'):
-        group_names  = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
-        select_group_form = GroupForm(group_a=group_names[0], group_b=group_names[1])
-    else:
-        select_group_form = GroupForm()
-    available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
-
-    # Set variables to make avaiblable for the template
-    context = {'group_form': select_group_form, 'group_names': available_groups}
-
-    # Retrieve metadata table, form, and error message for ID's
-    if gse_ids:
-        metadata_context = metadata_for_studies(gse_ids, 'prev_gse_ids_metadata', 'metadata.csv')
-        context.update(metadata_context)
-    if external_gse_ids:
-        external_metadata_context = metadata_for_studies(external_gse_ids, 'prev_external_gse_ids_metadata', 'metadata_external.csv')
-        if external_metadata_context.get('data'):
-            context['external_data'] = external_metadata_context['data']
-        if external_metadata_context.get('form'):
-            context['external_form'] = external_metadata_context['form']
-        if external_metadata_context.get('error_message'):
-            context['error_message'] = f"{context.get('error_message', "")} {external_metadata_context.get('error_message', "")}"
-
-    return render_template('metadata.html', **context)
-
-def metadata_for_studies(gse_ids, prev_gse_ids_metadata, file_name):
-    """
-    Gets metadata for study ids (GSE or ERP series), creates form, saves form selections to session, saves metadata to file
-    
-    Parameters
-    ----------
-    gse_ids : list of str
-        Study ID's, each id must GSE or SRP series
-    prev_gse_ids_metadata : str
-        Session name for storing previously submitted GEO ID's     
-    file_name : str
-        file name where metadata will be written, example: 'metadata.csv'
-    """
-
-    # Get metadata for new id's
-    error_message = None
-    if gse_ids != session.get(prev_gse_ids_metadata):
-        # fetch metadata for gse_id's
-        api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, file_name=file_name)
-        if api_response is not None and api_response and api_response.get('ids_with_no_metadata'):
-            error_message = f"No results were found for: {', '.join(api_response.get('ids_with_no_metadata', []))}."
-        session[prev_gse_ids_metadata] = gse_ids
-
-    # Read saved csv metadata
-    metadata_df = utils.load_csv_file_as_df(file_name)
-    if metadata_df is None:
-        return {'error_message': "No metadata found" if error_message is None else error_message}
-
-    # Create Forms
-    srr_ids = metadata_df['run_accession']
-    user_selected_metadata = session.get('user_selected_metadata', {})
-    if user_selected_metadata is not None and user_selected_metadata and user_selected_metadata.get('groups'):
-        group_names  = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
-
-        SRRForm = create_srr_form(set(srr_ids), group_names)
-    else:
-        SRRForm = create_srr_form(set(srr_ids))
-    form = SRRForm()
-
-    if form.validate_on_submit():
-        form_selected_metadata = user_selected_metadata
-        for dropdown in form:
-            if dropdown.data and dropdown.type == 'SelectField':
-                new_group_name = dropdown.data
-                new_srr_id = dropdown.id
-
-                for group_info in form_selected_metadata.get('groups', []):
-                    if group_info['name'] == new_group_name and new_srr_id not in group_info['samples']:
-                        group_info['samples'].append(new_srr_id)
-                for group_info in form_selected_metadata.get('groups', []):
-                    if group_info['name'] != new_group_name and new_srr_id in group_info['samples']:
-                        group_info['samples'].remove(new_srr_id)
-                form_selected_metadata.get('samples')[new_srr_id] = new_group_name
-
-        # Save selected ids
-        session['user_selected_metadata'] = form_selected_metadata
-        session.modified = True
-        with open("srr_id_groups.json", "w") as json_file:
-            json.dump(form_selected_metadata, json_file, indent=4)
-
-    # Update form with previously saved inputs
-    for dropdown in form:
-        if dropdown.type == 'SelectField':
-            if user_selected_metadata is not None and isinstance(user_selected_metadata, dict) and user_selected_metadata:
-                metadata_samples = user_selected_metadata.get('samples')
-                if metadata_samples:
-                    dropdown.data = metadata_samples.get(dropdown.id)
-
-    # available_groups = [group['name'] for group in user_selected_metadata.get('groups', []) if 'name' in group]
-    metadata = json.loads(metadata_df.to_json(orient='records'))
-
-    context = {
-        'data': metadata,
-        'form': form
-    }
-    if error_message:
-        context['error_message'] = error_message
-    return context
-
-@app.route('/create-group', methods=['POST'])
-def create_group():
-    form = GroupForm()
-    if form.validate_on_submit():
-        group_a_name = form.group_a.data
-        group_b_name = form.group_b.data
-        session['user_selected_metadata'] = {
-            'groups': [
-                {"name": group_a_name, "samples": []},
-                {"name": group_b_name, "samples": []}
-            ],
-            'samples': {}
-        }
-        session.modified = True
-    return redirect('/metadata')
+    return render_template("metadata.html")
 
 @app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])
 def is_human_bulk_rna_seq(srr_id):
@@ -648,8 +496,7 @@ def cancel_job(job_id):
     ok, msg = JOB_MANAGER.cancel_running_job(job_id)
     if ok:
         return jsonify({"status": "killed"})
-    else:
-        return jsonify({"error": msg}), 400
+    return jsonify({"error": msg}), 400
 
 @app.route("/job-status/<job_id>", methods=["GET"])
 def job_status(job_id):
@@ -658,15 +505,13 @@ def job_status(job_id):
 def write_metadata_json(samples, srr_groups, srr_entries, output_path):
     grouped = defaultdict(list)
 
-    # Add uploaded FASTQ samples
     for sample in samples:
         grouped[sample["group"]].append({
             "srr_id": sample["name"],
             "layout": sample["layout"],
-            "preprocessed": False
+            "preprocessed": False,
         })
-    
-    # Add SRR ID samples from session metadata (preprocessed)
+
     if srr_groups:
         for group in srr_groups:
             group_name = group.get("name")
@@ -674,15 +519,14 @@ def write_metadata_json(samples, srr_groups, srr_entries, output_path):
                 grouped[group_name].append({
                     "srr_id": srr_id,
                     "layout": "PAIRED",
-                    "preprocessed": True
+                    "preprocessed": True,
                 })
 
-    # Add manually-entered SRR entries (non-preprocessed, with explicit group)
     for entry in (srr_entries or []):
         grouped[entry["group"]].append({
             "srr_id": entry["id"],
             "layout": "PAIRED",
-            "preprocessed": False
+            "preprocessed": False,
         })
 
     metadata = {
@@ -695,7 +539,7 @@ def write_metadata_json(samples, srr_groups, srr_entries, output_path):
     with open(output_path, "w") as fh:
         json.dump(metadata, fh, indent=2)
 
-# Key assumptions of bulkrna.json: 
+# Key assumptions of bulkrna.json:
 #   - All paired end fastq files are named "sample_1.fastq" and "sample_2.fastq"
 #   - There is an entry in metadata.json corresponding to each SRR ID / user uploaded file.
 #   - If the sample name "sample" (key "srr_id" in metadata.json, which is actually kind of a misnomer)
@@ -706,7 +550,6 @@ def run_bwb():
     form = BwbForm()
 
     if not form.validate_on_submit():
-        # Form-level validation will ensure all sample fields are correct
         return render_template("dash.html", form=form, status=-1)
 
     randStr = str(uuid.uuid4())
@@ -715,14 +558,18 @@ def run_bwb():
     os.makedirs(upload_root, exist_ok=True)
 
     raw = form.sra_ids.data or ""
-    sra_ids = [s.strip() for s in re.split(r'[\s,]+', raw) if s.strip()]
+    sra_ids = [s.strip() for s in re.split(r"[\s,]+", raw) if s.strip()]
 
-    srr_metadata = session.get('user_selected_metadata')
-    print(srr_metadata)
+    # Read group/sample assignments from the serialised state the client submits
+    srr_metadata_json = request.form.get("srr_metadata_json", "")
     srr_groups = None
-    
-    if srr_metadata:
-        srr_groups = srr_metadata.get("groups", [])
+    if srr_metadata_json:
+        try:
+            srr_metadata = json.loads(srr_metadata_json)
+            srr_groups = srr_metadata.get("groups") or None
+        except (json.JSONDecodeError, TypeError):
+            pass
+    print("srr_groups:", srr_groups)
 
     sample_indices = sorted(
         set(
@@ -736,7 +583,6 @@ def run_bwb():
         form.workflow.errors.append("No samples or SRR IDs were provided.")
         return render_template("dash.html", form=form, status=-1)
 
-    # Enforce all samples share the same layout (if samples provided)
     first_layout = None
     if sample_indices:
         first_layout = request.form.get(f"samples[{sample_indices[0]}][layout]")
@@ -748,12 +594,10 @@ def run_bwb():
     userUploadedFiles = False
     for idx in sample_indices:
         prefix = f"samples[{idx}]"
-
         name   = request.form.get(f"{prefix}[name]")
         group  = request.form.get(f"{prefix}[group]")
         layout = request.form.get(f"{prefix}[layout]")
 
-        # All layouts must match
         if layout != first_layout:
             form.workflow.errors.append(
                 f"Sample {name or idx} has layout {layout}, "
@@ -764,41 +608,27 @@ def run_bwb():
         r1 = request.files.get(f"{prefix}[r1]")
         r2 = request.files.get(f"{prefix}[r2]")
 
-        # Create per-sample directory
         sample_dir = upload_root
         os.makedirs(sample_dir, exist_ok=True)
 
-        # Save FASTQ files with names based on user-given sample name
         r1_path = None
         if r1 and r1.filename:
             userUploadedFiles = True
-            # Use sample name with _1 suffix
-            r1_filename = f"{name}_1.fastq"
-            r1_path = os.path.join(sample_dir, r1_filename)
+            r1_path = os.path.join(sample_dir, f"{name}_1.fastq")
             r1.save(r1_path)
 
         r2_path = None
         if layout == "PAIRED":
             if not r2 or not r2.filename:
-                form.workflow.errors.append(
-                    f"Sample {name}: R2 FASTQ is required for paired-end layout."
-                )
+                form.workflow.errors.append(f"Sample {name}: R2 FASTQ is required for paired-end layout.")
                 return render_template("dash.html", form=form, status=-1)
-            # Use sample name with _2 suffix
-            r2_filename = f"{name}_2.fastq"
-            r2_path = os.path.join(sample_dir, r2_filename)
+            r2_path = os.path.join(sample_dir, f"{name}_2.fastq")
             r2.save(r2_path)
 
-        samples.append({
-            "name": name,
-            "group": group,
-            "layout": layout,
-            "r1": r1_path,
-            "r2": r2_path,
-        })
+        samples.append({"name": name, "group": group, "layout": layout, "r1": r1_path, "r2": r2_path})
 
     print(f"USER UPLOADED FILES: {userUploadedFiles}")
-    metadata_path = os.path.join(upload_root, "metadata.json")
+    metadata_path     = os.path.join(upload_root, "metadata.json")
     metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
 
     srr_entries = []
@@ -811,38 +641,26 @@ def run_bwb():
         if srr_id:
             srr_entries.append({"id": srr_id, "group": srr_group})
         i += 1
-    write_metadata_json(
-        samples=samples,
-        srr_groups=srr_groups,
-        srr_entries=srr_entries,
-        output_path=metadata_path
-    )
+
+    write_metadata_json(samples=samples, srr_groups=srr_groups, srr_entries=srr_entries, output_path=metadata_path)
 
     srr_ids = []
     if srr_groups:
         for group in srr_groups:
             srr_ids.extend(group.get("samples", []))
-
-    srr_ids = []
-    if srr_groups:
-        for group in srr_groups:
-            srr_ids.extend(group.get("samples", []))
-    
-    srrIds = '[' + ','.join(srr_ids) + ']'
-    if srr_ids:
-        print("SRR IDs:", ",".join(srr_ids))
-    else:
-        print("SRR IDs: None")
+    srrIds = "[" + ",".join(srr_ids) + "]"
+    print("SRR IDs:", ",".join(srr_ids) if srr_ids else "None")
 
     manual_sra_ids = [e["id"] for e in srr_entries]
-    sraIds = '[' + ','.join(manual_sra_ids) + ']'
-    if userUploadedFiles or len(manual_sra_ids) > 0:
+    sraIds = "[" + ",".join(manual_sra_ids) + "]"
+
+    if userUploadedFiles or manual_sra_ids:
         cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
             f"-v \"$(pwd)\":/wfs "
             f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
             f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
-            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
             f"-p Start.fastqdir=/data/{randStr} "
             f"-p Start.metadata_json={metadata_cnt_path} "
@@ -857,9 +675,9 @@ def run_bwb():
             f"-v \"$(pwd)\":/wfs "
             f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
             f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
-            f"patrickmckeever/bwb-scheduler:latest bwbSched run "
+            f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-            f"-p 10.metadata_json=/data/metadata3.json "
+            f"-p 10.metadata_json={metadata_cnt_path} "
             f"-p 13.samplesToRetain={srrIds} "
             f"-p 13.tablesDir=/data/processing/Tables "
             f"-p 13.preprocessedCnts=/data/mergedCounts.tsv "
@@ -868,58 +686,44 @@ def run_bwb():
 
     print(cmd)
     job_id = JOB_MANAGER.submit(cmd)
+    return render_template("dash.html", form=form, status=1, job_id=job_id)
 
-    return render_template(
-        "dash.html",
-        form=form,
-        status=1,
-        job_id=job_id
-    )
-
-# TODO: Update this to have per-job directories later.
 @app.route("/heatmap/<job_id>")
 def heatmap(job_id):
-    """
-    Serve the final workflow image for a completed job.
-    """
-
-    # Defensive: job_id should be a UUID-like string
     if "/" in job_id or ".." in job_id:
         abort(400)
-
     image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/heatmap.png"
     if not os.path.exists(image_path):
         abort(404)
+    return send_file(image_path, mimetype="image/png", conditional=True)
 
-    return send_file(
-        image_path,
-        mimetype="image/png",
-        conditional=True
-    )
-
-# TODO: Update this to have per-job directories later.
 @app.route("/volcano/<job_id>")
 def volcano(job_id):
-    """
-    Serve the final workflow image for a completed job.
-    """
-
-    # Defensive: job_id should be a UUID-like string
     if "/" in job_id or ".." in job_id:
         abort(400)
-
     image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/volcano_plot.png"
     if not os.path.exists(image_path):
         abort(404)
+    return send_file(image_path, mimetype="image/png", conditional=True)
 
-    return send_file(
-        image_path,
-        mimetype="image/png",
-        conditional=True
-    )
+@app.route("/pca/<job_id>")
+def pca(job_id):
+    if ".." in job_id or "/" in job_id:
+        return "Invalid job ID", 400
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/pca_plot.png"
+    return send_file(image_path, mimetype="image/png")
+
+@app.route("/counts/<job_id>")
+def counts(job_id):
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+    counts_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/genesCounts.csv"
+    if not os.path.exists(counts_path):
+        abort(404)
+    return send_file(counts_path, mimetype="text/csv", as_attachment=True, download_name="genesCounts.csv")
 
 @app.route("/dash")
 @app.route("/visualize")
 def dash():
     form = BwbForm()
-    return render_template('dash.html', form=form)
+    return render_template("dash.html", form=form)
