@@ -12,7 +12,7 @@ from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
 from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
-from .forms import SearchForm, BwbForm, ExternalID, create_results_table_form
+from .forms import SearchForm, BwbForm, create_results_table_form
 import requests
 from werkzeug.utils import secure_filename
 import json
@@ -321,36 +321,16 @@ def api_fetch_metadata():
         "ids_with_no_metadata": ids_with_no_metadata,
     })
 
-@app.route('/external_geo_id', methods=['POST'])
-def create_external_geo_id():
-    """
-    Create a new external GEO ID (GSE series) when study is bulk RNA-seq.
+@app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])
+def is_human_bulk_rna_seq(srr_id):
+    """Determines if SRR ID is human bulk RNA-seq"""
 
-    Status Codes:
-        201 Created: Successfully added GEO ID's
-        400 Bad Request: Missing or invalid input
-        409 Conflict: GEO ID already exists or not bulk RNA-seq
-        422 Unprocessable Entity: GEO ID is not or could not determine is bulk RNA-seq
-    """
-    
     try:
-        # Create a Form for user submitted GEO ID's
-        form = ExternalID()
-
-        if not form.validate_on_submit():
-            return jsonify({"success": False, "error": form.geo_acc_id.errors}), 400
-        
-        geo_id = form.geo_acc_id.data
-
-        # Check if previously submitted GEO ID
-        if f"GSE{geo_id}" in session.get('external_gse_ids', []) or f"GSE{geo_id}" in session.get('gse_ids', []):
-            return jsonify({"success": False, "error": "External GEO accession ID already exists"}), 409
-
-        # Get metadata for GEO ID
-        metadata_df = sra_web_api.get_metadata_for_accession_id(f"GSE{geo_id}")
+        # Get metadata for SRR ID
+        metadata_df = sra_web_api.get_metadata_for_accession_id(srr_id)
 
         if metadata_df is None or metadata_df.empty:
-            return jsonify({"success": False, "error": "Could not find metadata for external GEO accession ID"}), 422
+            return jsonify({"error": "Could not determine if accession ID is human bulk RNA-seq"}), 422
         
         # Normalize columns
         metadata_df.columns = [c.lower() for c in metadata_df.columns]
@@ -372,62 +352,17 @@ def create_external_geo_id():
         is_bulk = is_rnaseq and not is_single_cell
 
         if not (is_human and is_rnaseq and is_bulk):
-            return jsonify({"success": False, "error": "GEO accession ID was not bulk RNA-seq"}), 422
-        # Save GEO ID
-        external_gse_ids = set(session.get('external_gse_ids', []))
-        external_gse_ids.add(f"GSE{geo_id}")
-        session['external_gse_ids'] = list(external_gse_ids)
-        session.modified = True
+            return jsonify({"error": "Accession ID was not bulk RNA-seq"}), 422
 
-        return jsonify({"success": True, "data": f"GSE{geo_id}"}), 201
-    except Exception as error:
-        print(f"Error creating external geo id: {error}")
-        return jsonify({"success": False, "error": "Failed to add external GEO accession ID"}), 500
-
-@app.route('/external_geo_id', methods=['GET'])
-def get_external_geo_id():
-    """
-    Retrieve external GEO ID's
-    
-    Status Codes:
-        200 OK: Successfully Retrieves GEO ID's
-    """
-
-    try:
-        # Get saved GEO ID's
-        external_gse_ids = session.get('external_gse_ids', [])
-
-        return jsonify({"success": True, "data": external_gse_ids}), 200
+        return jsonify({"id": srr_id, "is_human_bulk_rna_seq": is_human and is_rnaseq and is_bulk}), 200
     except Exception:
-        return jsonify({"success": False, "error": "Could not get external GEO accession IDs"}), 500
-
-@app.route('/external_geo_id/<int:geo_id>', methods=['DELETE'])
-def delete_external_geo_id(geo_id):
-    """
-    Delete external GEO ID by its ID
-
-    Status Codes:
-        200 OK: GEO ID successfully deleted
-        404 Not Found: GEO ID does not exist
-    """
-    try:
-        if not session.get('external_gse_ids'):
-            return jsonify({"success": False, "error": "GEO accesion ID was not found"}), 404
-
-        external_gse_ids = set(session.get('external_gse_ids', []))
-        external_gse_ids.discard(f"GSE{geo_id}")
-        session['external_gse_ids'] = list(external_gse_ids)
-
-        return jsonify({"success": True, "data": f"GSE{geo_id}"}), 200
-    except Exception:
-        return jsonify({"success": False, "error": "Failed to delete GEO accession IDs"}), 500
+        return jsonify({"error": "Something went wrong"}), 500
 
 # ── Page routes ────────────────────────────────────────────────────────────────
 
 @app.route("/morphic", methods=["GET"])
 def morphic_data():
-    form = ExternalID()
-    return render_template("morphic_data.html", form=form)
+    return render_template("morphic_data.html")
 
 @app.route("/morphic/refresh-data", methods=["GET"])
 def morphic_refresh_data():
@@ -440,43 +375,6 @@ def morphic_refresh_data():
 @app.route("/metadata", methods=["GET"])
 def metadata():
     return render_template("metadata.html")
-
-@app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])
-def is_human_bulk_rna_seq(srr_id):
-    """Determines if SRR ID is human bulk RNA-seq"""
-
-    try:
-        # Get metadata for SRR ID
-        metadata_df = sra_web_api.get_metadata_for_accession_id(srr_id)
-
-        if metadata_df is None or metadata_df.empty:
-            return jsonify({"error": "Could not determine if SRR ID is human bulk RNA-seq"}), 422
-        
-        # Normalize columns
-        metadata_df.columns = [c.lower() for c in metadata_df.columns]
-        
-        # Check organism
-        is_human = metadata_df['organism_name'].str.contains("Homo sapiens", case=False, na=False).any()
-
-        # Check RNA-seq
-        is_rnaseq = metadata_df['library_strategy'].str.contains("RNA-seq", case=False, na=False).any()
-
-        # Check bulk vs single-cell
-        is_single_cell = metadata_df.apply(
-            lambda row: any(
-                kw in str(row).lower()
-                for kw in ["single-cell", "scrna", "10x", "smart-seq"]
-            ), axis=1
-        ).any()
-
-        is_bulk = is_rnaseq and not is_single_cell
-
-        if not (is_human and is_rnaseq and is_bulk):
-            return jsonify({"error": "SRR ID was not bulk RNA-seq"}), 422
-
-        return jsonify({"id": srr_id, "is_human_bulk_rna_seq": is_human and is_rnaseq and is_bulk}), 200
-    except Exception:
-        return jsonify({"error": "Something went wrong"}), 500
 
 @app.route("/cancel-job/<job_id>", methods=["POST"])
 def cancel_job(job_id):

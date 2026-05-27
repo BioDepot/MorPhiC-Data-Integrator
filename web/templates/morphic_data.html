@@ -1,148 +1,4 @@
 {% extends "layout.html" %}
-{% block script %}
-<style>
-  input[type=number] {
-    appearance: textfield;
-  }
-</style>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const external_gse_form = document.getElementById("external_gse_form");
-    const list = document.getElementById("item-list");
-
-    // Handle form submit for external GEO ID
-    external_gse_form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(external_gse_form);
-
-      try {
-        const stopLoading = showLoading("Checking if GSE ID is bulk RNA-seq...");
-
-        const response = await fetch("/external_geo_id", {
-          method: "POST",
-          body: formData
-        });
-
-        stopLoading();
-
-        const data = await response.json();
-
-        if (response.ok) {
-          const geoId = data.data;
-          let message = `${geoId ? geoId : "ID"} was successfully added`;
-          showMessage(message, "success");
-
-          addItemToDOM(geoId);
-          external_gse_form.reset();
-        } else {
-          throw new Error(data.error || "Request failed");
-        }
-      } catch (err) {
-        console.log("Something went wrong, could not add item");
-        showMessage(err, "warning");
-        throw err
-      }
-    });
-
-    // Load GEO ID items on page load
-    async function loadItems() {
-      try {
-        const response = await fetch("/external_geo_id");
-        if (!response.ok) {
-          throw new Error("Failed to load external GEO accession IDs");
-        };
-        const data = await response.json();
-        const items = data.data;
-
-        list.replaceChildren()
-        items.forEach(addItemToDOM);
-      } catch (err) {
-        showMessage(err, "warning");
-      }
-    }
-
-    // Add GEO ID item to DOM
-    function addItemToDOM(item) {
-      const li = document.createElement("li");
-      li.classList.add("list-inline-item");
-
-      const btn = document.createElement("button");
-      btn.classList.add("btn", "btn-outline-dark", "rounded-pill");
-
-      const label = document.createElement("span");
-      label.textContent = item;
-
-      const chipRemoveIcon = document.createElement("span");
-      // chipRemoveIcon.setAttribute('aria-hidden', 'true');
-      chipRemoveIcon.setAttribute("aria-label", "Remove")
-      chipRemoveIcon.classList.add("fa", "fa-times", "pl-2");
-
-      btn.appendChild(label);
-      btn.appendChild(chipRemoveIcon);
-      btn.onclick = () => deleteItem(item, li);
-
-      li.appendChild(btn);
-      list.appendChild(li);
-    }
-
-    // Delete GEO ID item
-    async function deleteItem(id, element) {
-      const formated_id = String(id).replace(/\D/g, "");
-      console.log(`FORMATED ID: ${formated_id}`);
-      const formData = new FormData(external_gse_form);
-      try {
-        response = await fetch(`/external_geo_id/${formated_id}`, {
-          method: "DELETE",
-          body: formData
-        });
-        if (!response.ok) {
-          throw new Error("Failed to remove external GEO accession IDs");
-        };
-
-        element.remove();
-      } catch (err) {
-        console.log(err);
-        showMessage(err, "warning");
-      }
-    }
-
-    // Show message, types: "info", "success", "warning", "danger"
-    function showMessage(message, type = "info") {
-      const div = document.createElement("div");
-      div.className = `alert alert-${type}`;
-      div.textContent = message;
-
-      document.getElementById("ext_geo_id_cb").appendChild(div);
-
-      setTimeout(() => div.remove(), 6000);
-    }
-
-    // Show loading overlay
-    function showLoading(message = "Loading...") {
-      const div = document.createElement("div");
-      div.classList.add("overlay");
-
-      const icon = document.createElement("i");
-      icon.classList.add("fas", "fa-2x", "fa-sync-alt", "fa-spin");
-      icon.setAttribute('aria-hidden', 'true');
-
-      const span = document.createElement("span");
-      span.textContent = message;
-
-      div.appendChild(icon);
-      div.appendChild(span);
-
-      document.getElementById("external-geo-card").appendChild(div);
-
-      return () => div.remove();
-    }
-
-    // Initial load of GEO ID items
-    loadItems();
-  });
-</script>
-{% endblock script %}
 
 {% block my_content %}
 <section class="content-header">
@@ -150,7 +6,8 @@
     <div class="row mb-2">
       <div class="col-12">
         <h1>MorPhiC Data</h1>
-        <p>Studies generated from the MorPhiC Public Data Release. Select studies to include their samples in your analysis.</p>
+        <p>Studies generated from the MorPhiC Public Data Release. Select studies to include their samples in your
+          analysis.</p>
       </div>
     </div>
   </div>
@@ -170,8 +27,10 @@
             <nav>
               <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto" aria-label="Go to MorPhiC data">
-                    <img class="img-circle" style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
+                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto"
+                    aria-label="Go to MorPhiC data">
+                    <img class="img-circle"
+                      style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
                       src="{{ url_for('static', filename='images/morphic-symbol.svg') }}" alt="">
                   </a>
                   <div class="d-flex flex-column">
@@ -179,9 +38,12 @@
                     <p class="small text-muted p-0 m-0">Select studies</p>
                   </div>
                 </li>
-                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);"></div>
+                <div
+                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
+                </div>
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/metadata" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Go to metadata">
+                  <a href="/metadata" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Go to metadata">
                     <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
                   </a>
                   <div class="d-flex flex-column">
@@ -189,9 +51,12 @@
                     <p class="small text-muted p-0 m-0">Assign samples to groups</p>
                   </div>
                 </li>
-                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);"></div>
+                <div
+                  style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);">
+                </div>
                 <li class="d-flex" style="gap: 0.5rem;">
-                  <a href="/visualize" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Run workflow">
+                  <a href="/visualize" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto"
+                    aria-label="Run workflow">
                     <i class="fa fa-play" aria-hidden="true" style="font-size: 16px;"></i>
                   </a>
                   <div class="d-flex flex-column">
@@ -225,20 +90,26 @@
               <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-btn" style="display:none;">
                 Clear selection
               </button>
-              <button type="button" class="btn btn-tool" id="refresh-btn" aria-label="Refresh data" title="Refresh data from MorPhiC API">
+              <button type="button" class="btn btn-tool" id="refresh-btn" aria-label="Refresh data"
+                title="Refresh data from MorPhiC API">
                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
               </button>
             </div>
           </div>
           <!-- /.card-header -->
           <div class="card-body">
+            <!-- Loading -->
             <div id="loading-state" class="text-center py-5">
               <div class="spinner-border text-info" role="status" style="width: 2rem; height: 2rem;">
                 <span class="sr-only">Loading...</span>
               </div>
               <p class="mt-2 text-muted">Loading MorPhiC studies&hellip;</p>
             </div>
+
+            <!-- Error -->
             <div id="error-state" class="alert alert-danger" style="display:none;"></div>
+
+            <!-- Table of morphic data -->
             <div id="table-container" style="display:none;">
               <table id="morphic-table" class="table table-bordered table-hover dataTable dtr-inline">
                 <thead>
@@ -274,24 +145,42 @@
           </div>
           <!-- /.card-header -->
           <div id="ext_geo_id_cb" class="card-body">
-            <form id="external_gse_form" class="form-inline">
-              {{ form.hidden_tag() }}
-              <div class="form-group flex-fill">
-                <div class="input-group mb-3 mr-sm-2 flex-fill">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text" id="geo-prefix">GSE</span>
-                  </div>
-                  <label class="sr-only" for="geo_acc_id">GEO Accession ID</label>
-                  {{ form.geo_acc_id(class="form-control") }}
-                </div>
+            <!-- Loading -->
+            <div id="external-loading-state" style="display: none;">
+              <div class="overlay">
+                <i class="fas fa-2x fa-sync-alt fa-spin" aria-hidden="true"></i>
+                <span>Checking if GSE ID is bulk RNA-seq...</span>
               </div>
-              <button type="submit" class="btn btn-primary mb-3" id="submit-geo-acc-id">Add</button>
-            </form>
+            </div>
+
+            <!-- Error -->
+            <div id="external-error-state" class="alert alert-warning" style="display: none;"></div>
+
+            <!-- Form to add external GEO ids -->
+            <div id="form-container">
+              <form id="external-gse-form" class="form-inline">
+                <div class="form-group flex-fill">
+                  <div class="input-group mb-3 mr-sm-2 flex-fill">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text" id="geo-prefix">GSE</span>
+                    </div>
+                    <label class="sr-only" for="geo_acc_id">GEO Accession ID</label>
+                    <input class="form-control" id="geo_acc_id" min="1" name="geo_acc_id" placeholder="eg. GSE224615"
+                      required="" type="number" value="" style="appearance: textfield">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary mb-3" id="submit-geo-acc-id">Add</button>
+              </form>
+            </div>
+
+            <hr>
+
+            <!-- List of external GEO ids -->
+            <div id="list-container" style="display: none;">
+              <ul id="external-list" class="list-inline"></ul>
+            </div>
           </div>
           <!-- /.card-body -->
-          <div class="card-footer">
-            <ul id="item-list" class="list-inline"></ul>
-          </div>
         </div>
         <!-- /.card -->
       </div>
@@ -325,83 +214,83 @@
 
 {% block body_script %}
 <script>
-const STATE_KEY = 'morphicdi_state';
+  const STATE_KEY = 'morphicdi_state';
 
-function loadState() {
-  try {
-    return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
-  } catch { return {}; }
-}
-
-function saveState(state) {
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
-}
-
-function getSelectedIds() {
-  return loadState().selected_ids || [];
-}
-
-function setSelectedIds(ids) {
-  const state = loadState();
-  state.selected_ids = ids;
-  saveState(state);
-}
-
-function toggleId(id) {
-  const ids = getSelectedIds();
-  const idx = ids.indexOf(id);
-  if (idx === -1) ids.push(id);
-  else ids.splice(idx, 1);
-  setSelectedIds(ids);
-}
-
-function updateUI() {
-  const ids = getSelectedIds();
-  const count = ids.length;
-
-  const badge = document.getElementById('selection-badge');
-  const countEl = document.getElementById('selection-count');
-  const clearBtn = document.getElementById('clear-btn');
-  const selectAllCb = document.getElementById('select-all-cb');
-
-  badge.style.display = count > 0 ? 'inline-block' : 'none';
-  clearBtn.style.display = count > 0 ? 'inline-block' : 'none';
-  if (countEl) countEl.textContent = count;
-
-  // Sync individual checkboxes
-  document.querySelectorAll('.study-cb').forEach(cb => {
-    cb.checked = ids.includes(cb.dataset.erp);
-  });
-
-  // Sync select-all
-  if (selectAllCb) {
-    const allCbs = document.querySelectorAll('.study-cb');
-    selectAllCb.checked = allCbs.length > 0 && [...allCbs].every(cb => ids.includes(cb.dataset.erp));
-    selectAllCb.indeterminate = count > 0 && !selectAllCb.checked;
+  function loadState() {
+    try {
+      return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
+    } catch { return {}; }
   }
-}
 
-async function loadStudies(refresh = false) {
-  const loadingEl = document.getElementById('loading-state');
-  const errorEl   = document.getElementById('error-state');
-  const tableEl   = document.getElementById('table-container');
+  function saveState(state) {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  }
 
-  loadingEl.style.display = 'block';
-  errorEl.style.display   = 'none';
-  tableEl.style.display   = 'none';
+  function getSelectedIds() {
+    return loadState().selected_ids || [];
+  }
 
-  try {
-    const url = refresh ? '/api/morphic-studies?refresh=true' : '/api/morphic-studies';
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-    const studies = await resp.json();
+  function setSelectedIds(ids) {
+    const state = loadState();
+    state.selected_ids = ids;
+    saveState(state);
+  }
 
-    const tbody = document.getElementById('morphic-table-body');
+  function toggleId(id) {
     const ids = getSelectedIds();
-    tbody.innerHTML = studies.map(s => {
-      const genes = Array.isArray(s.target_genes) ? s.target_genes.join(', ') : (s.target_genes || '');
-      const checked = ids.includes(s.erp_accession) ? 'checked' : '';
-      return `<tr>
+    const idx = ids.indexOf(id);
+    if (idx === -1) ids.push(id);
+    else ids.splice(idx, 1);
+    setSelectedIds(ids);
+  }
+
+  function updateUI() {
+    const ids = getSelectedIds();
+    const count = ids.length;
+
+    const badge = document.getElementById('selection-badge');
+    const countEl = document.getElementById('selection-count');
+    const clearBtn = document.getElementById('clear-btn');
+    const selectAllCb = document.getElementById('select-all-cb');
+
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+    clearBtn.style.display = count > 0 ? 'inline-block' : 'none';
+    if (countEl) countEl.textContent = count;
+
+    // Sync individual checkboxes
+    document.querySelectorAll('.study-cb').forEach(cb => {
+      cb.checked = ids.includes(cb.dataset.erp);
+    });
+
+    // Sync select-all
+    if (selectAllCb) {
+      const allCbs = document.querySelectorAll('.study-cb');
+      selectAllCb.checked = allCbs.length > 0 && [...allCbs].every(cb => ids.includes(cb.dataset.erp));
+      selectAllCb.indeterminate = count > 0 && !selectAllCb.checked;
+    }
+  }
+
+  async function loadStudies(refresh = false) {
+    const loadingEl = document.getElementById('loading-state');
+    const errorEl   = document.getElementById('error-state');
+    const tableEl   = document.getElementById('table-container');
+
+    loadingEl.style.display = 'block';
+    errorEl.style.display   = 'none';
+    tableEl.style.display   = 'none';
+
+    try {
+      const url = refresh ? '/api/morphic-studies?refresh=true' : '/api/morphic-studies';
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const studies = await resp.json();
+
+      const tbody = document.getElementById('morphic-table-body');
+      const ids = getSelectedIds();
+      tbody.innerHTML = studies.map(s => {
+        const genes = Array.isArray(s.target_genes) ? s.target_genes.join(', ') : (s.target_genes || '');
+        const checked = ids.includes(s.erp_accession) ? 'checked' : '';
+        return `<tr>
         <td style="text-align:center; vertical-align:middle;">
           <input type="checkbox" class="study-cb" data-erp="${s.erp_accession}" ${checked}>
         </td>
@@ -421,64 +310,152 @@ async function loadStudies(refresh = false) {
         <td>${genes}</td>
         <td>${s.readout_assay || ''}</td>
       </tr>`;
-    }).join('');
+      }).join('');
 
-    // Destroy existing DataTable before re-initialising
-    if ($.fn.DataTable.isDataTable('#morphic-table')) {
-      $('#morphic-table').DataTable().destroy();
-    }
-    $('#morphic-table').DataTable({
-      paging: false,
-      layout: {
-        topStart: 'info',
-        bottom: 'paging',
-        bottomStart: null,
-        bottomEnd: null,
-      },
-      order: [[1, 'asc']],
-      columnDefs: [{ orderable: false, targets: 0 }],
-    });
+      // Destroy existing DataTable before re-initialising
+      if ($.fn.DataTable.isDataTable('#morphic-table')) {
+        $('#morphic-table').DataTable().destroy();
+      }
+      $('#morphic-table').DataTable({
+        paging: false,
+        layout: {
+          topStart: 'info',
+          bottom: 'paging',
+          bottomStart: null,
+          bottomEnd: null,
+        },
+        order: [[1, 'asc']],
+        columnDefs: [{ orderable: false, targets: 0 }],
+      });
 
-    document.querySelectorAll('.study-cb').forEach(cb => {
-      cb.addEventListener('change', () => {
-        toggleId(cb.dataset.erp);
+      document.querySelectorAll('.study-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+          toggleId(cb.dataset.erp);
+          updateUI();
+        });
+      });
+
+      document.getElementById('select-all-cb').addEventListener('change', function () {
+        const allErps = [...document.querySelectorAll('.study-cb')].map(c => c.dataset.erp);
+        const current = getSelectedIds();
+        if (this.checked) {
+          // Add all that aren't already present
+          const merged = [...new Set([...current, ...allErps])];
+          setSelectedIds(merged);
+        } else {
+          setSelectedIds(current.filter(id => !allErps.includes(id)));
+        }
         updateUI();
       });
-    });
 
-    document.getElementById('select-all-cb').addEventListener('change', function () {
-      const allErps = [...document.querySelectorAll('.study-cb')].map(c => c.dataset.erp);
-      const current = getSelectedIds();
-      if (this.checked) {
-        // Add all that aren't already present
-        const merged = [...new Set([...current, ...allErps])];
-        setSelectedIds(merged);
-      } else {
-        setSelectedIds(current.filter(id => !allErps.includes(id)));
-      }
+      loadingEl.style.display = 'none';
+      tableEl.style.display   = 'block';
+      updateUI();
+
+    } catch (err) {
+      loadingEl.style.display = 'none';
+      errorEl.style.display   = 'block';
+      errorEl.textContent     = `Error loading studies: ${err.message}`;
+    }
+  }
+
+  function getSelectedExternalIds() {
+    return loadState().external_ids || [];
+  }
+
+  function setSelectedExternalIds(ids) {
+    const state = loadState();
+    state.external_ids = ids;
+    saveState(state);
+  }
+
+  async function deleteExternalId(id, element) {
+    try {
+      const ids = getSelectedExternalIds();
+      const idx = ids.indexOf(id);
+      if (idx > -1) ids.splice(idx, 1);
+      setSelectedExternalIds(ids);
+
+      li = element.closest('li');
+      li.remove();
+    } catch (err) {
+      console.log(`Error unable to remove: ${err}`);
+    }
+  }
+
+  function renderExternalIds() {
+    const listEl = document.getElementById('external-list');
+    const ids = getSelectedExternalIds();
+    listEl.innerHTML = ids.map(id => {
+      return `<li class="list-inline-item">
+      <button class="btn btn-outline-dark rounded-pill" onclick="deleteExternalId('${id}', this)">
+        <span>${id}</span>
+        <span class="fa fa-times pl-2" aria-label="Remove"></span>
+      </button>
+    </li>`;
+    }).join('');
+    document.getElementById('list-container').style.display = 'block';
+  }
+
+  // handleExternalIdSubmit
+  async function handleSubmitExternalID(e) {
+    e.preventDefault();
+
+    const form      = e.target;
+    const formData  = new FormData(form);
+    const formInput = `GSE${parseInt(formData.get('geo_acc_id'))}`;
+
+    const loadingElem = document.getElementById('external-loading-state');
+    const errorElem   = document.getElementById('external-error-state');
+    const formElem    = document.getElementById('form-container'); // TODO: replace _ with - in id name
+    const listElem    = document.getElementById('list-container');
+
+    loadingElem.style.display = 'block';
+    errorElem.style.display   = 'none';
+    formElem.style.display    = 'none';
+    listElem.style.display    = 'none';
+
+    try {
+      const url  = `/experiment/${formInput}/bulk-rna-seq`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+
+      ids = getSelectedExternalIds();
+      if (!ids.includes(formInput)) ids.push(formInput);
+      setSelectedExternalIds(ids);
+      // setSelectedIds(ids)
+
+      renderExternalIds();
+      form.reset();
+
+      loadingElem.style.display = 'none';
+      errorElem.style.display   = 'none';
+      formElem.style.display    = 'block';
+
+    } catch (err) {
+      loadingElem.style.display = 'none';
+      errorElem.style.display   = 'block';
+      errorElem.textContent     = `Error adding GEO Accession ID: ${err.message}`
+      formElem.style.display    = 'block';
+      listElem.style.display    = 'block';
+    }
+
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadStudies();
+    renderExternalIds();
+
+    document.getElementById('refresh-btn').addEventListener('click', () => loadStudies(true));
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      setSelectedIds([]);
       updateUI();
     });
 
-    loadingEl.style.display = 'none';
-    tableEl.style.display   = 'block';
-    updateUI();
-
-  } catch (err) {
-    loadingEl.style.display = 'none';
-    errorEl.style.display   = 'block';
-    errorEl.textContent     = `Error loading studies: ${err.message}`;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadStudies();
-
-  document.getElementById('refresh-btn').addEventListener('click', () => loadStudies(true));
-
-  document.getElementById('clear-btn').addEventListener('click', () => {
-    setSelectedIds([]);
-    updateUI();
+    document.getElementById('external-gse-form').addEventListener('submit', handleSubmitExternalID);
   });
-});
+
 </script>
 {% endblock body_script %}

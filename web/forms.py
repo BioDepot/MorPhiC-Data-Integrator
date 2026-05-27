@@ -76,19 +76,3 @@ def create_results_table_form(studies_data):
         setattr(ResultsTableForm, gse_id, BooleanField(gse_id, default=False))
 
     return ResultsTableForm
-
-class ExternalID(FlaskForm):
-    """
-    Form for creating a new GEO Accession ID.
-    
-    Attributes:
-        geo_acc_id (IntegerField): A text field where the user enters GEO Accession ID, with no prefix.
-    """
-    geo_acc_id = IntegerField(
-        'GEO Accession ID',
-        render_kw={"placeholder": "eg. GSE224615"},
-        validators=[
-            DataRequired(message="Please enter a GEO Accession ID"),
-            NumberRange(min=1, message="ID must be positive")
-        ]
-    )
