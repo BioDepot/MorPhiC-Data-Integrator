@@ -144,43 +144,28 @@
               <!-- /.tab-pane -->
 
               <div id="external-tab-pane" class="tab-pane fade" role="tabpanel">
-                {% if external_data %}
-                <div class="dataTables_wrapper dt-bootstrap4">
-                  <form action="{{url_for('metadata')}}" method="POST">
-                    {{ external_form.hidden_tag() }}
-                    <!-- METADATA TABLE -->
-                    <table id="external-metadata-table" class="table table-bordered table-hover dataTable dtr-inline">
-                      <thead>
-                        <tr>
-                          <th>group</th>
-                          <th>run_accession</th>
-                          <th>study_accession</th>
-                          <th>derived from</th>
-                          <th>experiment_desc</th>
-                          <th>library_layout</th>
-                          <th>library_strategy</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for row in external_data %}
-                        <tr>
-                          <td>{{ external_form[row["run_accession"]|string](class="form-control") }}</td>
-
-                          <td>{{ row["run_accession"] }}</td>
-                          <td>{{ row["study_accession"] }}</td>
-                          <td>{{ row["derivedfrom"] }}</td>
-                          <td>{{ row["experiment_desc"] }}</td>
-                          <td>{{ row["library_layout"] }}</td>
-                          <td>{{ row["library_strategy"] }}</td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                      <tfoot></tfoot>
-                    </table>
-                  </form>
+                <!-- Loading -->
+                <div id="external-loading-state" class="text-center py-5" style="display:none;">
+                  <div class="spinner-border text-info" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">Fetching sample metadata&hellip; this may take a moment.</p>
                 </div>
-                <!-- /.dataTables_wrapper -->
-                {% endif %}
+
+                <!-- No external GEO IDs added -->
+                <div id="no-external-studies-state" class="text-center py-5">
+                  <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                  <p class="text-muted">No external GEO IDs added.</p>
+                  <a href="/morphic" class="btn btn-outline-info">
+                    Go to MorPhiC Data <i class="fas fa-arrow-right pl-2"></i>
+                  </a>
+                </div>
+
+                <!-- Error -->
+                <div id="external-error-state" class="alert alert-warning" style="display:none;"></div>
+
+                <!-- Accordion of external studies -->
+                <div id="external-study-accordion" style="display:none;"></div>
               </div>
               <!-- /.tab-pane -->
             </div>
@@ -258,6 +243,7 @@ function loadState() {
 function saveState(s) { localStorage.setItem(STATE_KEY, JSON.stringify(s)); }
 
 function getSelectedIds()      { return loadState().selected_ids || []; }
+function getExternalIds()      { return loadState().external_ids || []; }
 function getGroups()           { return loadState().groups || []; }
 function getAssignments()      { return loadState().sample_assignments || {}; }
 
@@ -341,7 +327,8 @@ document.getElementById('save-groups-btn').addEventListener('click', () => {
 $('#groupModal').on('show.bs.modal', openGroupModal);
 
 // ── Metadata fetch & render ───────────────────────────────────────────────────
-let _allMetadata = [];   // flat list of SRA rows
+let _allMorphicMetadata = [];   // flat list of SRA rows for MorPhiC studies
+let _allExternalMetadata = [];  // flat list of SRA rows for external GEO ids
 
 async function fetchMetadata(ids) {
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -378,8 +365,8 @@ function buildDropdownOptions(currentValue) {
   return html;
 }
 
-function renderAccordion(byStudy) {
-  const accordion = document.getElementById('study-accordion');
+function renderAccordion(containerId, idPrefix, byStudy) {
+  const accordion = document.getElementById(containerId);
   const assignments = getAssignments();
   const groups = getGroups();
 
@@ -392,7 +379,7 @@ function renderAccordion(byStudy) {
 
   let html = '';
   entries.forEach(([studyId, rows], idx) => {
-    const collapseId = `study-collapse-${idx}`;
+    const collapseId = `${idPrefix}study-collapse-${idx}`;
     const assignedCount = rows.filter(r => assignments[r.run_accession]).length;
     const totalCount = rows.length;
 
@@ -487,7 +474,7 @@ function rebuildDropdowns() {
 function updateAssignmentSummary() {
   const assignments = getAssignments();
   const groups = getGroups();
-  const total = _allMetadata.length;
+  const total = _allMorphicMetadata.length + _allExternalMetadata.length;
   const assigned = Object.keys(assignments).filter(k => assignments[k]).length;
 
   const summaryEl = document.getElementById('assignment-summary');
@@ -518,7 +505,7 @@ async function init() {
 
   try {
     const result = await fetchMetadata(ids);
-    _allMetadata = result.metadata || [];
+    _allMorphicMetadata = result.metadata || [];
 
     document.getElementById('loading-state').style.display = 'none';
 
@@ -529,8 +516,8 @@ async function init() {
         `No results were found for: ${result.ids_with_no_metadata.join(', ')}`;
     }
 
-    const byStudy = groupByStudy(_allMetadata);
-    renderAccordion(byStudy);
+    const byStudy = groupByStudy(_allMorphicMetadata);
+    renderAccordion('study-accordion', '', byStudy);
     updateAssignmentSummary();
 
   } catch (err) {
@@ -541,6 +528,45 @@ async function init() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+async function initExternal() {
+  const ids = getExternalIds();
+
+  if (ids.length === 0) {
+    document.getElementById('no-external-studies-state').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('no-external-studies-state').style.display = 'none';
+  document.getElementById('external-loading-state').style.display    = 'block';
+
+  try {
+    const result = await fetchMetadata(ids);
+    _allExternalMetadata = result.metadata || [];
+
+    document.getElementById('external-loading-state').style.display = 'none';
+
+    if (result.ids_with_no_metadata && result.ids_with_no_metadata.length > 0) {
+      const errEl = document.getElementById('external-error-state');
+      errEl.style.display = 'block';
+      errEl.textContent =
+        `No results were found for: ${result.ids_with_no_metadata.join(', ')}`;
+    }
+
+    const byStudy = groupByStudy(_allExternalMetadata);
+    renderAccordion('external-study-accordion', 'external-', byStudy);
+    updateAssignmentSummary();
+
+  } catch (err) {
+    document.getElementById('external-loading-state').style.display = 'none';
+    const errEl = document.getElementById('external-error-state');
+    errEl.style.display = 'block';
+    errEl.textContent   = `Error fetching metadata: ${err.message}`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  initExternal();
+});
 </script>
 {% endblock body_script %}
