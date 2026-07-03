@@ -1,17 +1,4 @@
 {% extends "layout.html" %}
-{% block script %}
-<script>
-  // Submit form when checkboxes are checked/unchecked
-  document.addEventListener("DOMContentLoaded", function () {
-    const checkboxes = document.querySelectorAll('select');
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', function () {
-        this.form.submit();
-      })
-    })
-  })
-</script>
-{% endblock script %}
 
 {% block my_content %}
 
@@ -20,133 +7,566 @@
     <div class="row mb-2">
       <div class="col-12">
         <h1>Metadata</h1>
+        <p>Assign samples from selected studies to comparison groups.</p>
       </div>
     </div>
   </div>
 </section>
-{% if data %}
-<!-- CREATE GROUP -->
+
 <section class="content">
   <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <form action="{{url_for('create_group')}}" method="POST">
-          {{ group_form.hidden_tag() }}
-          <!-- Button trigger modal -->
-          <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#groupModal">
-            + New Group
-          </button>
-          {% if group_names is iterable and group_names|length >= 2 %}
-          <button type="button" class="btn btn-secondary mb-3">{{ group_names[0] }}</button>
-          <button type="button" class="btn btn-secondary mb-3">{{ group_names[1] }}</button>
-          {% endif %}
 
-          <!-- Modal -->
-          <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog" role="document">
-              <div class="modal-content">
-                <div class="modal-header border-0">
-                  <h5 class="modal-title" id="groupModalLabel">New Group</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-
-                <div class="modal-body justify-content-center">
-                  <div class="form-group">
-                    <label for="group">Group A <span class="text-danger">*</span></label>
-                    {{ group_form.group_a(class="form-control") }}
-                  </div>
-                  <div class="form-group">
-                    <label for="group_b">Group B <span class="text-danger">*</span></label>
-                    {{ group_form.group_b(class="form-control") }}
-                  </div>
-                </div>
-
-                <div class="modal-footer border-0">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                  <button type="submit" class="btn btn-primary">Create</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /.modal -->
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- METADATA TABLE -->
-<section class="content">
-  <div class="container-fluid">
+    <!-- STEPPER -->
     <div class="row">
       <div class="col-12">
         <div class="card">
-          <div class="card-body">
-            <div class="dataTables_wrapper dt-bootstrap4">
-              <div class="row">
-                <div class="col-sm-12">
-                  <form action="{{url_for('metadata')}}" method="POST">
-                    {{ form.hidden_tag() }}
-                    <table id="metadata-table" class="table table-bordered table-hover dataTable dtr-inline">
-                      <thead>
-                        <tr>
-                          <th></th>
-                          <th>run_accession</th>
-                          <th>experiment_desc</th>
-                          <th>source_name</th>
-                          <th>library_layout</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for row in data %}
-                        <tr>
-                          <td>{{ form[row["run_accession"]|string](class="form-control") }}</td>
-
-                          <td>{{ row["run_accession"] }}</td>
-                          <td>{{ row["experiment_desc"] }}</td>
-                          <td>{{ row["source_name"] }}</td>
-                          <td>{{ row["library_layout"] }}</td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                      <tfoot></tfoot>
-                    </table>
-                  </form>
-                </div>
-              </div>
+          <div class="card-header border-0">
+            <h2 class="card-title"><b>Guided Steps</b></h2>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+              </button>
             </div>
-            <!-- /.dataTables_wrapper -->
+          </div>
+          <div class="card-body">
+            <nav>
+              <ol class="p-0 d-flex align-items-center justify-content-between" style="gap: 0.5rem;">
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/morphic" class="btn btn-info rounded-circle p-1 mb-auto mt-auto" aria-label="Go to MorPhiC data">
+                    <img class="img-circle" style="width: 24px; height: auto; object-fit: contain; transform: translateY(-1px);"
+                      src="{{ url_for('static', filename='images/morphic-symbol.png') }}" alt="">
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">MorPhiC Data</h4>
+                    <p class="small text-muted p-0 m-0">Explore relevant data</p>
+                  </div>
+                </li>
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: #17a2b8;"></div>
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/metadata" class="btn btn-info rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Go to metadata">
+                    <i class="fa fa-table" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Metadata</h4>
+                    <p class="small text-muted p-0 m-0">Select SRR IDs and assign groups</p>
+                  </div>
+                </li>
+                <div style="flex: 1 0 32px; min-width: 1px; min-height: 2px; margin: auto; background-color: rgba(0,0,0,.12);"></div>
+                <li class="d-flex" style="gap: 0.5rem;">
+                  <a href="/visualize" class="btn btn-default rounded-circle px-2 py-1 mb-auto mt-auto" aria-label="Go to run workflow">
+                    <i class="fa fa-play" aria-hidden="true" style="font-size: 16px;"></i>
+                  </a>
+                  <div class="d-flex flex-column">
+                    <h4 class="text-body mb-1" style="font-size: 1rem;">Run workflow</h4>
+                    <p class="small text-muted p-0 m-0 text-wrap" style="width: 8rem;">Upload external data and run workflow</p>
+                  </div>
+                </li>
+              </ol>
+            </nav>
           </div>
         </div>
-        <!-- /.card -->
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header border-0">
+            <h2 class="card-title"><b>Comparison Groups</b></h2>
+          </div>
+          <div class="card-body pt-0">
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-sm btn-dark rounded-pill px-3" data-toggle="modal" data-target="#groupModal">
+              <i class="fa fa-plus pr-2" aria-hidden="true"></i> <span id="groups-btn-label">Define groups</span>
+            </button>
+
+            <!-- Defined group badges -->
+            <span id="group-badges"></span>
+
+            <div id="no-groups-hint" class="small text-muted mt-2">
+              Define two groups to start assigning samples.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METADATA TABLE -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card card-primary card-outline card-outline-tabs">
+          <div class="card-header p-0 border-bottom-0 d-flex align-items-center">
+            <!-- Left: navigation tabs -->
+            <ul class="nav nav-tabs" id="metadata-table-tabs" role="tablist">
+              <li class="nav-item">
+                <a id="morphic-tab" href="#morphic-tab-pane" class="nav-link text-dark active" data-toggle="pill"
+                  role="tab">MorPhiC Samples</a>
+              </li>
+              <li class="nav-item">
+                <a id="external-tab" href="#external-tab-pane" class="nav-link text-dark" data-toggle="pill"
+                  role="tab">External Samples</a>
+              </li>
+            </ul>
+
+            <!-- Right: assignment summary -->
+            <div class="card-tools ml-auto">
+              <span id="assignment-summary" class="small text-muted mr-2"></span>
+            </div>
+          </div>
+          <!-- /.card-header -->
+          <div class="card-body">
+            <div class="tab-content" id="metadata-tabs-content">
+              <div id="morphic-tab-pane" class="tab-pane fade active show" role="tabpanel">
+                <!-- Loading -->
+                <div id="loading-state" class="text-center py-5" style="display:none;">
+                  <div class="spinner-border text-info" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">Fetching sample metadata&hellip; this may take a moment.</p>
+                </div>
+
+                <!-- No studies selected -->
+                <div id="no-studies-state" class="text-center py-5">
+                  <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                  <p class="text-muted">No studies selected.</p>
+                  <a href="/morphic" class="btn btn-outline-info">
+                    Go to MorPhiC Data <i class="fas fa-arrow-right pl-2"></i>
+                  </a>
+                </div>
+
+                <!-- Error -->
+                <div id="error-state" class="alert alert-warning" style="display:none;"></div>
+
+                <!-- Accordion of studies -->
+                <div id="study-accordion" style="display:none;"></div>
+              </div>
+              <!-- /.tab-pane -->
+
+              <div id="external-tab-pane" class="tab-pane fade" role="tabpanel">
+                <!-- Loading -->
+                <div id="external-loading-state" class="text-center py-5" style="display:none;">
+                  <div class="spinner-border text-info" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">Fetching sample metadata&hellip; this may take a moment.</p>
+                </div>
+
+                <!-- No external GEO IDs added -->
+                <div id="no-external-studies-state" class="text-center py-5">
+                  <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                  <p class="text-muted">No external GEO IDs added.</p>
+                  <a href="/morphic" class="btn btn-outline-info">
+                    Go to MorPhiC Data <i class="fas fa-arrow-right pl-2"></i>
+                  </a>
+                </div>
+
+                <!-- Error -->
+                <div id="external-error-state" class="alert alert-warning" style="display:none;"></div>
+
+                <!-- Accordion of external studies -->
+                <div id="external-study-accordion" style="display:none;"></div>
+              </div>
+              <!-- /.tab-pane -->
+            </div>
+            <!-- /.tab-content -->
+          </div>
+          <!-- /.card-body -->
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+
+  </div>
+</section>
+
+<!-- CREATE / EDIT GROUPS MODAL -->
+<div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="groupModalLabel">Define Comparison Groups</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="group-a-input">Group A <span class="text-danger">*</span></label>
+          <input id="group-a-input" class="form-control" placeholder="e.g. Control" maxlength="80">
+        </div>
+        <div class="form-group">
+          <label for="group-b-input">Group B <span class="text-danger">*</span></label>
+          <input id="group-b-input" class="form-control" placeholder="e.g. Treatment" maxlength="80">
+        </div>
+        <div id="group-modal-error" class="text-danger small" style="display:none;"></div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" id="save-groups-btn">Save groups</button>
       </div>
     </div>
   </div>
-</section>
-<section>
-  <a href="/visualize" class="btn btn-primary back-to-top">
-    Next <i class="fas fa-arrow-right px-1"></i>
-  </a>
-</section>
-{% endif %}
+</div>
 
 {% endblock my_content %}
 
+{% set fixed_footer_class = "layout-footer-fixed" %}
+{% block nav_footer %}
+<nav class="d-flex justify-content-between">
+  <a href="/morphic" class="d-flex align-items-end mt-1 text-dark">
+    <i class="fas fa-chevron-left m-1 p-1" aria-hidden="true"></i>
+    <div class="px-2 mb-1">
+      <span class="small">Previous</span>
+      <div>MorPhiC Data</div>
+    </div>
+  </a>
+  <a href="/visualize" class="d-flex align-items-end mt-1 text-dark">
+    <div class="px-2 mb-1 text-right">
+      <span class="small">Next</span>
+      <div>Run workflow</div>
+    </div>
+    <i class="fas fa-chevron-right m-1 p-1" aria-hidden="true"></i>
+  </a>
+</nav>
+{% endblock nav_footer %}
+
 {% block body_script %}
 <script>
-  $(document).ready(function () {
-    $('#metadata-table').DataTable({
-      paging: false,
-      layout: {
-        topStart: 'info',
-        bottom: 'paging',
-        bottomStart: null,
-        bottomEnd: null
-      },
-      order: [[1, 'asc']]
+// ── State helpers ─────────────────────────────────────────────────────────────
+const STATE_KEY = 'morphicdi_state';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveState(s) { localStorage.setItem(STATE_KEY, JSON.stringify(s)); }
+
+function getSelectedIds()      { return loadState().selected_ids || []; }
+function getExternalIds()      { return loadState().external_ids || []; }
+function getGroups()           { return loadState().groups || []; }
+function getAssignments()      { return loadState().sample_assignments || {}; }
+
+function setGroups(groups) {
+  const s = loadState(); s.groups = groups; saveState(s);
+}
+function setAssignment(srrId, groupName) {
+  const s = loadState();
+  if (!s.sample_assignments) s.sample_assignments = {};
+  if (groupName) s.sample_assignments[srrId] = groupName;
+  else delete s.sample_assignments[srrId];
+  saveState(s);
+}
+function clearAssignmentsForGroup(groupName) {
+  const s = loadState();
+  if (!s.sample_assignments) return;
+  for (const [k, v] of Object.entries(s.sample_assignments)) {
+    if (v === groupName) delete s.sample_assignments[k];
+  }
+  saveState(s);
+}
+
+// ── Group UI ─────────────────────────────────────────────────────────────────
+function renderGroupBadges() {
+  const groups = getGroups();
+  const badgesEl = document.getElementById('group-badges');
+  const hintEl   = document.getElementById('no-groups-hint');
+  const btnLabel = document.getElementById('groups-btn-label');
+
+  if (groups.length >= 2) {
+    badgesEl.innerHTML = groups.map(g =>
+      `<button type="button" class="btn btn-sm btn-default rounded-pill px-3 ml-1">${g.name}</button>`
+    ).join('');
+    hintEl.style.display = 'none';
+    btnLabel.textContent = 'Edit groups';
+  } else {
+    badgesEl.innerHTML = '';
+    hintEl.style.display = 'block';
+    btnLabel.textContent = 'Define groups';
+  }
+}
+
+function openGroupModal() {
+  const groups = getGroups();
+  document.getElementById('group-a-input').value = groups[0] ? groups[0].name : '';
+  document.getElementById('group-b-input').value = groups[1] ? groups[1].name : '';
+  document.getElementById('group-modal-error').style.display = 'none';
+}
+
+document.getElementById('save-groups-btn').addEventListener('click', () => {
+  const a = document.getElementById('group-a-input').value.trim();
+  const b = document.getElementById('group-b-input').value.trim();
+  const errEl = document.getElementById('group-modal-error');
+
+  if (!a || !b) {
+    errEl.textContent = 'Both group names are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (a === b) {
+    errEl.textContent = 'Group names must be different.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Preserve or reset assignments when groups change
+  const old = getGroups();
+  const aChanged = !old[0] || old[0].name !== a;
+  const bChanged = !old[1] || old[1].name !== b;
+  if (aChanged) clearAssignmentsForGroup(old[0] ? old[0].name : null);
+  if (bChanged) clearAssignmentsForGroup(old[1] ? old[1].name : null);
+
+  setGroups([{ name: a }, { name: b }]);
+  renderGroupBadges();
+  rebuildDropdowns();
+  updateAssignmentSummary();
+
+  $('#groupModal').modal('hide');
+});
+
+$('#groupModal').on('show.bs.modal', openGroupModal);
+
+// ── Metadata fetch & render ───────────────────────────────────────────────────
+let _allMorphicMetadata = [];   // flat list of SRA rows for MorPhiC studies
+let _allExternalMetadata = [];  // flat list of SRA rows for external GEO ids
+
+async function fetchMetadata(ids) {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  const resp = await fetch('/api/fetch-metadata', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    body: JSON.stringify({ gse_ids: ids }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || `Server error ${resp.status}`);
+  }
+  return resp.json();
+}
+
+function groupByStudy(rows) {
+  const map = {};
+  for (const row of rows) {
+    const key = row.study_accession || 'Unknown';
+    if (!map[key]) map[key] = [];
+    map[key].push(row);
+  }
+  return map;
+}
+
+function buildDropdownOptions(currentValue) {
+  const groups = getGroups();
+  if (groups.length < 2) return '<option value="">— no groups defined —</option>';
+  let html = '<option value="">Add to group&hellip;</option>';
+  for (const g of groups) {
+    const sel = currentValue === g.name ? 'selected' : '';
+    html += `<option value="${g.name}" ${sel}>${g.name}</option>`;
+  }
+  return html;
+}
+
+function renderAccordion(containerId, idPrefix, byStudy) {
+  const accordion = document.getElementById(containerId);
+  const assignments = getAssignments();
+  const groups = getGroups();
+
+  const entries = Object.entries(byStudy);
+  if (entries.length === 0) {
+    accordion.innerHTML = '<p class="text-muted">No samples found for the selected studies.</p>';
+    accordion.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  entries.forEach(([studyId, rows], idx) => {
+    const collapseId = `${idPrefix}study-collapse-${idx}`;
+    const assignedCount = rows.filter(r => assignments[r.run_accession]).length;
+    const totalCount = rows.length;
+
+    html += `
+    <div class="card mb-2 border">
+      <div class="card-header p-0" id="heading-${idx}">
+        <button class="btn btn-link w-100 text-left px-3 py-2 d-flex justify-content-between align-items-center"
+                type="button" data-toggle="collapse" data-target="#${collapseId}"
+                aria-expanded="${idx === 0 ? 'true' : 'false'}" aria-controls="${collapseId}">
+          <span>
+            <strong>${studyId}</strong>
+            <span class="small text-muted ml-2">${totalCount} sample${totalCount !== 1 ? 's' : ''}</span>
+          </span>
+          <span class="badge badge-${assignedCount === totalCount && totalCount > 0 ? 'success' : 'secondary'} study-assigned-badge"
+                data-study="${studyId}">
+            ${assignedCount}/${totalCount} assigned
+          </span>
+        </button>
+      </div>
+      <div id="${collapseId}" class="collapse ${idx === 0 ? 'show' : ''}" data-study="${studyId}">
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0 study-table" data-study="${studyId}">
+            <thead class="thead-light">
+              <tr>
+                <th style="min-width:180px;">Group</th>
+                <th>Run accession</th>
+                <th>Derived from</th>
+                <th>Experiment</th>
+                <th>Layout</th>
+                <th>Strategy</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+              <tr>
+                <td>
+                  <select class="form-control form-control-sm group-select"
+                          data-srr="${r.run_accession}"
+                          data-study="${studyId}">
+                    ${buildDropdownOptions(assignments[r.run_accession] || '')}
+                  </select>
+                </td>
+                <td>${r.run_accession || ''}</td>
+                <td>${r.derivedfrom || ''}</td>
+                <td>${r.experiment_desc || ''}</td>
+                <td>${r.library_layout || ''}</td>
+                <td>${r.library_strategy || ''}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  accordion.innerHTML = html;
+  accordion.style.display = 'block';
+
+  // Attach change listeners to dropdowns
+  accordion.querySelectorAll('.group-select').forEach(sel => {
+    sel.addEventListener('change', function () {
+      const srrId    = this.dataset.srr;
+      const studyId  = this.dataset.study;
+      const newGroup = this.value;
+      setAssignment(srrId, newGroup);
+      updateStudyBadge(studyId);
+      updateAssignmentSummary();
     });
   });
+}
+
+function updateStudyBadge(studyId) {
+  const assignments = getAssignments();
+  const badge = document.querySelector(`.study-assigned-badge[data-study="${studyId}"]`);
+  if (!badge) return;
+  const rows = document.querySelectorAll(`.group-select[data-study="${studyId}"]`);
+  const total    = rows.length;
+  const assigned = [...rows].filter(s => s.value).length;
+  badge.textContent = `${assigned}/${total} assigned`;
+  badge.className   = `badge badge-${assigned === total && total > 0 ? 'success' : 'secondary'} study-assigned-badge`;
+  badge.dataset.study = studyId;
+}
+
+function rebuildDropdowns() {
+  const assignments = getAssignments();
+  document.querySelectorAll('.group-select').forEach(sel => {
+    const current = assignments[sel.dataset.srr] || '';
+    sel.innerHTML = buildDropdownOptions(current);
+  });
+}
+
+function updateAssignmentSummary() {
+  const assignments = getAssignments();
+  const groups = getGroups();
+  const total = _allMorphicMetadata.length + _allExternalMetadata.length;
+  const assigned = Object.keys(assignments).filter(k => assignments[k]).length;
+
+  const summaryEl = document.getElementById('assignment-summary');
+  if (total === 0) { summaryEl.textContent = ''; return; }
+
+  if (groups.length >= 2) {
+    const aCounts = Object.values(assignments).filter(v => v === groups[0].name).length;
+    const bCounts = Object.values(assignments).filter(v => v === groups[1].name).length;
+    summaryEl.textContent =
+      `${assigned}/${total} assigned — ${groups[0].name}: ${aCounts}, ${groups[1].name}: ${bCounts}`;
+  } else {
+    summaryEl.textContent = `${assigned}/${total} assigned`;
+  }
+}
+
+async function init() {
+  const ids = getSelectedIds();
+
+  renderGroupBadges();
+
+  if (ids.length === 0) {
+    document.getElementById('no-studies-state').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('no-studies-state').style.display = 'none';
+  document.getElementById('loading-state').style.display    = 'block';
+
+  try {
+    const result = await fetchMetadata(ids);
+    _allMorphicMetadata = result.metadata || [];
+
+    document.getElementById('loading-state').style.display = 'none';
+
+    if (result.ids_with_no_metadata && result.ids_with_no_metadata.length > 0) {
+      const errEl = document.getElementById('error-state');
+      errEl.style.display = 'block';
+      errEl.textContent =
+        `No results were found for: ${result.ids_with_no_metadata.join(', ')}`;
+    }
+
+    const byStudy = groupByStudy(_allMorphicMetadata);
+    renderAccordion('study-accordion', '', byStudy);
+    updateAssignmentSummary();
+
+  } catch (err) {
+    document.getElementById('loading-state').style.display = 'none';
+    const errEl = document.getElementById('error-state');
+    errEl.style.display = 'block';
+    errEl.textContent   = `Error fetching metadata: ${err.message}`;
+  }
+}
+
+async function initExternal() {
+  const ids = getExternalIds();
+
+  if (ids.length === 0) {
+    document.getElementById('no-external-studies-state').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('no-external-studies-state').style.display = 'none';
+  document.getElementById('external-loading-state').style.display    = 'block';
+
+  try {
+    const result = await fetchMetadata(ids);
+    _allExternalMetadata = result.metadata || [];
+
+    document.getElementById('external-loading-state').style.display = 'none';
+
+    if (result.ids_with_no_metadata && result.ids_with_no_metadata.length > 0) {
+      const errEl = document.getElementById('external-error-state');
+      errEl.style.display = 'block';
+      errEl.textContent =
+        `No results were found for: ${result.ids_with_no_metadata.join(', ')}`;
+    }
+
+    const byStudy = groupByStudy(_allExternalMetadata);
+    renderAccordion('external-study-accordion', 'external-', byStudy);
+    updateAssignmentSummary();
+
+  } catch (err) {
+    document.getElementById('external-loading-state').style.display = 'none';
+    const errEl = document.getElementById('external-error-state');
+    errEl.style.display = 'block';
+    errEl.textContent   = `Error fetching metadata: ${err.message}`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  initExternal();
+});
 </script>
 {% endblock body_script %}

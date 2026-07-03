@@ -1,249 +1,627 @@
+import queue
+import re
+import shutil
+import signal
+import time
+import subprocess
+import threading
 import pandas as pd
 from flask import render_template, url_for, flash, redirect, request, make_response, jsonify, abort, session, send_file, g
 from web import app
 from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
+from web.apis.morphic_data_api import MorphicAPI
 from web.utils import utils, sample_explorer_utils
-from .forms import SearchForm, BwbForm, GroupForm, create_results_table_form, create_srr_form
-import json
+from .forms import SearchForm, BwbForm, create_results_table_form
 import requests
 from werkzeug.utils import secure_filename
+import json
+from collections import defaultdict
+
 
 import uuid
 import os
 import socket
 import io
 
-UPLOAD_FOLDER = 'uploads'
+if "BWB_SCHED_DIR" not in os.environ:
+    BWB_SCHED_DIR = os.path.expanduser("~/SCHED_STORAGE")
+    os.makedirs(BWB_SCHED_DIR, exist_ok=True)
+else:
+    BWB_SCHED_DIR = os.environ["BWB_SCHED_DIR"]
+    
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+STORAGE_ID='storageID'
+
+class JobManager:
+    def __init__(self):
+        self.queue = queue.Queue()
+        self.current_job = None
+        self.lock = threading.Lock()
+        self.jobs = {}          # job_id -> job info
+        self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
+        self.worker_thread.start()
+
+    def submit(self, cmd):
+        job_id = str(uuid.uuid4())
+        job_info = {
+            "id": job_id,
+            "cmd": cmd,
+            "status": "queued",
+            "result": None,
+            "start_time": None,
+            "end_time": None,
+            "container_name": job_id  # container will use job_id as name
+        }
+        with self.lock:
+            self.jobs[job_id] = job_info
+        self.queue.put(job_id)
+        return job_id
+
+    def worker_loop(self):
+        while True:
+            job_id = self.queue.get()
+
+            with self.lock:
+                job = self.jobs[job_id]
+                job["status"] = "running"
+                job["start_time"] = time.time()
+                self.current_job = job_id
+
+            # modify cmd to include --name
+            cmd_with_name = job["cmd"].replace("docker run", f"docker run --name {job_id}")
+
+            try:
+                proc = subprocess.Popen(
+                    cmd_with_name,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+
+                with self.lock:
+                    job["proc"] = proc  # store process if needed
+
+                stdout, stderr = proc.communicate()
+
+                with self.lock:
+                    if job["status"] == "canceled":
+                        job["result"] = "Job was canceled."
+                    elif proc.returncode == 0:
+                        job["status"] = "done"
+                        job["result"] = stdout.decode()
+                    else:
+                        job["status"] = f"error: {stderr.decode()}"
+
+            except Exception as e:
+                with self.lock:
+                    job["status"] = "error"
+                    job["result"] = str(e)
+
+            finally:
+                with self.lock:
+                    job["end_time"] = time.time()
+                    self.current_job = None
+                    job.pop("proc", None)
+
+            time.sleep(0.1)
+
+    def cancel_running_job(self, job_id):
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if not job:
+                return False, "not found"
+            if job["status"] != "running":
+                return False, "not running"
+            job["status"] = "canceled"
+
+        # kill docker container by name
+        try:
+            subprocess.run(
+                ["docker", "kill", job["container_name"]],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True, "killed"
+        except subprocess.CalledProcessError as e:
+            return False, f"docker kill failed: {e.stderr.decode()}"
+
+    def get_status(self, job_id):
+        with self.lock:
+            if job_id not in self.jobs:
+                return {"error": "job not found"}
+            job = self.jobs[job_id]
+            position = None
+            if job["status"] == "queued":
+                ids_in_queue = list(self.queue.queue)
+                position = ids_in_queue.index(job_id) + 1 if job_id in ids_in_queue else None
+            return {
+                "id": job_id,
+                "status": job["status"],
+                "queue_position": position,
+                "result": job["result"] if job["status"] in ("done", "error") else None,
+            }
+
+JOB_MANAGER = JobManager()
 
 @app.route("/")
 def landing():
-    return render_template('landing.html')
+    return render_template("landing.html")
 
-# for bwb page
+@app.route("/explore")
+def explore():
+    return render_template("explore.html")
+
 @app.route("/bwb")
 def homepage():
-    return render_template('bwb_page.html')
+    return render_template("bwb_page.html")
 
-@app.route('/queue_position', methods=['GET'])
+@app.route("/queue_position", methods=["GET"])
 def get_queue():
-    # get user uuid
-    user_uuid = session.get('uuid')
+    user_uuid = session.get("uuid")
     if not user_uuid:
-        return jsonify({'error: search query is required'}), 400
-
+        return jsonify({"error": "search query is required"}), 400
     response = SampleExplorerAPI().get_queue_position(user_uuid)
-
     if response:
         return jsonify(response), 200
-    else:
-        return jsonify({'error': 'error getting queue position'}), 500
+    return jsonify({"error": "error getting queue position"}), 500
 
-@app.route('/download_data', methods=['GET'])
+@app.route("/download_data", methods=["GET"])
 def get_download_data():
-    # retrieve uuid and amount of lines
-    user_uuid = session.get('uuid')
-    lines = session.get('lines')
-
+    user_uuid = session.get("uuid")
+    lines = session.get("lines")
     if not user_uuid or not lines:
-        return jsonify({'error': 'A search with amount of lines is required'}), 400
-
+        return jsonify({"error": "A search with amount of lines is required"}), 400
     response_file = SampleExplorerAPI().get_download_file(user_uuid, lines)
-    
     if response_file is None:
-        return jsonify({'error': 'Error getting download file'}), 500
+        return jsonify({"error": "Error getting download file"}), 500
     zip_file = io.BytesIO(response_file.content)
-    return send_file(zip_file, as_attachment=True, download_name='testing-search-results.zip', mimetype='application/zip')
+    return send_file(zip_file, as_attachment=True, download_name="testing-search-results.zip", mimetype="application/zip")
 
-@app.route("/search", methods=['GET','POST'])
+@app.route("/search", methods=["GET", "POST"])
 def search():
     form = SearchForm()
 
     if form.validate_on_submit():
-        # generate uuid
         user_uuid = str(uuid.uuid4())
 
-        # user inputs
         query = form.query.data
         genes = form.genes.data
         expansion_strategy = form.expansion_strategy.data
         size = form.size.data
 
-        # set search and expand from selected expansion strategy
-        if expansion_strategy == 'semantic_transcriptome':
-            search = 'semantic'
-            expand = 'transcriptome'
+        if expansion_strategy == "semantic_transcriptome":
+            search_type = "semantic"
+            expand = "transcriptome"
         else:
-            search = 'semantic'
-            expand = 'semantic'
+            search_type = "semantic"
+            expand = "semantic"
 
-        # check if search query and genes list is in input
         has_query = bool(query)
         has_genes = bool(genes)
 
-        # create a gene set from input genes
         if genes:
             genes = utils.format_genes_from_str_to_list(genes)
 
-        # make a query
-        q_response = SampleExplorerAPI().make_query(user_uuid, has_query, query, has_genes, genes, search, expand)
+        q_response = SampleExplorerAPI().make_query(user_uuid, has_query, query, has_genes, genes, search_type, expand)
 
-        # when successful status
         if "status" in q_response and q_response["status"] == "queued":
-            # save uuid for future use
-            session['uuid'] = user_uuid
-            # save lines for future use
+            session["uuid"] = user_uuid
             if size:
-                session['lines'] = int(size)
-            # remove session key for previous search results
-            if 'gse_sample_type' in session:
-                del session['gse_sample_type']
+                session["lines"] = int(size)
+            session.pop("gse_sample_type", None)
+            return render_template("search.html", result=q_response, success=True, form=form)
 
-            return render_template('search.html', result=q_response, success=True, form=form)
-        # when status is abnormal
         if "status" in q_response:
-            print("status:")
-            print(q_response["status"])
+            print("status:", q_response["status"])
+            return render_template("search.html", result=q_response, success=False, form=form)
 
-            return render_template('search.html', result=q_response, success=False, form=form)
+        return render_template("search.html", result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
 
-        # error after attempting to make a request
-        return render_template('search.html', result={"data": {"error": "There was an error making a search"}}, success=False, form=form)
-    return render_template('search.html', form=form)
+    return render_template("search.html", form=form)
 
-# Search results
-@app.route("/search-results", methods=['GET', 'POST'])
+@app.route("/search/status", methods=["GET"])
+def search_status():
+    return render_template("search_status.html")
+
+@app.route("/search-results", methods=["GET"])
 def search_results():
-    if 'uuid' in session and 'lines' in session:
-        user_uuid = session.get('uuid')
-        lines = session.get('lines')
+    if "uuid" not in session or "lines" not in session:
+        return render_template("search_results.html")
 
-        # get search results
-        search_results = SampleExplorerAPI().get_data_output(user_uuid, lines)
-        if not search_results:
-            return render_template('search_results.html')
+    user_uuid = session["uuid"]
+    lines = session["lines"]
 
-        # split comma separated gse_id's and remove duplicates
-        search_results = sample_explorer_utils.reshape_data(search_results)
+    results = SampleExplorerAPI().get_data_output(user_uuid, lines)
+    if not results:
+        return render_template("search_results.html")
 
-        gse_ids_in_search_results = sample_explorer_utils.get_unique_gse_ids(search_results)
+    results = sample_explorer_utils.reshape_data(results)
+    gse_ids_in_results = sample_explorer_utils.get_unique_gse_ids(results)
+
+    if session.get("gse_sample_type") is None:
+        session["gse_sample_type"] = {}
+    saved_sample_types = session.get("gse_sample_type", {})
+
+    gse_ids_without_types = set(gse_ids_in_results) - set(saved_sample_types.keys())
+    library_strategies = sra_web_api.get_library_strategy_for_gse_ids(gse_ids_without_types)
+    saved_sample_types.update(library_strategies)
+    session["gse_sample_type"] = saved_sample_types
+
+    results = sample_explorer_utils.add_sample_type_to_studies_data(saved_sample_types, results)
+
+    ResultsTableForm = create_results_table_form(gse_ids_in_results)
+    form = ResultsTableForm()
+
+    return render_template("search_results.html", data=results, form=form)
+
+# ── JSON API endpoints ─────────────────────────────────────────────────────────
+
+@app.route("/api/morphic-studies", methods=["GET"])
+def api_morphic_studies():
+    """Return MorPhiC studies catalog as JSON. Pass ?refresh=true to bypass file cache."""
+    data_file_name = "morphic_data.json"
+    refresh = request.args.get("refresh", "false").lower() == "true"
+    morphic_full_data = utils.load_json_file(data_file_name)
+
+    if morphic_full_data is None or refresh:
+        morphic_full_data = MorphicAPI().get_data()
+        if morphic_full_data:
+            utils.save_json_file(morphic_full_data, data_file_name)
+
+    if morphic_full_data is None:
+        return jsonify({"error": "Error loading data"}), 500
+
+    # Extract GEO and ERP accession ids, ids other than GEO are defaulted to ERP
+    def extract_accessions(accessions: list) -> dict:
+        study_accessions = {"erp_accession": "", "geo_accession": ""}
+        for acc_id in accessions:
+            if "gse" in acc_id.lower():
+                study_accessions["geo_accession"] = acc_id
+            else:
+                study_accessions["erp_accession"] = acc_id
+        return study_accessions
+
+    # Select relevant study information
+    studies = morphic_full_data['_embedded']['studies']
+    data = []
+    for study in studies:
+        study_content = study.get("content", {})
+        study_accessions = study.get("accessions", [])
+        if not study_content and not study_accessions:
+            continue
+
+        new_study = {
+            "study_title": study_content.get("study_title", ""),
+            "target_genes": study_content.get("target_genes", ""),
+            "readout_assay": study_content.get("readout_assay", "")
+        }
+        new_study.update(extract_accessions(study_accessions))
+        data.append(new_study)
+    return jsonify(data)
+
+@app.route("/api/fetch-metadata", methods=["POST"])
+def api_fetch_metadata():
+    """Fetch SRA run metadata for a list of accession IDs. Returns JSON."""
+    body = request.get_json(silent=True) or {}
+    gse_ids = body.get("gse_ids", [])
+    if not gse_ids:
+        return jsonify({"error": "No IDs provided"}), 400
+
+    api_response = sra_web_api.get_metadata_for_gse_ids(gse_ids, file_name="metadata.csv")
+    ids_with_no_metadata = (api_response or {}).get("ids_with_no_metadata", [])
+
+    metadata_df = utils.load_csv_file_as_df("metadata.csv")
+    if metadata_df is None:
+        return jsonify({"error": "No metadata found", "ids_with_no_metadata": ids_with_no_metadata}), 404
+
+    return jsonify({
+        "metadata": json.loads(metadata_df.to_json(orient="records")),
+        "ids_with_no_metadata": ids_with_no_metadata,
+    })
+
+@app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])
+def is_human_bulk_rna_seq(srr_id):
+    """Determines if SRR ID is human bulk RNA-seq"""
+
+    try:
+        # Get metadata for SRR ID
+        metadata_df = sra_web_api.get_metadata_for_accession_id(srr_id)
+
+        if metadata_df is None or metadata_df.empty:
+            return jsonify({"error": "Could not determine if accession ID is human bulk RNA-seq"}), 422
         
-        # retrieve previously saved gse id's with sample types, Bulk or Single-cell, format: {'gse_id': 'sample-type'}
-        if session.get('gse_sample_type') is None:
-            # sample_dict = {'GSE141950': 'Bulk', 'GSE141099': 'Bulk', 'GSE126890': 'Bulk', 'GSE86244': 'Bulk', 'GSE140523': 'Bulk'}
-            session['gse_sample_type'] = {}
-        saved_sample_types = session.get('gse_sample_type', {})
+        # Normalize columns
+        metadata_df.columns = [c.lower() for c in metadata_df.columns]
         
-        # diff: gse id's in search results - saved gse ids with sample types
-        gse_ids_without_sample_types = set(gse_ids_in_search_results) - set(saved_sample_types.keys())
+        # Check organism
+        is_human = metadata_df['organism_name'].str.contains("Homo sapiens", case=False, na=False).any()
 
-        # fetch sample types for new gse id's
-        library_strategies = sra_web_api.get_library_strategy_for_gse_ids(gse_ids_without_sample_types)
+        # Check RNA-seq
+        is_rnaseq = metadata_df['library_strategy'].str.contains("RNA-seq", case=False, na=False).any()
 
-        # save sample types: {'gse_id': 'sample-type'}
-        saved_sample_types.update(library_strategies)
-        session['gse_sample_type'] = saved_sample_types
+        # Check bulk vs single-cell
+        is_single_cell = metadata_df.apply(
+            lambda row: any(
+                kw in str(row).lower()
+                for kw in ["single-cell", "scrna", "10x", "smart-seq"]
+            ), axis=1
+        ).any()
 
-        # add sample type to search results
-        search_results = sample_explorer_utils.add_sample_type_to_studies_data(saved_sample_types, search_results)
+        is_bulk = is_rnaseq and not is_single_cell
 
-        # Use a Form for gse_id's in result data
-        ResultsTableForm = create_results_table_form(gse_ids_in_search_results)
-        form = ResultsTableForm()
+        if not (is_human and is_rnaseq and is_bulk):
+            return jsonify({"error": "Accession ID was not bulk RNA-seq"}), 422
 
-        if form.validate_on_submit():
-            # list of selected/checked inputs
-            selected_studies = [checkbox.label.text for checkbox in form if checkbox.data and checkbox.type == 'BooleanField']
-            if selected_studies:
-                session['gse_ids'] = selected_studies
-        
-        return render_template('search_results.html', data=search_results, form=form)
-    return render_template('search_results.html')
+        return jsonify({"id": srr_id, "is_human_bulk_rna_seq": is_human and is_rnaseq and is_bulk}), 200
+    except Exception:
+        return jsonify({"error": "Something went wrong"}), 500
 
-@app.route('/metadata', methods=['GET', 'POST'])
+# ── Page routes ────────────────────────────────────────────────────────────────
+
+@app.route("/morphic", methods=["GET"])
+def morphic_data():
+    return render_template("morphic_data.html")
+
+@app.route("/morphic/refresh-data", methods=["GET"])
+def morphic_refresh_data():
+    data_file_name = "morphic_data.json"
+    fresh = MorphicAPI().get_data()
+    if fresh:
+        utils.save_json_file(fresh, data_file_name)
+    return redirect("/morphic")
+
+@app.route("/metadata", methods=["GET"])
 def metadata():
-    # get selected gse id's
-    gse_ids = session.get('gse_ids')
-    if gse_ids is None:
-        return render_template('metadata.html')
-    if gse_ids != session.get('prev_gse_ids_metadata'):
-        # fetch metadata for gse_id's
-        sra_web_api.get_metadata_for_gse_ids(gse_ids, save_to_file=True)
-        session['prev_gse_ids_metadata'] = gse_ids
+    return render_template("metadata.html")
 
-    # read saved csv metadata
-    metadata_df = pd.read_csv('metadata.csv')
+@app.route("/cancel-job/<job_id>", methods=["POST"])
+def cancel_job(job_id):
+    with JOB_MANAGER.lock:
+        job = JOB_MANAGER.jobs.get(job_id)
+        if not job:
+            return jsonify({"error": "not found"}), 404
 
-    # create Forms
-    srr_ids = metadata_df['run_accession']
-    srr_groups = session.get('srr_groups') # ["group_name_a", "group_name_b"]
+    if job["status"] == "queued":
+        try:
+            JOB_MANAGER.queue.queue.remove(job_id)
+            job["status"] = "canceled"
+            return jsonify({"status": "canceled"})
+        except ValueError:
+            pass
+
+    ok, msg = JOB_MANAGER.cancel_running_job(job_id)
+    if ok:
+        return jsonify({"status": "killed"})
+    return jsonify({"error": msg}), 400
+
+@app.route("/job-status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    return jsonify(JOB_MANAGER.get_status(job_id))
+
+def write_metadata_json(samples, srr_groups, srr_entries, output_path):
+    grouped = defaultdict(list)
+
+    for sample in samples:
+        grouped[sample["group"]].append({
+            "srr_id": sample["name"],
+            "layout": sample["layout"],
+            "preprocessed": False,
+        })
+
     if srr_groups:
-        SRRForm = create_srr_form(set(srr_ids), srr_groups)
-        select_group_form = GroupForm(group_a=srr_groups[0], group_b=srr_groups[1])
-    else:
-        SRRForm = create_srr_form(set(srr_ids))
-        select_group_form = GroupForm()
-    form = SRRForm()
+        for group in srr_groups:
+            group_name = group.get("name")
+            for srr_id in group.get("samples", []):
+                grouped[group_name].append({
+                    "srr_id": srr_id,
+                    "layout": "PAIRED",
+                    "preprocessed": True,
+                })
 
-    if form.validate_on_submit():
-        selected_srr_ids = {}
-        for dropdown in form:
-            if dropdown.data and dropdown.type == 'SelectField':
-                group_name = dropdown.data
-                group_srr_id = dropdown.id
-                if group_name not in selected_srr_ids:
-                    selected_srr_ids[group_name] = []
-                selected_srr_ids[group_name].append(group_srr_id)
-        session['srr_ids'] = selected_srr_ids
-        # with open("srr_id_groups.json", "w") as json_file:
-        #     json.dump(selected_srr_ids, json_file, indent=4)
+    for entry in (srr_entries or []):
+        grouped[entry["group"]].append({
+            "srr_id": entry["id"],
+            "layout": "PAIRED",
+            "preprocessed": False,
+        })
 
-    metadata = json.loads(metadata_df.to_json(orient='records'))
-    return render_template('metadata.html', data=metadata, form=form, group_form=select_group_form, group_names=srr_groups)
+    metadata = {
+        "groups": [
+            {"name": group_name, "samples": group_samples}
+            for group_name, group_samples in grouped.items()
+        ]
+    }
 
-@app.route('/create-group', methods=['POST'])
-def create_group():
-    form = GroupForm()
-    if form.validate_on_submit():
-        group_a_name = form.group_a.data
-        group_b_name = form.group_b.data
-        session['srr_groups'] = [group_a_name, group_b_name]
-        session.modified = True
-    return redirect('/metadata')
+    with open(output_path, "w") as fh:
+        json.dump(metadata, fh, indent=2)
 
-# for rendering visualization
-@app.route("/run-bwb", methods=['POST'])
+# Key assumptions of bulkrna.json:
+#   - All paired end fastq files are named "sample_1.fastq" and "sample_2.fastq"
+#   - There is an entry in metadata.json corresponding to each SRR ID / user uploaded file.
+#   - If the sample name "sample" (key "srr_id" in metadata.json, which is actually kind of a misnomer)
+#     exists, then the file "sample_1.fastq" (and possibly its R2) are present in the directory passed
+#     as Start.fastqdir.
+@app.route("/run-bwb", methods=["POST"])
 def run_bwb():
     form = BwbForm()
 
-    if form.validate_on_submit():
+    if not form.validate_on_submit():
+        return render_template("dash.html", form=form, status=-1)
 
-        # selected srr id's: {'group_name': ['srr_id',]}
-        srr_ids = session.get('srr_ids')
+    randStr = str(uuid.uuid4())
+    shutil.copy("./mergedCounts.tsv", os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv"))
+    upload_root = os.path.join(BWB_SCHED_DIR, STORAGE_ID, randStr)
+    os.makedirs(upload_root, exist_ok=True)
 
-        # Read type
-        read_type = form.read_type.data
+    raw = form.sra_ids.data or ""
+    sra_ids = [s.strip() for s in re.split(r"[\s,]+", raw) if s.strip()]
 
-        # file upload
-        f = form.file.data
-        if f:
-            filename1 = secure_filename(f.filename)
-        f_r2 = form.file_r2.data
-        if f_r2:
-            filename2 = secure_filename(f_r2.filename)
+    # Read group/sample assignments from the serialised state the client submits
+    srr_metadata_json = request.form.get("srr_metadata_json", "")
+    srr_groups = None
+    if srr_metadata_json:
+        try:
+            srr_metadata = json.loads(srr_metadata_json)
+            srr_groups = srr_metadata.get("groups") or None
+        except (json.JSONDecodeError, TypeError):
+            pass
+    print("srr_groups:", srr_groups)
 
-        # workflow based on aligment name
-        workflow = form.workflow.data
-        
-        # return redirect(url_for('dash'))
-        return render_template('dash.html', form=form, status=1)
-    return render_template('dash.html', form=form, status=-1)
+    sample_indices = sorted(
+        set(
+            key.split("[", 1)[1].split("]", 1)[0]
+            for key in request.form
+            if key.startswith("samples[") and key.endswith("][name]")
+        )
+    )
+
+    if not sample_indices and not srr_groups:
+        form.workflow.errors.append("No samples or SRR IDs were provided.")
+        return render_template("dash.html", form=form, status=-1)
+
+    first_layout = None
+    if sample_indices:
+        first_layout = request.form.get(f"samples[{sample_indices[0]}][layout]")
+        if first_layout not in {"SINGLE", "PAIRED"}:
+            form.workflow.errors.append("Invalid read layout for the first sample.")
+            return render_template("dash.html", form=form, status=-1)
+
+    samples = []
+    userUploadedFiles = False
+    for idx in sample_indices:
+        prefix = f"samples[{idx}]"
+        name   = request.form.get(f"{prefix}[name]")
+        group  = request.form.get(f"{prefix}[group]")
+        layout = request.form.get(f"{prefix}[layout]")
+
+        if layout != first_layout:
+            form.workflow.errors.append(
+                f"Sample {name or idx} has layout {layout}, "
+                f"but all samples must be {first_layout}."
+            )
+            return render_template("dash.html", form=form, status=-1)
+
+        r1 = request.files.get(f"{prefix}[r1]")
+        r2 = request.files.get(f"{prefix}[r2]")
+
+        sample_dir = upload_root
+        os.makedirs(sample_dir, exist_ok=True)
+
+        r1_path = None
+        if r1 and r1.filename:
+            userUploadedFiles = True
+            r1_path = os.path.join(sample_dir, f"{name}_1.fastq")
+            r1.save(r1_path)
+
+        r2_path = None
+        if layout == "PAIRED":
+            if not r2 or not r2.filename:
+                form.workflow.errors.append(f"Sample {name}: R2 FASTQ is required for paired-end layout.")
+                return render_template("dash.html", form=form, status=-1)
+            r2_path = os.path.join(sample_dir, f"{name}_2.fastq")
+            r2.save(r2_path)
+
+        samples.append({"name": name, "group": group, "layout": layout, "r1": r1_path, "r2": r2_path})
+
+    print(f"USER UPLOADED FILES: {userUploadedFiles}")
+    metadata_path     = os.path.join(upload_root, "metadata.json")
+    metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
+
+    srr_entries = []
+    i = 0
+    while True:
+        srr_id    = request.form.get(f"srr_entries[{i}][id]", "").strip()
+        srr_group = request.form.get(f"srr_entries[{i}][group]", "").strip()
+        if not srr_id and not srr_group:
+            break
+        if srr_id:
+            srr_entries.append({"id": srr_id, "group": srr_group})
+        i += 1
+
+    write_metadata_json(samples=samples, srr_groups=srr_groups, srr_entries=srr_entries, output_path=metadata_path)
+
+    srr_ids = []
+    if srr_groups:
+        for group in srr_groups:
+            srr_ids.extend(group.get("samples", []))
+    srrIds = "[" + ",".join(srr_ids) + "]"
+    print("SRR IDs:", ",".join(srr_ids) if srr_ids else "None")
+
+    manual_sra_ids = [e["id"] for e in srr_entries]
+    sraIds = "[" + ",".join(manual_sra_ids) + "]"
+
+    if userUploadedFiles or manual_sra_ids:
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb_scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p Start.fastqdir=/data/{randStr} "
+            f"-p Start.metadata_json={metadata_cnt_path} "
+            f"-p Start.samplesToRetain={srrIds} "
+            f"-p Start.srridsAll={sraIds} "
+            f"-p Start.preprocessedCnts=/data/mergedCounts.tsv "
+            f"/wfs/bulkrna_full.json"
+        )
+    else:
+        cmd = (
+            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v \"$(pwd)\":/wfs "
+            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
+            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"patrickmckeever/bwb_scheduler:latest bwbSched run "
+            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"-p 10.metadata_json={metadata_cnt_path} "
+            f"-p 13.samplesToRetain={srrIds} "
+            f"-p 13.tablesDir=/data/processing/Tables "
+            f"-p 13.preprocessedCnts=/data/mergedCounts.tsv "
+            f"/wfs/bulkrna_preprocessed.json"
+        )
+
+    print(cmd)
+    job_id = JOB_MANAGER.submit(cmd)
+    return render_template("dash.html", form=form, status=1, job_id=job_id)
+
+@app.route("/heatmap/<job_id>")
+def heatmap(job_id):
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/heatmap.png"
+    if not os.path.exists(image_path):
+        abort(404)
+    return send_file(image_path, mimetype="image/png", conditional=True)
+
+@app.route("/volcano/<job_id>")
+def volcano(job_id):
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/volcano_plot.png"
+    if not os.path.exists(image_path):
+        abort(404)
+    return send_file(image_path, mimetype="image/png", conditional=True)
+
+@app.route("/pca/<job_id>")
+def pca(job_id):
+    if ".." in job_id or "/" in job_id:
+        return "Invalid job ID", 400
+    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/pca_plot.png"
+    return send_file(image_path, mimetype="image/png")
+
+@app.route("/counts/<job_id>")
+def counts(job_id):
+    if "/" in job_id or ".." in job_id:
+        abort(400)
+    counts_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/genesCounts.csv"
+    if not os.path.exists(counts_path):
+        abort(404)
+    return send_file(counts_path, mimetype="text/csv", as_attachment=True, download_name="genesCounts.csv")
 
 @app.route("/dash")
 @app.route("/visualize")
 def dash():
     form = BwbForm()
-    return render_template('dash.html', form=form)
+    return render_template("dash.html", form=form)

@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block script %}
+<style>
+    .card-link {
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card-link:focus {
+        outline: 3px solid red;
+    }
+
+    .card-link:hover {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        transform: scale(1.01);
+    }
+</style>
+{% endblock script %}
+
+{% block my_content %}
+<!-- Content Header (Page header) -->
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Explore data for a workflow</h1>
+                <p>Start by exploring and selecting datasets or begin with your own data.</p>
+            </div><!-- /.col -->
+        </div><!-- /.row -->
+    </div><!-- /.container-fluid -->
+</div>
+<!-- /.content-header -->
+
+<!-- Main content -->
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <a href="/morphic" class="text-body">
+                    <div class="card card-link"
+                        style="background: linear-gradient(105deg, #fff 50%, #4d9884 12%, #4d928f, #0e776e, #2e70a0);">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col d-flex flex-column justify-content-center">
+                                    <h2>MorPhiC data</h2>
+                                    <p>Integrate external datasets with datasets from the NHGRI MorPhiC consortium</p>
+                                </div>
+                                <div class="col-md-6 d-flex justify-content-center">
+                                    <div class="p-4 rounded-circle"
+                                        style="height: 220px; width: 220px; max-height: 244px; overflow: hidden; background-color: #fff;">
+                                        <img class="img-fluid" style="width: 100%; object-fit: contain; padding: 1rem;"
+                                            src="{{ url_for('static', filename='images/morphic-logo-stacked-blue.png') }}"
+                                            alt="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <!-- /.col -->
+
+            <div class="col-md-6">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card shadow-none">
+                            <div class="card-body">
+                                <h2 class="h4">About the Morphic program</h2>
+                                <p class="card-text">The MorPhiC program aims to develop a consistent catalog of
+                                    molecular
+                                    and cellular phenotypes for null alleles for every human gene by using in-vitro
+                                    multicellular systems.</p>
+                                <a href="https://morphic.bio/" target="_blank" rel="noopener noreferrer" class="text-info">Learn
+                                    more</a>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+            </div>
+        </div>
+        <!-- /.row -->
+        <hr>
+    </div><!-- /.container-fluid -->
+</div>
+<!-- /.content -->
+{% endblock my_content %}

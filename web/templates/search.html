@@ -14,7 +14,7 @@ Custom script or styling
                 let queueStatus = await checkQueuePosition();
                 if (queueStatus) clearInterval(intervalId);
                 // redirect to search results on complete
-                if (queueStatus === "complete") window.location.href = 'search-results';
+                if (queueStatus === "complete") window.location.href = 'search/status';
             }, 5000);
         }, 1000);
         setTimeout;
@@ -102,7 +102,10 @@ Custom script or styling
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
-                <h1>Search using Sample Explorer</h1>
+                <h1>Search using SampleExplorer</h1>
+            </div>
+            <div class="col-12">
+                <p class="mt-2">Search for relevant studies from GEO</p>
             </div>
         </div>
     </div>
@@ -204,7 +207,7 @@ Custom script or styling
                         <i class="icon fas fa-exclamation-triangle text-danger" aria-hidden="true"></i>
                         Error
                     </h4>
-                    <p>{{ result["data"]["error"] }}</p>
+                    <p>{{ result.get("data", {}).get("error", "") }}</p>
                 </div>
             </div>
         </div>
