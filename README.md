@@ -104,11 +104,17 @@ Clicking "Next", will show available metadata for each study.
 Metadata, gathered from the NCBI Sequence Read Archive (SRA) and the European Bioinformatics Institute’s European Nucleotide Archive (ENA), is available for each previously selected study.
 ![Integrator add external GEO ID](./media/images/metadata_page.png)
 
-Create sample groupings by selecting "New group". Edit group names by selecting "Edit groups".
+Create sample groupings by selecting "Define groups". In the menu, set group names and click "Save groups" when done. 
 
-![Integrator create comparison groups](./media/images/groups.png)
+![Integrator create comparison groups](./media/images/create_groups.png)
 
-View samples for each study, select and assign samples to groups.
+Edit group names by selecting "Edit groups".
+
+![Integrator edit comparison groups](./media/images/groups.png)
+
+View samples for each study. Samples from the MorPhiC program will be listed under the "MorPhiC Samples" tab. Non-MorPhiC samples will be listed under "External Samples". Select and assign samples to groups.
+
+![Integrator metadata samples](./media/images/morphic_and_external_samples.png)
 
 ![Integrator add external GEO ID](./media/images/assign_to_group.png)
 
@@ -116,7 +122,7 @@ After selecting samples, navigate to "Next Run Workflow". Current selection of s
 
 ![Integrator add external GEO ID](./media/images/run_workflow_page.png)
 
-The status of the workflow will show at the top of screen. When complete, the page will refresh to show results. Option to donwload counts is available.
+The status of the workflow will show at the top of screen. When complete, the page will refresh to show results. Option to download counts is available.
 
 ## Technologies Used
 
