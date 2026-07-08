@@ -20,6 +20,14 @@ This repo depends on code from the following repositories. These are installed /
 
 ## Set up
 
+### Docker
+```
+git clone https://github.com/BioDepot/MorPhiC-Data-Integrator/
+cd https://github.com/BioDepot/MorPhiC-Data-Integrator/
+docker build -t data_integrator .
+SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
+```
+
 ### Prerequisites
 Before you begin, ensure you have the following installed on your local machine:
 
