@@ -34,26 +34,52 @@ Before you begin, ensure you have the following installed on your local machine:
     $ python3 --version
     Python 3.10.6
     ```
+- **Git**
+    ```
+    git --version
+    ```
 
 ### Set up
 
-In the project root directory:
-- Create a virtual environment with python >=3.7
+#### Clone the project
+
+1. On GitHub website, navigate to the main page of the repository.
+2. Above the list of files, click <> Code.
+3. Copy the URL for the repository.
+    - To clone the repository using HTTPS, under "HTTPS", copy the link
+4. Open Terminal
+5. Change the current working directory to the location where you want the cloned directory.
+6. Type `git clone`, and then paste the URL you copied earlier.
+    ```
+    git clone https://github.com/BioDepot/biodepot-launcher.git
+    ```
+7. Press Enter to create your local clone.
+
+#### Installing dependencies
+
+In the project working directory:
+- Create a virtual environment with python
+
+    - macOS/Linux/Windows
+    ```
+    python -m venv .venv
+    ```
+- Activate the virtual enviroment
+
+    - macOS/Linux
+    ```
+    source .venv/bin/activate
+    ```
+
+    - Windows
+    ```
+    .venv\Scripts\activate.bat
+    ```    
 - Install Dependencies: 
   - With PIP: 
   ```shell 
-  pip install -r requirement.txt
+  pip install -r requirements.txt
   ```
-  - With Anaconda: 
-  ```shell
-  conda install --file requirements.txt
-  ```
-
-- Install Docker
-  - Follow the installation process [here](https://github.com/BioDepot/BioDepot-workflow-builder#installing-and-starting-docker)
-  - Note:
-    - I installed for Linux
-    - I setup Docker with the option of executing the docker command without Sudo
 
 ### Start the project
 
@@ -67,6 +93,11 @@ In the project root directory:
     ```shell
     $ flask run
     ```
+    After a few moments, the command line should output a message letting you know the development server is ready.
+
+3. Open your favorite web browser and navigate to http://127.0.0.1:5000/
+
+You’ll be able to visit the site locally as long as your development server is running. To top running, go back to your terminal window, then hit `ctrl-c`.
 
 ## Testing
 
