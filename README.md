@@ -28,23 +28,29 @@ This repo depends on code from the following repositories. These are installed /
 
 Before you begin, ensure you have the following installed on your local machine:
 
-- **python3**
-
-    ```shell
-    $ python3 --version
-    Python 3.10.6
+- **Python 3.12** (Required version)
+    
+    Check version
     ```
+    python3 --version
+    ```
+    example output
+    ```
+    Python 3.12.3
+    ```
+- **pip** (Python package manager)
 - **Git**
     ```
     git --version
     ```
+- Terminal or Command Prompt access
 
 ### Set up
 
 #### Clone the project
 
 1. On GitHub website, navigate to the main page of the repository.
-2. Above the list of files, click <> Code.
+2. Above the list of files, click "<> Code".
 3. Copy the URL for the repository.
     - To clone the repository using HTTPS, under "HTTPS", copy the link
 4. Open Terminal
@@ -54,6 +60,10 @@ Before you begin, ensure you have the following installed on your local machine:
     git clone https://github.com/BioDepot/biodepot-launcher.git
     ```
 7. Press Enter to create your local clone.
+8. Navigate into the project working directory
+    ```
+    cd MorPhiC-Data-Integrator
+    ```
 
 #### Installing dependencies
 
@@ -62,7 +72,7 @@ In the project working directory:
 
     - macOS/Linux/Windows
     ```
-    python -m venv .venv
+    python3.12 -m venv .venv
     ```
 - Activate the virtual enviroment
 
@@ -71,10 +81,23 @@ In the project working directory:
     source .venv/bin/activate
     ```
 
-    - Windows
+    - Windows (Command Prompt)
     ```
     .venv\Scripts\activate.bat
-    ```    
+    ```
+    After acitvation your prompt should look similar to
+    ```
+    (.venv)
+    ```
+
+    Verify the virtual enviroment is using python 
+    ```
+    python3.12 --version
+    ```
+    Expected Output
+    ```
+    Python 3.12.x
+    ```
 - Install Dependencies: 
   - With PIP: 
   ```shell 
@@ -87,7 +110,7 @@ In the project working directory:
 
 2. Run the web app with
     ```shell
-    $ python run.py
+    python run.py
     ```
     or 
     ```shell
@@ -97,7 +120,7 @@ In the project working directory:
 
 3. Open your favorite web browser and navigate to http://127.0.0.1:5000/
 
-You’ll be able to visit the site locally as long as your development server is running. To top running, go back to your terminal window, then hit `ctrl-c`.
+You’ll be able to visit the site locally as long as your development server is running. To stop running, go back to your terminal window, then hit `ctrl-c`. To deactivate the Python virtual enviroment type and enter the command `deactivate` after stop running.
 
 ## Testing
 
@@ -154,6 +177,24 @@ After selecting samples, navigate to "Next Run Workflow". Current selection of s
 ![Integrator add external GEO ID](./media/images/run_workflow_page.png)
 
 The status of the workflow will show at the top of screen. When complete, the page will refresh to show results. Option to download counts is available.
+
+## Troubleshoting
+- Some packages will require  use of Python version 3.12. Please ensure that your setup uses Python 3.12. Alternatives versions such as 3.9 to 3.12 may work. Run previous setup instructions with specific Python version by replacing 3.12 with 3.10.
+
+    Check if specific version of Python is available
+    - macOS/Linux
+    ```
+    python3.12 --version
+    ```
+    Replace 3.xx with the version, like 3.10.
+
+    If available the exact version will be returned (e.g., `Python 3.12.3`). If not available your will see a command not found error.
+    
+    - Windows
+    ```
+    py -0
+    ```
+    This will list all the Python versions in your system (e.g., `-3.11-64`, `3.12-64`).
 
 ## Technologies Used
 
