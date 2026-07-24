@@ -15,6 +15,7 @@ __pycache__
 # Ignore editor-specific files
 .vscode/
 .idea/
+*.swp
 
 # Ignore build artifacts and compiled files
 /build/
