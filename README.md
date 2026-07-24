@@ -6,20 +6,24 @@ Interactive Data Integrator facilates uniform data processing and integration wi
 
 ## Table of Contents
 
-- [Set up](#set-up)
+- [Project Setup](#project-setup)
     - [External dependencies](#external-dependencies)
     - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Running the Application](#running-the-application)
+    - [Clone the project](#clone-the-project)
+    - [Option A: Docker Setup](#option-a-docker-setup)
+    - [Option B: Local Setup](#option-b-local-setup)
     - [Testing](#testing)
 - [Steps and Analysis](#steps-and-analysis)
+- [Troubleshooting](#troubleshoting)
 - [Technologies Used](#technologies-used)
 
-## Set up
+## Project Setup
+
+This project provides option to setup using either **Docker** (recommended for quick setup) or as a **Local Installation** (recommended for active development)
 
 ### External dependencies
 
-This repo depends on code from the following repositories. These are installed / run automatically by the dashboard source.
+This repo depends on code from the following repositories. These are installed / run automatically by the applications source.
 
 - BWB SCHEDULER: Source code at https://github.com/Patrick-McKeever/bwb\_scheduler, docker image at `patrickmckeever/bwb-scheduler:latest`
 - MORPHIC Bulk RNA seq workflow: Source code at https://github.com/morphic-bio/Bulk-RNA-seq/
@@ -39,15 +43,13 @@ Before you begin, ensure you have the following installed on your local machine:
     Python 3.12.3
     ```
 - **pip** (Python package manager)
+- **Docker**
 - **Git**
-    ```
-    git --version
-    ```
 - Terminal or Command Prompt access
 
-### Set up
 
-#### Clone the project
+
+### Clone the project
 
 1. On GitHub website, navigate to the main page of the repository.
 2. Above the list of files, click "<> Code".
@@ -57,13 +59,30 @@ Before you begin, ensure you have the following installed on your local machine:
 5. Change the current working directory to the location where you want the cloned directory.
 6. Type `git clone`, and then paste the URL you copied earlier.
     ```
-    git clone https://github.com/BioDepot/biodepot-launcher.git
+    git clone https://github.com/BioDepot/MorPhiC-Data-Integrator.git
     ```
 7. Press Enter to create your local clone.
 8. Navigate into the project working directory
     ```
     cd MorPhiC-Data-Integrator
     ```
+
+### Option A: Docker Setup
+After [cloning the project](#clone-the-project) and navigating into the working directory.
+
+Build the Docker image and run the container
+
+```
+docker build -t data_integrator .
+SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
+```
+
+Open your web browser and navigate to http://127.0.0.1:5000/
+
+
+### Option B: Local Setup
+
+Start by [cloning the project](#clone-the-project) and navigating into the working directory.
 
 #### Installing dependencies
 
@@ -104,7 +123,7 @@ In the project working directory:
   pip install -r requirements.txt
   ```
 
-### Start the project
+#### Start the project
 
 1. Activate your python virtual environment
 
@@ -118,7 +137,7 @@ In the project working directory:
     ```
     After a few moments, the command line should output a message letting you know the development server is ready.
 
-3. Open your favorite web browser and navigate to http://127.0.0.1:5000/
+3. Open your web browser and navigate to http://127.0.0.1:5000/
 
 You’ll be able to visit the site locally as long as your development server is running. To stop running, go back to your terminal window, then hit `ctrl-c`. To deactivate the Python virtual enviroment type and enter the command `deactivate` after stop running.
 
@@ -179,7 +198,7 @@ After selecting samples, navigate to "Next Run Workflow". Current selection of s
 The status of the workflow will show at the top of screen. When complete, the page will refresh to show results. Option to download counts is available.
 
 ## Troubleshoting
-- Some packages will require  use of Python version 3.12. Please ensure that your setup uses Python 3.12. Alternatives versions such as 3.9 to 3.12 may work. Run previous setup instructions with specific Python version by replacing 3.12 with 3.10.
+- When uisng local setup of the project, some packages will require Python version 3.12. Please ensure that your setup uses Python 3.12. Alternatives versions such as 3.9 to 3.12 may work. Run previous setup instructions with specific Python version by replacing `python3.12` with `python3.10`.
 
     Check if specific version of Python is available
     - macOS/Linux
