@@ -24,14 +24,16 @@ import os
 import socket
 import io
 
+STORAGE_ID='storageID'
 if "BWB_SCHED_DIR" not in os.environ:
     BWB_SCHED_DIR = os.path.expanduser("~/SCHED_STORAGE")
-    os.makedirs(BWB_SCHED_DIR, exist_ok=True)
 else:
     BWB_SCHED_DIR = os.environ["BWB_SCHED_DIR"]
     
+pathToMake = os.path.join(BWB_SCHED_DIR, STORAGE_ID)
+print("MAKING STORAGE DIR", pathToMake)
+os.makedirs(pathToMake, exist_ok=True)
 
-STORAGE_ID='storageID'
 
 class JobManager:
     def __init__(self):
@@ -303,7 +305,7 @@ def api_morphic_studies():
 
 @app.route("/api/fetch-metadata", methods=["POST"])
 def api_fetch_metadata():
-    """Fetch SRA run metadata for a list of accession IDs. Returns JSON."""
+    """Fetch SRA run metadata for a list of external accession IDs. Returns JSON."""
     body = request.get_json(silent=True) or {}
     gse_ids = body.get("gse_ids", [])
     if not gse_ids:
@@ -319,6 +321,29 @@ def api_fetch_metadata():
     return jsonify({
         "metadata": json.loads(metadata_df.to_json(orient="records")),
         "ids_with_no_metadata": ids_with_no_metadata,
+    })
+
+@app.route("/api/fetch-morphic-metadata", methods=["POST"])
+def api_fetch_morphic_metadata():
+    """Look up per-sample metadata for MorPhiC GSE ids from perSampleMetadata.tsv. Returns JSON.
+
+    Unlike /api/fetch-metadata, this never calls out to the SRA API — MorPhiC
+    sample metadata (cell line, knockout gene, time point) is sourced entirely
+    from perSampleMetadata.tsv.
+    """
+    body = request.get_json(silent=True) or {}
+    gse_ids = body.get("gse_ids", [])
+    if not gse_ids:
+        return jsonify({"error": "No IDs provided"}), 400
+
+    try:
+        metadata_df = utils.get_morphic_metadata_for_gse_ids(gse_ids)
+    except (ValueError, FileNotFoundError, KeyError) as e:
+        return jsonify({"error": str(e)}), 422
+
+    return jsonify({
+        "metadata": json.loads(metadata_df.to_json(orient="records")),
+        "ids_with_no_metadata": [],
     })
 
 @app.route('/experiment/<srr_id>/bulk-rna-seq', methods=['GET'])

@@ -72,3 +72,50 @@ def load_csv_file_as_df(file_name):
     except Exception as e:
         print(f"Error loading CSV file as pandas Dataframe: {e}")
         return None
+
+def get_morphic_metadata_for_gse_ids(study_ids, file_name="perSampleMetadata.tsv"):
+    """
+    Look up per-sample metadata (cell line / knockout gene / time point) for a
+    list of MorPhiC study ids directly from perSampleMetadata.tsv. No SRA/pysradb
+    API calls are made — MorPhiC sample metadata is sourced entirely from this
+    spreadsheet.
+
+    The MorPhiC Data screen identifies studies by ERP accession (falling back to
+    GEO/GSE accession only when no ERP accession is available), so study ids are
+    matched against both the erpAccession and gseAccession columns.
+
+    Fails fast (raises ValueError) if any requested study id has no matching rows
+    in perSampleMetadata.tsv, since that means the spreadsheet is out of date
+    and needs to be regenerated.
+
+    Args:
+        study_ids (list): ERP or GSE study ids to look up.
+        file_name (str): Path to perSampleMetadata.tsv.
+
+    Returns:
+        pd.DataFrame: Rows with columns run_accession, study_accession, sampleName,
+            cellLine, modelSystems, knockoutGene, genotypeStatus, timepoint for
+            every sample belonging to the requested studies.
+    """
+    per_sample_df = pd.read_csv(file_name, sep="\t")
+
+    studies_available = set(per_sample_df['erpAccession'].dropna().unique()) | \
+        set(per_sample_df['gseAccession'].dropna().unique())
+    missing_studies = [study_id for study_id in study_ids if study_id not in studies_available]
+    if missing_studies:
+        raise ValueError(
+            f"perSampleMetadata.tsv has no entries for stud{'y' if len(missing_studies) == 1 else 'ies'}: "
+            f"{', '.join(missing_studies)}. Regenerate {file_name} to include "
+            "these studies before continuing."
+        )
+
+    matches = per_sample_df['erpAccession'].isin(study_ids) | per_sample_df['gseAccession'].isin(study_ids)
+    subset = per_sample_df[matches].rename(columns={
+        'errId': 'run_accession',
+        'erpAccession': 'study_accession',
+    })
+
+    return subset[[
+        'run_accession', 'study_accession', 'sampleName', 'cellLine',
+        'modelSystems', 'knockoutGene', 'genotypeStatus', 'timepoint',
+    ]]
