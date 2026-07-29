@@ -330,9 +330,9 @@ $('#groupModal').on('show.bs.modal', openGroupModal);
 let _allMorphicMetadata = [];   // flat list of SRA rows for MorPhiC studies
 let _allExternalMetadata = [];  // flat list of SRA rows for external GEO ids
 
-async function fetchMetadata(ids) {
+async function postJSON(url, ids) {
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-  const resp = await fetch('/api/fetch-metadata', {
+  const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify({ gse_ids: ids }),
@@ -343,6 +343,11 @@ async function fetchMetadata(ids) {
   }
   return resp.json();
 }
+
+// MorPhiC samples: metadata comes solely from perSampleMetadata.tsv, no SRA API call.
+function fetchMorphicMetadata(ids) { return postJSON('/api/fetch-morphic-metadata', ids); }
+// External samples: metadata is fetched live from the SRA API.
+function fetchMetadata(ids) { return postJSON('/api/fetch-metadata', ids); }
 
 function groupByStudy(rows) {
   const map = {};
@@ -365,7 +370,27 @@ function buildDropdownOptions(currentValue) {
   return html;
 }
 
-function renderAccordion(containerId, idPrefix, byStudy) {
+const MORPHIC_COLUMNS = {
+  headers: ['Sample name', 'Cell line', 'Model systems', 'Knockout gene', 'Genotype status', 'Time point'],
+  row: r => `
+    <td>${r.sampleName || ''}</td>
+    <td>${r.cellLine || ''}</td>
+    <td>${r.modelSystems || ''}</td>
+    <td>${r.knockoutGene || ''}</td>
+    <td>${r.genotypeStatus || ''}</td>
+    <td>${r.timepoint || ''}</td>`,
+};
+const EXTERNAL_COLUMNS = {
+  headers: ['Run accession', 'Derived from', 'Experiment', 'Layout', 'Strategy'],
+  row: r => `
+    <td>${r.run_accession || ''}</td>
+    <td>${r.derivedfrom || ''}</td>
+    <td>${r.experiment_desc || ''}</td>
+    <td>${r.library_layout || ''}</td>
+    <td>${r.library_strategy || ''}</td>`,
+};
+
+function renderAccordion(containerId, idPrefix, byStudy, columns) {
   const accordion = document.getElementById(containerId);
   const assignments = getAssignments();
   const groups = getGroups();
@@ -405,11 +430,7 @@ function renderAccordion(containerId, idPrefix, byStudy) {
             <thead class="thead-light">
               <tr>
                 <th style="min-width:180px;">Group</th>
-                <th>Run accession</th>
-                <th>Derived from</th>
-                <th>Experiment</th>
-                <th>Layout</th>
-                <th>Strategy</th>
+                ${columns.headers.map(h => `<th>${h}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
@@ -422,11 +443,7 @@ function renderAccordion(containerId, idPrefix, byStudy) {
                     ${buildDropdownOptions(assignments[r.run_accession] || '')}
                   </select>
                 </td>
-                <td>${r.run_accession || ''}</td>
-                <td>${r.derivedfrom || ''}</td>
-                <td>${r.experiment_desc || ''}</td>
-                <td>${r.library_layout || ''}</td>
-                <td>${r.library_strategy || ''}</td>
+                ${columns.row(r)}
               </tr>`).join('')}
             </tbody>
           </table>
@@ -504,7 +521,7 @@ async function init() {
   document.getElementById('loading-state').style.display    = 'block';
 
   try {
-    const result = await fetchMetadata(ids);
+    const result = await fetchMorphicMetadata(ids);
     _allMorphicMetadata = result.metadata || [];
 
     document.getElementById('loading-state').style.display = 'none';
@@ -517,7 +534,7 @@ async function init() {
     }
 
     const byStudy = groupByStudy(_allMorphicMetadata);
-    renderAccordion('study-accordion', '', byStudy);
+    renderAccordion('study-accordion', '', byStudy, MORPHIC_COLUMNS);
     updateAssignmentSummary();
 
   } catch (err) {
@@ -553,7 +570,7 @@ async function initExternal() {
     }
 
     const byStudy = groupByStudy(_allExternalMetadata);
-    renderAccordion('external-study-accordion', 'external-', byStudy);
+    renderAccordion('external-study-accordion', 'external-', byStudy, EXTERNAL_COLUMNS);
     updateAssignmentSummary();
 
   } catch (err) {
