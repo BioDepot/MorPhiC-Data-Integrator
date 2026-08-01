@@ -7,6 +7,24 @@ from pysradb import SRAweb
 import pandas as pd
 import time
 
+# fetch ENA project ID (ERP) from GEO Series ID (GSE)
+def get_erp_from_gse_id(gse_id: str):
+    if not gse_id or "gse" not in gse_id.lower():
+        return ""
+    
+    db = SRAweb()
+    try:
+        srp_df = db.gse_to_srp(gse_id)
+        meta_df = srp_df["study_accession"].iloc[0]
+        return meta_df
+    except Exception as e:
+        error_message = f"Error: pysradb was unable to retrieve data for gse id {gse_id} \n {e}"
+        print(error_message)
+        time.sleep(0.5)
+    time.sleep(0.5)
+
+    return ""
+
 # fetch_gse_library_strategy
 def get_library_strategy_for_gse_ids(gse_list: list) -> dict:
     """

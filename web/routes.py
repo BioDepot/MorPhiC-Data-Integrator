@@ -275,6 +275,30 @@ def api_morphic_studies():
     if morphic_full_data is None:
         return jsonify({"error": "Error loading data"}), 500
 
+    # Assays compatible with workflow
+    def is_bulk_rnaseq(readout_assay: str) -> bool:
+        assay = readout_assay.lower().strip()
+        exclude_assays = [
+            r"\bsc[\s-]?rna\b",
+            r"\bscrna\b",
+            r"\bsingle[- ]cell\b",
+            r"\bsnrna\b",
+            r"\bsmall rna\b",
+            r"\batac[\s-]?seq\b",
+            r"\bgrna\b",
+        ]
+        include_assays = [
+            r"\brnaseq\b",
+            r"\brna[\s-]?seq\b",
+            r"\brna sequencing\b",
+            r"\bmrna sequencing\b",
+            r"\bmrna\b",
+        ]
+
+        excluded = any(re.search(p, assay) for p in exclude_assays)
+        included = any(re.search(p, assay) for p in include_assays)
+        return included and not excluded
+
     # Extract GEO and ERP accession ids, ids other than GEO are defaulted to ERP
     def extract_accessions(accessions: list) -> dict:
         study_accessions = {"erp_accession": "", "geo_accession": ""}
@@ -293,11 +317,22 @@ def api_morphic_studies():
         study_accessions = study.get("accessions", [])
         if not study_content and not study_accessions:
             continue
+        study_readout_assay = study_content.get("readout_assay", "")
+        if not study_readout_assay:
+            continue
+        if not is_bulk_rnaseq(study_readout_assay):
+            continue
 
+        # Get ERP ID from GSE ID, add ERP ID to available accessions
+        has_erp = any("erp" in s.lower() for s in study_accessions)
+        gse_id = next((s for s in study_accessions if "gse" in s.lower()), "")
+        if not has_erp and gse_id:
+            study_accessions.append(sra_web_api.get_erp_from_gse_id(gse_id))
+        
         new_study = {
             "study_title": study_content.get("study_title", ""),
             "target_genes": study_content.get("target_genes", ""),
-            "readout_assay": study_content.get("readout_assay", "")
+            "readout_assay": study_readout_assay
         }
         new_study.update(extract_accessions(study_accessions))
         data.append(new_study)
