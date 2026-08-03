@@ -193,8 +193,23 @@
         <h2 class="card-title"><b>Upload FASTQ files</b></h2>
       </div>
       <div class="card-body">
+        <p class="text-muted">Files selected here are carried through to the Run Workflow step.</p>
         <div id="samples-container"></div>
         <button type="button" id="add-sample-btn" class="btn btn-secondary mt-2">Add sample</button>
+      </div>
+    </div>
+
+    <!-- Additional SRR IDs -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><b>Additional SRR IDs</b> <small class="text-muted">(optional)</small></h2>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">
+          Specify extra SRA run accessions to include. Each ID will be downloaded and assigned to the selected group.
+        </p>
+        <div id="srr-container"></div>
+        <button type="button" id="add-srr-btn" class="btn btn-secondary mt-2">Add SRR ID</button>
       </div>
     </div>
 
@@ -223,6 +238,7 @@
 {% endblock nav_footer %}
 
 {% block body_script %}
+<script src="{{ url_for('static', filename='js/fastq_store.js') }}"></script>
 <script>
   const STATE_KEY = 'morphicdi_state';
 
@@ -238,6 +254,20 @@
 
   function getSelectedIds() {
     return loadState().selected_ids || [];
+  }
+
+  function getGroups() {
+    return loadState().groups || [];
+  }
+
+  function getSrrEntries() {
+    return loadState().srr_entries || [];
+  }
+
+  function setSrrEntries(entries) {
+    const state = loadState();
+    state.srr_entries = entries;
+    saveState(state);
   }
 
   function setSelectedIds(ids) {
@@ -453,9 +483,188 @@
 
   }
 
+  /* =========================
+     Upload FASTQ files (persisted to IndexedDB so File objects survive
+     navigation to the Run Workflow page, where the form actually submits)
+     ========================= */
+  const samplesContainer = document.getElementById('samples-container');
+  const addSampleBtn     = document.getElementById('add-sample-btn');
+
+  function buildGroupOptions() {
+    const groups = getGroups();
+    if (groups.length >= 2) {
+      return groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+    }
+    return `<option value="group_a">Group A</option><option value="group_b">Group B</option>`;
+  }
+
+  function enforceUniformLayout(layout) {
+    samplesContainer.querySelectorAll('.read-type').forEach(rt => {
+      rt.value = layout;
+      const card = rt.closest('.card');
+      card.querySelector('.r2-field').style.display = layout === 'PAIRED' ? 'block' : 'none';
+      FastqStore.updateSample(Number(card.dataset.id), { layout });
+    });
+  }
+
+  function buildSampleCard(sample) {
+    const card = document.createElement('div');
+    card.className = 'card mb-3 p-3';
+    card.dataset.id = sample.id;
+    card.innerHTML = `
+      <div class="form-row align-items-end">
+        <div class="col-md-3">
+          <label>Sample name</label>
+          <input class="form-control sample-name" value="${sample.name || ''}">
+        </div>
+        <div class="col-md-2">
+          <label>Group</label>
+          <select class="form-control sample-group">${buildGroupOptions()}</select>
+        </div>
+        <div class="col-md-2">
+          <label>Read layout</label>
+          <select class="form-control read-type">
+            <option value="SINGLE">Single-end</option>
+            <option value="PAIRED">Paired-end</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label>FASTQ R1</label>
+          <input type="file" class="form-control sample-r1" accept=".fastq">
+        </div>
+        <div class="col-md-2 r2-field" style="display:none;">
+          <label>FASTQ R2</label>
+          <input type="file" class="form-control sample-r2" accept=".fastq">
+        </div>
+        <div class="col-md-1">
+          <button type="button" class="btn btn-danger btn-sm remove-sample">&#x2715;</button>
+        </div>
+      </div>`;
+
+    const nameInput  = card.querySelector('.sample-name');
+    const groupSelect = card.querySelector('.sample-group');
+    const readType    = card.querySelector('.read-type');
+    const r2Field     = card.querySelector('.r2-field');
+    const r1Input     = card.querySelector('.sample-r1');
+    const r2Input     = card.querySelector('.sample-r2');
+
+    groupSelect.value = sample.group || '';
+    readType.value    = sample.layout || 'SINGLE';
+    r2Field.style.display = readType.value === 'PAIRED' ? 'block' : 'none';
+
+    nameInput.addEventListener('input', () => {
+      FastqStore.updateSample(sample.id, { name: nameInput.value });
+    });
+    groupSelect.addEventListener('change', () => {
+      FastqStore.updateSample(sample.id, { group: groupSelect.value });
+    });
+    readType.addEventListener('change', e => enforceUniformLayout(e.target.value));
+    r1Input.addEventListener('change', () => {
+      FastqStore.updateSample(sample.id, { r1: r1Input.files[0] || null });
+    });
+    r2Input.addEventListener('change', () => {
+      FastqStore.updateSample(sample.id, { r2: r2Input.files[0] || null });
+    });
+    card.querySelector('.remove-sample').addEventListener('click', () => {
+      FastqStore.deleteSample(sample.id);
+      card.remove();
+    });
+
+    return card;
+  }
+
+  async function addSampleRow(defaultLayout = 'SINGLE') {
+    const existingLayout = samplesContainer.querySelector('.read-type');
+    const layout = existingLayout ? existingLayout.value : defaultLayout;
+    const id = await FastqStore.addSample({ name: '', group: '', layout, r1: null, r2: null });
+    samplesContainer.appendChild(buildSampleCard({ id, name: '', group: '', layout }));
+  }
+
+  addSampleBtn.addEventListener('click', () => addSampleRow('SINGLE'));
+
+  async function loadSamples() {
+    const samples = await FastqStore.getAllSamples();
+    samples.forEach(sample => {
+      const card = buildSampleCard(sample);
+      samplesContainer.appendChild(card);
+      // Re-attach previously selected Files so the input reflects prior state.
+      if (sample.r1) {
+        const dt = new DataTransfer();
+        dt.items.add(sample.r1);
+        card.querySelector('.sample-r1').files = dt.files;
+      }
+      if (sample.r2) {
+        const dt = new DataTransfer();
+        dt.items.add(sample.r2);
+        card.querySelector('.sample-r2').files = dt.files;
+      }
+    });
+  }
+
+  /* =========================
+     Additional SRR IDs (plain data — stored in localStorage like the rest
+     of the app's selection state)
+     ========================= */
+  const srrContainer = document.getElementById('srr-container');
+  const addSrrBtn     = document.getElementById('add-srr-btn');
+
+  function syncSrrEntries() {
+    const entries = [...srrContainer.querySelectorAll('.card')].map(card => ({
+      id: card.querySelector('.srr-id').value.trim(),
+      group: card.querySelector('.srr-group').value,
+    }));
+    setSrrEntries(entries);
+  }
+
+  function buildSrrCard(entry) {
+    const card = document.createElement('div');
+    card.className = 'card mb-2 p-3';
+    card.innerHTML = `
+      <div class="form-row align-items-end">
+        <div class="col-md-5">
+          <label>SRR Accession ID</label>
+          <input class="form-control srr-id" placeholder="e.g. SRR123456"
+                 pattern="[SDE]RR[0-9]+"
+                 title="Enter a valid SRA run accession (e.g. SRR123456)">
+        </div>
+        <div class="col-md-5">
+          <label>Group</label>
+          <select class="form-control srr-group">${buildGroupOptions()}</select>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-danger btn-sm remove-srr">&#x2715;</button>
+        </div>
+      </div>`;
+
+    card.querySelector('.srr-id').value    = entry.id || '';
+    card.querySelector('.srr-group').value = entry.group || '';
+
+    card.querySelector('.srr-id').addEventListener('input', syncSrrEntries);
+    card.querySelector('.srr-group').addEventListener('change', syncSrrEntries);
+    card.querySelector('.remove-srr').addEventListener('click', () => {
+      card.remove();
+      syncSrrEntries();
+    });
+
+    return card;
+  }
+
+  function addSrrRow(entry = { id: '', group: '' }) {
+    srrContainer.appendChild(buildSrrCard(entry));
+    syncSrrEntries();
+  }
+
+  addSrrBtn.addEventListener('click', () => addSrrRow());
+
+  function loadSrrEntries() {
+    getSrrEntries().forEach(entry => srrContainer.appendChild(buildSrrCard(entry)));
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     loadStudies();
     renderExternalIds();
+    loadSamples();
+    loadSrrEntries();
 
     document.getElementById('refresh-btn').addEventListener('click', () => loadStudies(true));
 

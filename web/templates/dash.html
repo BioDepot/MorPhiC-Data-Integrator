@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block script %}
+<script src="{{ url_for('static', filename='js/fastq_store.js') }}"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   /* =========================
@@ -12,9 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function getGroups()      { return loadState().groups || []; }
   function getAssignments() { return loadState().sample_assignments || {}; }
+  function getSrrEntries()  { return loadState().srr_entries || []; }
 
   /* =========================
      Build srr_metadata_json for form submission
+     (MorPhiC samples assigned to groups on the Metadata page)
      ========================= */
   function buildSrrMetadata() {
     const groups      = getGroups();
@@ -31,153 +34,70 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  /* =========================
-     Render selected SRR summary
-     ========================= */
-  function renderSrrSummary() {
-    const groups      = getGroups();
-    const assignments = getAssignments();
-    const container   = document.getElementById('srr-summary-body');
-    const card        = document.getElementById('srr-summary-card');
-    const emptyMsg    = document.getElementById('srr-summary-empty');
+  function hiddenInput(name, value) {
+    const input = document.createElement('input');
+    input.type  = 'hidden';
+    input.name  = name;
+    input.value = value;
+    return input;
+  }
 
-    if (groups.length < 2 || Object.keys(assignments).length === 0) {
-      card.style.display  = 'none';
-      emptyMsg.style.display = 'block';
-      return;
+  function fileInput(name, file) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.name = name;
+    input.style.display = 'none';
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    return input;
+  }
+
+  /* =========================
+     Form submission: pull in everything gathered on the MorPhiC Data page
+     (FASTQ files from IndexedDB, manual SRR IDs and group assignments from
+     localStorage) and inject it into the multipart form before it posts to
+     /run-bwb, using the exact same field naming the backend already expects.
+     ========================= */
+  const form           = document.getElementById('bwb-form');
+  const dynamicFields   = document.getElementById('dynamic-fields');
+  const submitBtn       = document.getElementById('run-workflow-btn');
+
+  async function prepareAndSubmit(e) {
+    e.preventDefault();
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin pr-2"></i> Preparing&hellip;';
     }
-    card.style.display  = 'block';
-    emptyMsg.style.display = 'none';
+    dynamicFields.innerHTML = '';
 
-    const grouped = {};
-    for (const g of groups) grouped[g.name] = [];
-    for (const [srrId, groupName] of Object.entries(assignments)) {
-      if (grouped[groupName] !== undefined) grouped[groupName].push(srrId);
-    }
-
-    container.innerHTML = groups.map(g => `
-      <dt class="col-sm-3">${g.name}</dt>
-      <dd class="col-sm-9 border px-3 py-1">
-        ${grouped[g.name].length > 0 ? grouped[g.name].join(', ') : '<em class="text-muted">None assigned</em>'}
-      </dd>`).join('');
-  }
-
-  /* =========================
-     Dynamic sample (FASTQ) handling
-     ========================= */
-  let sampleIndex = 0;
-  const container = document.getElementById("samples-container");
-  const addBtn    = document.getElementById("add-sample-btn");
-
-  function enforceUniformLayout(layout) {
-    document.querySelectorAll(".read-type").forEach(rt => {
-      rt.value = layout;
-      rt.closest(".form-row").querySelector(".r2-field").style.display =
-        layout === "PAIRED" ? "block" : "none";
-    });
-  }
-
-  function buildGroupOptions() {
-    const groups = getGroups();
-    if (groups.length >= 2) {
-      return groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
-    }
-    return `<option value="group_a">Group A</option><option value="group_b">Group B</option>`;
-  }
-
-  function addSampleRow(defaultLayout = "SINGLE") {
-    const card = document.createElement("div");
-    card.className = "card mb-3 p-3";
-    card.innerHTML = `
-      <div class="form-row align-items-end">
-        <div class="col-md-3">
-          <label>Sample name</label>
-          <input name="samples[${sampleIndex}][name]" class="form-control" required>
-        </div>
-        <div class="col-md-2">
-          <label>Group</label>
-          <select name="samples[${sampleIndex}][group]" class="form-control" required>
-            ${buildGroupOptions()}
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label>Read layout</label>
-          <select name="samples[${sampleIndex}][layout]" class="form-control read-type">
-            <option value="SINGLE">Single-end</option>
-            <option value="PAIRED">Paired-end</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label>FASTQ R1</label>
-          <input type="file" name="samples[${sampleIndex}][r1]"
-                 class="form-control" accept=".fastq" required>
-        </div>
-        <div class="col-md-2 r2-field" style="display:none;">
-          <label>FASTQ R2</label>
-          <input type="file" name="samples[${sampleIndex}][r2]"
-                 class="form-control" accept=".fastq">
-        </div>
-        <div class="col-md-1">
-          <button type="button" class="btn btn-danger btn-sm remove-sample">&#x2715;</button>
-        </div>
-      </div>`;
-    container.appendChild(card);
-
-    const readType = card.querySelector(".read-type");
-    const r2Field  = card.querySelector(".r2-field");
-    readType.value = defaultLayout;
-    r2Field.style.display = defaultLayout === "PAIRED" ? "block" : "none";
-    readType.addEventListener("change", e => enforceUniformLayout(e.target.value));
-    card.querySelector(".remove-sample").addEventListener("click", () => card.remove());
-    sampleIndex++;
-  }
-
-  addBtn.addEventListener("click", () => addSampleRow("SINGLE"));
-  addSampleRow("SINGLE");
-
-  /* =========================
-     Dynamic SRR ID handling
-     ========================= */
-  let srrIndex = 0;
-  const srrContainer = document.getElementById("srr-container");
-  const addSrrBtn    = document.getElementById("add-srr-btn");
-
-  function addSrrRow() {
-    const card = document.createElement("div");
-    card.className = "card mb-2 p-3";
-    card.innerHTML = `
-      <div class="form-row align-items-end">
-        <div class="col-md-5">
-          <label>SRR Accession ID</label>
-          <input name="srr_entries[${srrIndex}][id]" class="form-control"
-                 placeholder="e.g. SRR123456"
-                 pattern="[SDE]RR[0-9]+"
-                 title="Enter a valid SRA run accession (e.g. SRR123456)">
-        </div>
-        <div class="col-md-5">
-          <label>Group</label>
-          <select name="srr_entries[${srrIndex}][group]" class="form-control">
-            ${buildGroupOptions()}
-          </select>
-        </div>
-        <div class="col-md-2">
-          <button type="button" class="btn btn-danger btn-sm remove-srr">&#x2715;</button>
-        </div>
-      </div>`;
-    srrContainer.appendChild(card);
-    card.querySelector(".remove-srr").addEventListener("click", () => card.remove());
-    srrIndex++;
-  }
-
-  addSrrBtn.addEventListener("click", addSrrRow);
-
-  /* =========================
-     Form submission: inject srr_metadata_json
-     ========================= */
-  document.getElementById('bwb-form').addEventListener('submit', function () {
     const meta = buildSrrMetadata();
     document.getElementById('srr-metadata-json').value = meta ? JSON.stringify(meta) : '';
-  });
+
+    getSrrEntries().forEach((entry, i) => {
+      if (!entry.id) return;
+      dynamicFields.appendChild(hiddenInput(`srr_entries[${i}][id]`, entry.id));
+      dynamicFields.appendChild(hiddenInput(`srr_entries[${i}][group]`, entry.group || ''));
+    });
+
+    try {
+      const samples = await FastqStore.getAllSamples();
+      samples.forEach((sample, i) => {
+        if (!sample.r1) return; // skip rows without an uploaded R1 file
+        dynamicFields.appendChild(hiddenInput(`samples[${i}][name]`, sample.name || `sample_${i}`));
+        dynamicFields.appendChild(hiddenInput(`samples[${i}][group]`, sample.group || ''));
+        dynamicFields.appendChild(hiddenInput(`samples[${i}][layout]`, sample.layout || 'SINGLE'));
+        dynamicFields.appendChild(fileInput(`samples[${i}][r1]`, sample.r1));
+        if (sample.r2) dynamicFields.appendChild(fileInput(`samples[${i}][r2]`, sample.r2));
+      });
+    } catch (err) {
+      console.error('Failed to load FASTQ files from IndexedDB', err);
+    }
+
+    form.submit();
+  }
+
+  form.addEventListener('submit', prepareAndSubmit);
 
   /* =========================
      Job status polling
@@ -264,9 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }).then(updateStatus);
     });
   }
-
-  // Initialise summary on page load
-  renderSrrSummary();
 });
 </script>
 {% endblock script %}
@@ -284,57 +201,20 @@ document.addEventListener("DOMContentLoaded", () => {
   </div>
 
   <p class="card-text mb-4">
-    Upload FASTQ files, assign samples to groups, and run RNA-seq workflows.
-    All samples must use the same read layout.
+    Review your samples on the <a href="/morphic">MorPhiC Data</a> and
+    <a href="/metadata">Metadata</a> steps, then run the RNA-seq workflow here.
   </p>
 
   <form id="bwb-form" method="POST" action="{{ url_for('run_bwb') }}" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     <!-- Serialised client state — populated by JS on submit -->
     <input type="hidden" id="srr-metadata-json" name="srr_metadata_json" value="">
-
-    <!-- Selected SRR IDs summary -->
-    <section class="mb-5">
-      <h2 class="text-left mb-3">Selected samples</h2>
-      <div id="srr-summary-card" class="card" style="display:none;">
-        <div class="card-header">
-          <h3 class="card-title">
-            SRR IDs
-            <small><a href="/metadata" class="ml-2 text-info">Edit</a></small>
-          </h3>
-        </div>
-        <div class="card-body">
-          <dl class="row mb-0" id="srr-summary-body"></dl>
-        </div>
-      </div>
-      <div id="srr-summary-empty">
-        <p class="text-muted">No MorPhiC samples selected yet.</p>
-        <a href="/morphic" class="btn btn-outline-info">
-          Start exploring <i class="fas fa-arrow-right pl-2" aria-hidden="true"></i>
-        </a>
-      </div>
-    </section>
-
-    <!-- Upload FASTQ Files -->
-    <section class="mb-5">
-      <h2 class="mb-3">Upload FASTQ files</h2>
-      <div id="samples-container"></div>
-      <button type="button" id="add-sample-btn" class="btn btn-secondary mt-2">Add sample</button>
-    </section>
-
-    <!-- Additional SRR IDs -->
-    <section class="mb-5">
-      <h2 class="mb-1">Additional SRR IDs <small class="text-muted">(optional)</small></h2>
-      <p class="text-muted mb-3">
-        Specify extra SRA run accessions to include. Each ID will be downloaded and assigned to the selected group.
-      </p>
-      <div id="srr-container"></div>
-      <button type="button" id="add-srr-btn" class="btn btn-secondary mt-2">Add SRR ID</button>
-    </section>
+    <!-- Manual SRR IDs and uploaded FASTQ files, gathered from the MorPhiC Data page -->
+    <div id="dynamic-fields"></div>
 
     <section class="mb-5 pb-5">
       <hr />
-      <button type="submit" class="btn btn-info">
+      <button type="submit" id="run-workflow-btn" class="btn btn-info">
         <i class="fa fa-play pr-2"></i> Run Workflow
       </button>
     </section>
