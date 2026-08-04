@@ -44,7 +44,7 @@ class JobManager:
         self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
         self.worker_thread.start()
 
-    def submit(self, cmd):
+    def submit(self, cmd, output_dir=None):
         job_id = str(uuid.uuid4())
         job_info = {
             "id": job_id,
@@ -53,7 +53,8 @@ class JobManager:
             "result": None,
             "start_time": None,
             "end_time": None,
-            "container_name": job_id  # container will use job_id as name
+            "container_name": job_id,  # container will use job_id as name
+            "output_dir": output_dir,  # where this job's plots/counts are written, if job-scoped
         }
         with self.lock:
             self.jobs[job_id] = job_info
@@ -146,6 +147,24 @@ class JobManager:
             }
 
 JOB_MANAGER = JobManager()
+
+DEFAULT_TABLES_DIR = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "processing", "Tables")
+
+def get_job_output_dir(job_id):
+    """
+    Resolve the directory a job's plots (heatmap.png, volcano_plot.png,
+    pca_plot.png) and genesCounts.csv live in.
+
+    Jobs submitted with a job-scoped output_dir (the direct rnotebook
+    container path) use that. Everything else (the bulkrna_full.json
+    scheduler path, or an unknown/expired job_id) falls back to the shared
+    static path that bwbSched has always written its "13.tablesDir" output to.
+    """
+    with JOB_MANAGER.lock:
+        job = JOB_MANAGER.jobs.get(job_id)
+    if job and job.get("output_dir"):
+        return job["output_dir"]
+    return DEFAULT_TABLES_DIR
 
 @app.route("/")
 def landing():
@@ -612,6 +631,8 @@ def run_bwb():
     manual_sra_ids = [e["id"] for e in srr_entries]
     sraIds = "[" + ",".join(manual_sra_ids) + "]"
 
+    output_dir = None
+
     if userUploadedFiles or manual_sra_ids:
         cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
@@ -628,29 +649,44 @@ def run_bwb():
             f"/wfs/bulkrna_full.json"
         )
     else:
+        # No uploaded FASTQs and no manually-entered SRR IDs: every selected
+        # sample is a MorPhiC ERR id that already has preprocessed counts in
+        # mergedCounts.tsv, so skip the bwbSched/bulkrna_preprocessed.json
+        # pipeline entirely and run the rnotebook analysis container directly
+        # against a per-job subset of mergedCounts.tsv.
+        if not srr_ids:
+            form.workflow.errors.append("No samples or SRR IDs were provided.")
+            return render_template("dash.html", form=form, status=-1)
+
+        output_dir = os.path.join(upload_root, "processing", "Tables")
+        os.makedirs(output_dir, exist_ok=True)
+        counts_path = os.path.join(output_dir, "genesCounts.csv")
+
+        merged_counts_path = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv")
+        try:
+            utils.subset_counts_file(merged_counts_path, srr_ids, counts_path)
+        except ValueError as e:
+            form.workflow.errors.append(str(e))
+            return render_template("dash.html", form=form, status=-1)
+
         cmd = (
-            f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
-            f"-v \"$(pwd)\":/wfs "
-            f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
-            f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
-            f"patrickmckeever/bwb_scheduler:latest bwbSched run "
-            f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-            f"-p 10.metadata_json={metadata_cnt_path} "
-            f"-p 13.samplesToRetain={srrIds} "
-            f"-p 13.tablesDir=/data/processing/Tables "
-            f"-p 13.preprocessedCnts=/data/mergedCounts.tsv "
-            f"/wfs/bulkrna_preprocessed.json"
+            f"docker run "
+            f"-v {output_dir}:{output_dir} "
+            f"-v {metadata_path}:{metadata_path} "
+            f"-e counts_dir={output_dir} "
+            f"-e metadata_json={metadata_path} "
+            f"patrickmckeever/rnotebook:0.3 Rscript /app/pca.R"
         )
 
     print(cmd)
-    job_id = JOB_MANAGER.submit(cmd)
+    job_id = JOB_MANAGER.submit(cmd, output_dir=output_dir)
     return render_template("dash.html", form=form, status=1, job_id=job_id)
 
 @app.route("/heatmap/<job_id>")
 def heatmap(job_id):
     if "/" in job_id or ".." in job_id:
         abort(400)
-    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/heatmap.png"
+    image_path = os.path.join(get_job_output_dir(job_id), "heatmap.png")
     if not os.path.exists(image_path):
         abort(404)
     return send_file(image_path, mimetype="image/png", conditional=True)
@@ -659,7 +695,7 @@ def heatmap(job_id):
 def volcano(job_id):
     if "/" in job_id or ".." in job_id:
         abort(400)
-    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/volcano_plot.png"
+    image_path = os.path.join(get_job_output_dir(job_id), "volcano_plot.png")
     if not os.path.exists(image_path):
         abort(404)
     return send_file(image_path, mimetype="image/png", conditional=True)
@@ -668,14 +704,16 @@ def volcano(job_id):
 def pca(job_id):
     if ".." in job_id or "/" in job_id:
         return "Invalid job ID", 400
-    image_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/pca_plot.png"
+    image_path = os.path.join(get_job_output_dir(job_id), "pca_plot.png")
+    if not os.path.exists(image_path):
+        abort(404)
     return send_file(image_path, mimetype="image/png")
 
 @app.route("/counts/<job_id>")
 def counts(job_id):
     if "/" in job_id or ".." in job_id:
         abort(400)
-    counts_path = f"{BWB_SCHED_DIR}/{STORAGE_ID}/processing/Tables/genesCounts.csv"
+    counts_path = os.path.join(get_job_output_dir(job_id), "genesCounts.csv")
     if not os.path.exists(counts_path):
         abort(404)
     return send_file(counts_path, mimetype="text/csv", as_attachment=True, download_name="genesCounts.csv")

@@ -73,6 +73,41 @@ def load_csv_file_as_df(file_name):
         print(f"Error loading CSV file as pandas Dataframe: {e}")
         return None
 
+def subset_counts_file(merged_counts_path, sample_ids, output_path):
+    """
+    Subset the columns of a merged gene counts TSV (genes as rows, samples as
+    columns, first column is the gene name column) down to just the requested
+    sample ids, and write the result out as a TSV.
+
+    Fails fast (raises ValueError) if any requested sample id is not present
+    among the columns of merged_counts_path, since that means the caller
+    asked for a sample that doesn't have preprocessed counts available.
+
+    Args:
+        merged_counts_path (str): Path to the full merged counts TSV.
+        sample_ids (list): Sample (column) ids to retain, e.g. ERR run accessions.
+        output_path (str): Path to write the subset TSV to.
+
+    Returns:
+        None
+    """
+    with open(merged_counts_path, newline="") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+
+    header_set = set(header)
+    missing_samples = [sample_id for sample_id in sample_ids if sample_id not in header_set]
+    if missing_samples:
+        raise ValueError(
+            f"{merged_counts_path} has no column{'s' if len(missing_samples) != 1 else ''} for sample"
+            f"{'s' if len(missing_samples) != 1 else ''}: {', '.join(missing_samples)}."
+        )
+
+    name_col = header[0]
+    usecols = [name_col] + list(sample_ids)
+    df = pd.read_csv(merged_counts_path, sep="\t", usecols=usecols)
+    df = df[usecols]
+    df.to_csv(output_path, sep="\t", index=False)
+
 def get_morphic_metadata_for_gse_ids(study_ids, file_name="perSampleMetadata.tsv"):
     """
     Look up per-sample metadata (cell line / knockout gene / time point) for a

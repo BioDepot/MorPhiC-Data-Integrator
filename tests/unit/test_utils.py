@@ -11,6 +11,34 @@ def test_format_genes_from_str_to_list():
     result = ["MMP8", "LTF", "CAMP", "HP", "DCLK2", "GOLGA8R", "KIR3DL2", "PTPRN2-AS1", "SERPINB9", "B3GAT1"]
     assert utils.format_genes_from_str_to_list(genes_from_text_area) == result
 
+def test_subset_counts_file_success(tmp_path):
+    merged = tmp_path / "mergedCounts.tsv"
+    merged.write_text(
+        "Name\tERR1\tERR2\tERR3\n"
+        "ENSG1\t10\t20\t30\n"
+        "ENSG2\t1\t2\t3\n"
+    )
+    out = tmp_path / "genesCounts.csv"
+
+    utils.subset_counts_file(str(merged), ["ERR2", "ERR1"], str(out))
+
+    assert out.read_text() == (
+        "Name\tERR2\tERR1\n"
+        "ENSG1\t20\t10\n"
+        "ENSG2\t2\t1\n"
+    )
+
+def test_subset_counts_file_missing_sample_raises(tmp_path):
+    merged = tmp_path / "mergedCounts.tsv"
+    merged.write_text(
+        "Name\tERR1\tERR2\n"
+        "ENSG1\t10\t20\n"
+    )
+    out = tmp_path / "genesCounts.csv"
+
+    with pytest.raises(ValueError, match="ERR9"):
+        utils.subset_counts_file(str(merged), ["ERR1", "ERR9"], str(out))
+
 # SAMPLE EXPLORER UTILS
 
 @pytest.fixture
