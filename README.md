@@ -68,6 +68,14 @@ Before you begin, ensure you have the following installed on your local machine:
     ```
 
 ### Option A: Docker Setup
+If you are on an arm64 system, it will be necessary to rebuild certain images for arm64 locally before running. This is a temporary fix, and we will push arm64 images to docker hub shortly. If you are on x86_64, you can ignore the before steps.
+```
+docker build -t patrickmckeever/rnotebook:0.4 patrickmckeever/rpcaDocker
+
+git clone https://github.com/Patrick-McKeever/bwb_scheduler
+cd bwb_scheduler
+docker build -t patrickmckeever/bwb_scheduler:latest
+```
 After [cloning the project](#clone-the-project) and navigating into the working directory.
 
 Build the Docker image and run the container
