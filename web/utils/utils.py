@@ -2,6 +2,7 @@
 Provides a collection of general purpsose utility functions for common operations such as string processing.
 """
 import json
+import os
 import pandas as pd
 
 def format_genes_from_str_to_list(input_genes: str) -> list:
@@ -107,6 +108,46 @@ def subset_counts_file(merged_counts_path, sample_ids, output_path):
     df = pd.read_csv(merged_counts_path, sep="\t", usecols=usecols)
     df = df[usecols]
     df.to_csv(output_path, sep="\t", index=False)
+
+def merge_counts_tables(new_counts_path, merged_counts_path, morphic_sample_ids, output_path):
+    """
+    Merge a genesCounts.csv produced by the bulkrna_paired_unpaired.json
+    alignment workflow with a subset of preprocessed MorPhiC samples pulled
+    from mergedCounts.tsv, into a single counts table (same TSV shape: a
+    "Name" gene-id column plus one column per sample) suitable for the
+    PCA/DESeq2 container.
+
+    Only genes present in both inputs are kept (inner join on "Name"), since
+    DESeq2 requires a single consistent gene set across all samples.
+
+    Args:
+        new_counts_path (str): genesCounts.csv from the alignment workflow's
+            output/Tables directory.
+        merged_counts_path (str): path to mergedCounts.tsv.
+        morphic_sample_ids (list): MorPhiC ERR ids to pull from merged_counts_path.
+            May be empty/None if the user selected no preprocessed MorPhiC samples,
+            in which case new_counts_path is used as-is.
+        output_path (str): where to write the merged TSV.
+
+    Returns:
+        None
+    """
+    new_df = pd.read_csv(new_counts_path, sep="\t")
+
+    if not morphic_sample_ids:
+        new_df.to_csv(output_path, sep="\t", index=False)
+        return
+
+    morphic_subset_path = f"{output_path}.morphic_subset.tmp"
+    try:
+        subset_counts_file(merged_counts_path, morphic_sample_ids, morphic_subset_path)
+        morphic_df = pd.read_csv(morphic_subset_path, sep="\t")
+        morphic_df = morphic_df.rename(columns={morphic_df.columns[0]: new_df.columns[0]})
+        merged_df = pd.merge(new_df, morphic_df, on=new_df.columns[0], how="inner")
+        merged_df.to_csv(output_path, sep="\t", index=False)
+    finally:
+        if os.path.exists(morphic_subset_path):
+            os.remove(morphic_subset_path)
 
 def get_morphic_metadata_for_gse_ids(study_ids, file_name="perSampleMetadata.tsv"):
     """

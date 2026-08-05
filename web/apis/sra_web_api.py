@@ -90,6 +90,35 @@ def get_metadata_for_accession_id(accession_id: str) -> list:
 
     return metadata
 
+def get_ena_fastq_urls(srr_id: str):
+    """
+    Look up direct ENA FASTQ download URLs for a single SRA/ENA run accession.
+
+    Parameters:
+        srr_id (str): A run accession, e.g. "SRR12345678" or "ERR13982538".
+
+    Returns:
+        tuple(bool, list): (is_paired, urls) where urls has 2 entries (R1, R2)
+        when is_paired is True, otherwise 1 entry.
+
+    Raises:
+        ValueError: if ENA has no FASTQ files for the accession.
+    """
+    db = SRAweb()
+    df = db.fetch_ena_fastq(srr_id)
+    matches = df[df["run_accession"] == srr_id]
+
+    if not matches.empty:
+        row = matches.iloc[0]
+        if "ena_fastq_http_1" in df.columns and pd.notna(row.get("ena_fastq_http_2")):
+            return True, [row["ena_fastq_http_1"], row["ena_fastq_http_2"]]
+        if "ena_fastq_http_1" in df.columns and pd.notna(row.get("ena_fastq_http_1")):
+            return False, [row["ena_fastq_http_1"]]
+        if "ena_fastq_http" in df.columns and pd.notna(row.get("ena_fastq_http")):
+            return False, [row["ena_fastq_http"]]
+
+    raise ValueError(f"No ENA FASTQ files found for accession {srr_id}")
+
 # fetch metadata for given accession id
 def get_metadata_for_gse_ids(accession_id_list: list, file_name: str) -> list:
     """

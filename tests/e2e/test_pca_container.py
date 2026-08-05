@@ -1,5 +1,5 @@
 """
-Runs the real patrickmckeever/rnotebook:0.3 container (Rscript /app/pca.R) end
+Runs the real patrickmckeever/rnotebook:0.4 container (Rscript /app/pca.R) end
 to end against a small, real subset of mergedCounts.tsv, the same way
 web/routes.py's /run-bwb "no uploads / no manual SRR ids" branch does.
 
@@ -82,7 +82,7 @@ def test_pca_container_produces_plots(tmp_path):
         f"-v {metadata_path_str}:{metadata_path_str} "
         f"-e counts_dir={counts_dir_str} "
         f"-e metadata_json={metadata_path_str} "
-        f"patrickmckeever/rnotebook:0.3 Rscript /app/pca.R"
+        f"patrickmckeever/rnotebook:0.4 Rscript /app/pca.R"
     )
 
     result = subprocess.run(

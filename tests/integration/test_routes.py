@@ -7,11 +7,6 @@ def test_home_route(client):
     assert response.status_code == 200
     assert b'Bwb Dashboard' in response.data
 
-def test_search_route(client):
-    response = client.get('/search')
-    assert response.status_code == 200
-    assert b'Bwb Dashboard' in response.data
-
 # def test_queue_position_route(client):
 #     response = client.get('/queue_position')
    
@@ -22,16 +17,6 @@ def test_search_route(client):
 #     response = client.get('/search/status')
 #     assert response.status_code == 200
 #     assert b'Bwb Dashboard' in response.data
-
-def test_search_results_route(client):
-    response = client.get('/search-results')
-    assert response.status_code == 200
-    assert b'Bwb Dashboard' in response.data
-
-def test_metadata_route(client):
-    response = client.get('/metadata')
-    assert response.status_code == 200
-    assert b'Bwb Dashboard' in response.data
 
 # test when route should redirect
 # def test_create_group_route(client):

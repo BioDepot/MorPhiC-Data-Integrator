@@ -11,7 +11,7 @@ from web import app
 from web.apis.sample_explorer_api import SampleExplorerAPI
 from web.apis import sra_web_api
 from web.apis.morphic_data_api import MorphicAPI
-from web.utils import utils, sample_explorer_utils
+from web.utils import utils, sample_explorer_utils, fastq_staging
 from .forms import SearchForm, BwbForm, create_results_table_form
 import requests
 from werkzeug.utils import secure_filename
@@ -23,6 +23,7 @@ import uuid
 import os
 import socket
 import io
+import functools
 
 STORAGE_ID='storageID'
 if "BWB_SCHED_DIR" not in os.environ:
@@ -44,16 +45,26 @@ class JobManager:
         self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
         self.worker_thread.start()
 
-    def submit(self, cmd, output_dir=None):
+    def submit(self, steps, output_dir=None):
+        """
+        steps: list of step dicts, run sequentially, each either
+            {"type": "cmd", "cmd": <shell command str>}   # run via subprocess; "docker run"
+                                                            # commands get --rm and a unique
+                                                            # --name {job_id}-{n} injected
+            {"type": "callable", "fn": <callable taking no args>}  # runs in-process; raise to fail the job
+        The job fails (status "error", with details in "result") on the first
+        step that fails, and no later steps run.
+        """
         job_id = str(uuid.uuid4())
         job_info = {
             "id": job_id,
-            "cmd": cmd,
+            "steps": steps,
             "status": "queued",
             "result": None,
             "start_time": None,
             "end_time": None,
-            "container_name": job_id,  # container will use job_id as name
+            "container_name": None,  # name of whichever container is currently running, if any
+            "cmds_run": [],          # every shell command actually executed, in order (for debugging)
             "output_dir": output_dir,  # where this job's plots/counts are written, if job-scoped
         }
         with self.lock:
@@ -71,35 +82,67 @@ class JobManager:
                 job["start_time"] = time.time()
                 self.current_job = job_id
 
-            # modify cmd to include --name
-            cmd_with_name = job["cmd"].replace("docker run", f"docker run --name {job_id}")
-
+            last_output = ""
+            cmd_index = 0
             try:
-                proc = subprocess.Popen(
-                    cmd_with_name,
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
+                for step in job["steps"]:
+                    with self.lock:
+                        canceled = job["status"] == "canceled"
+                    if canceled:
+                        break
 
-                with self.lock:
-                    job["proc"] = proc  # store process if needed
+                    if step["type"] == "cmd":
+                        # A single job can run several "docker run" commands
+                        # in sequence (e.g. the alignment scheduler, then the
+                        # PCA container). Each gets its own unique container
+                        # name and --rm: reusing job_id as the name for every
+                        # step, without --rm, left the first step's (stopped
+                        # but not removed) container occupying that name, so
+                        # the next docker run --name step failed with
+                        # "container name already in use".
+                        container_name = f"{job_id}-{cmd_index}"
+                        cmd_index += 1
+                        cmd_with_name = step["cmd"].replace("docker run", f"docker run --rm --name {container_name}")
 
-                stdout, stderr = proc.communicate()
+                        with self.lock:
+                            job["container_name"] = container_name
+                            job["cmds_run"].append(cmd_with_name)
+                        print(f"[JobManager] job {job_id}: running: {cmd_with_name}")
+
+                        proc = subprocess.Popen(
+                            cmd_with_name,
+                            shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE
+                        )
+
+                        with self.lock:
+                            job["proc"] = proc  # store process if needed
+
+                        stdout, stderr = proc.communicate()
+
+                        with self.lock:
+                            job.pop("proc", None)
+                            canceled = job["status"] == "canceled"
+                        if canceled:
+                            break
+                        if proc.returncode != 0:
+                            raise RuntimeError(stderr.decode())
+                        last_output = stdout.decode()
+                    elif step["type"] == "callable":
+                        step["fn"]()
 
                 with self.lock:
                     if job["status"] == "canceled":
                         job["result"] = "Job was canceled."
-                    elif proc.returncode == 0:
-                        job["status"] = "done"
-                        job["result"] = stdout.decode()
                     else:
-                        job["status"] = f"error: {stderr.decode()}"
+                        job["status"] = "done"
+                        job["result"] = last_output
 
             except Exception as e:
                 with self.lock:
                     job["status"] = "error"
-                    job["result"] = str(e)
+                    job["result"] = self._format_error_result(job, e)
 
             finally:
                 with self.lock:
@@ -108,6 +151,17 @@ class JobManager:
                     job.pop("proc", None)
 
             time.sleep(0.1)
+
+    @staticmethod
+    def _format_error_result(job, exc):
+        lines = [str(exc)]
+        if job["cmds_run"]:
+            lines.append("")
+            lines.append("Commands run for this job:")
+            lines.extend(f"  {i}. {cmd}" for i, cmd in enumerate(job["cmds_run"], start=1))
+        message = "\n".join(lines)
+        print(f"[JobManager] job {job['id']} failed:\n{message}")
+        return message
 
     def cancel_running_job(self, job_id):
         with self.lock:
@@ -150,15 +204,19 @@ JOB_MANAGER = JobManager()
 
 DEFAULT_TABLES_DIR = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "processing", "Tables")
 
+# Persistent (not job-scoped, intentionally shared across runs) cache of
+# downloaded SRA/ENA FASTQ files, keyed by run accession, so re-selecting the
+# same SRR/ERR id in a later run doesn't re-download it.
+SRA_CACHE_DIR = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "sra_cache")
+
 def get_job_output_dir(job_id):
     """
     Resolve the directory a job's plots (heatmap.png, volcano_plot.png,
     pca_plot.png) and genesCounts.csv live in.
 
-    Jobs submitted with a job-scoped output_dir (the direct rnotebook
-    container path) use that. Everything else (the bulkrna_full.json
-    scheduler path, or an unknown/expired job_id) falls back to the shared
-    static path that bwbSched has always written its "13.tablesDir" output to.
+    /run-bwb always submits jobs with a job-scoped output_dir; an unknown or
+    expired job_id (e.g. after a server restart, since job state is in-memory
+    only) falls back to the legacy shared static path.
     """
     with JOB_MANAGER.lock:
         job = JOB_MANAGER.jobs.get(job_id)
@@ -516,12 +574,32 @@ def write_metadata_json(samples, srr_groups, srr_entries, output_path):
     with open(output_path, "w") as fh:
         json.dump(metadata, fh, indent=2)
 
-# Key assumptions of bulkrna.json:
-#   - All paired end fastq files are named "sample_1.fastq" and "sample_2.fastq"
-#   - There is an entry in metadata.json corresponding to each SRR ID / user uploaded file.
-#   - If the sample name "sample" (key "srr_id" in metadata.json, which is actually kind of a misnomer)
-#     exists, then the file "sample_1.fastq" (and possibly its R2) are present in the directory passed
-#     as Start.fastqdir.
+def _download_manual_srr_fastqs(srr_entries, paired_dir, unpaired_dir, cache_dir=None):
+    for entry in srr_entries:
+        fastq_staging.download_srr_fastq(entry["id"], paired_dir, unpaired_dir, cache_dir=cache_dir)
+
+def _merge_and_write_final_counts(workflow_counts_path, merged_counts_path, morphic_sample_ids, final_output_dir, final_counts_path):
+    os.makedirs(final_output_dir, exist_ok=True)
+    utils.merge_counts_tables(workflow_counts_path, merged_counts_path, morphic_sample_ids, final_counts_path)
+
+def _build_pca_cmd(final_output_dir, metadata_path):
+    return (
+        f"docker run "
+        f"-v {final_output_dir}:{final_output_dir} "
+        f"-v {metadata_path}:{metadata_path} "
+        f"-e counts_dir={final_output_dir} "
+        f"-e metadata_json={metadata_path} "
+        f"patrickmckeever/rnotebook:0.4 Rscript /app/pca.R"
+    )
+
+# Key assumptions of bulkrna_paired_unpaired.json:
+#   - Paired-end fastq files are named "{SAMPLE_ID}_R1.fastq.gz" / "{SAMPLE_ID}_R2.fastq.gz"
+#     and live in Start.paired_fastq_dir; single-end files are "{SAMPLE_ID}_R1.fastq.gz"
+#     in Start.unpaired_fastq_dir.
+#   - SAMPLE_ID is either a user-supplied sample name (uploaded FASTQs) or the
+#     SRR/ERR run accession (downloaded FASTQs), and must match the "srr_id" used
+#     for that sample in metadata.json so the PCA step can match counts columns
+#     back to groups.
 @app.route("/run-bwb", methods=["POST"])
 def run_bwb():
     form = BwbForm()
@@ -530,7 +608,8 @@ def run_bwb():
         return render_template("dash.html", form=form, status=-1)
 
     randStr = str(uuid.uuid4())
-    shutil.copy("./mergedCounts.tsv", os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv"))
+    merged_counts_path = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv")
+    shutil.copy("./mergedCounts.tsv", merged_counts_path)
     upload_root = os.path.join(BWB_SCHED_DIR, STORAGE_ID, randStr)
     os.makedirs(upload_root, exist_ok=True)
 
@@ -585,28 +664,23 @@ def run_bwb():
         r1 = request.files.get(f"{prefix}[r1]")
         r2 = request.files.get(f"{prefix}[r2]")
 
-        sample_dir = upload_root
-        os.makedirs(sample_dir, exist_ok=True)
-
-        r1_path = None
         if r1 and r1.filename:
             userUploadedFiles = True
-            r1_path = os.path.join(sample_dir, f"{name}_1.fastq")
-            r1.save(r1_path)
-
-        r2_path = None
-        if layout == "PAIRED":
-            if not r2 or not r2.filename:
-                form.workflow.errors.append(f"Sample {name}: R2 FASTQ is required for paired-end layout.")
+            if not fastq_staging.is_valid_fastq_upload_filename(r1.filename):
+                form.workflow.errors.append(f"Sample {name}: FASTQ R1 must be a .fastq.gz or .fq.gz file.")
                 return render_template("dash.html", form=form, status=-1)
-            r2_path = os.path.join(sample_dir, f"{name}_2.fastq")
-            r2.save(r2_path)
+            if layout == "PAIRED":
+                if not (r2 and r2.filename):
+                    form.workflow.errors.append(f"Sample {name}: R2 FASTQ is required for paired-end layout.")
+                    return render_template("dash.html", form=form, status=-1)
+                if not fastq_staging.is_valid_fastq_upload_filename(r2.filename):
+                    form.workflow.errors.append(f"Sample {name}: FASTQ R2 must be a .fastq.gz or .fq.gz file.")
+                    return render_template("dash.html", form=form, status=-1)
 
-        samples.append({"name": name, "group": group, "layout": layout, "r1": r1_path, "r2": r2_path})
+        samples.append({"name": name, "group": group, "layout": layout, "r1": r1, "r2": r2})
 
     print(f"USER UPLOADED FILES: {userUploadedFiles}")
-    metadata_path     = os.path.join(upload_root, "metadata.json")
-    metadata_cnt_path = os.path.join("/data", randStr, "metadata.json")
+    metadata_path = os.path.join(upload_root, "metadata.json")
 
     srr_entries = []
     i = 0
@@ -621,65 +695,94 @@ def run_bwb():
 
     write_metadata_json(samples=samples, srr_groups=srr_groups, srr_entries=srr_entries, output_path=metadata_path)
 
-    srr_ids = []
+    # ERR ids of MorPhiC samples that already have preprocessed counts in mergedCounts.tsv
+    morphic_sample_ids = []
     if srr_groups:
         for group in srr_groups:
-            srr_ids.extend(group.get("samples", []))
-    srrIds = "[" + ",".join(srr_ids) + "]"
-    print("SRR IDs:", ",".join(srr_ids) if srr_ids else "None")
+            morphic_sample_ids.extend(group.get("samples", []))
+    print("MorPhiC sample IDs:", ",".join(morphic_sample_ids) if morphic_sample_ids else "None")
 
-    manual_sra_ids = [e["id"] for e in srr_entries]
-    sraIds = "[" + ",".join(manual_sra_ids) + "]"
+    needs_alignment = userUploadedFiles or bool(srr_entries)
 
-    output_dir = None
+    final_output_dir = os.path.join(upload_root, "processing", "Tables")
+    final_counts_path = os.path.join(final_output_dir, "genesCounts.csv")
 
-    if userUploadedFiles or manual_sra_ids:
-        cmd = (
+    if needs_alignment:
+        # Each run gets its own paired/unpaired/output dirs under upload_root
+        # (which is namespaced by randStr) so that concurrent or back-to-back
+        # runs never mix up each other's FASTQ inputs or workflow outputs.
+        paired_dir = os.path.join(upload_root, "paired")
+        unpaired_dir = os.path.join(upload_root, "unpaired")
+        workflow_output_dir = os.path.join(upload_root, "output")
+        os.makedirs(paired_dir, exist_ok=True)
+        os.makedirs(unpaired_dir, exist_ok=True)
+
+        # Stage uploaded FASTQs synchronously (request.files objects are only
+        # valid for the lifetime of this request). Manual SRR/ERR downloads
+        # happen as an async job step instead, since they can be slow.
+        for sample in samples:
+            if not (sample["r1"] and sample["r1"].filename):
+                continue
+            fastq_staging.stage_uploaded_fastq(
+                sample["name"], sample["layout"], sample["r1"], sample["r2"],
+                paired_dir, unpaired_dir,
+            )
+
+        alignment_cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
             f"-v \"$(pwd)\":/wfs "
             f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
             f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
             f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
-            f"-p Start.fastqdir=/data/{randStr} "
-            f"-p Start.metadata_json={metadata_cnt_path} "
-            f"-p Start.samplesToRetain={srrIds} "
-            f"-p Start.srridsAll={sraIds} "
-            f"-p Start.preprocessedCnts=/data/mergedCounts.tsv "
-            f"/wfs/bulkrna_full.json"
+            f"-p Start.output_dir=/data/{randStr}/output "
+            f"-p Start.paired_fastq_dir=/data/{randStr}/paired "
+            f"-p Start.unpaired_fastq_dir=/data/{randStr}/unpaired "
+            f"/wfs/bulkrna_paired_unpaired.json"
         )
+
+        workflow_counts_path = os.path.join(workflow_output_dir, "Tables", "genesCounts.csv")
+        pca_cmd = _build_pca_cmd(final_output_dir, metadata_path)
+
+        steps = []
+        if srr_entries:
+            steps.append({
+                "type": "callable",
+                "fn": functools.partial(
+                    _download_manual_srr_fastqs, srr_entries, paired_dir, unpaired_dir, SRA_CACHE_DIR,
+                ),
+            })
+        steps.append({"type": "cmd", "cmd": alignment_cmd})
+        steps.append({
+            "type": "callable",
+            "fn": functools.partial(
+                _merge_and_write_final_counts,
+                workflow_counts_path, merged_counts_path, morphic_sample_ids,
+                final_output_dir, final_counts_path,
+            ),
+        })
+        steps.append({"type": "cmd", "cmd": pca_cmd})
     else:
         # No uploaded FASTQs and no manually-entered SRR IDs: every selected
         # sample is a MorPhiC ERR id that already has preprocessed counts in
-        # mergedCounts.tsv, so skip the bwbSched/bulkrna_preprocessed.json
-        # pipeline entirely and run the rnotebook analysis container directly
-        # against a per-job subset of mergedCounts.tsv.
-        if not srr_ids:
+        # mergedCounts.tsv, so skip the alignment workflow entirely and run
+        # the rnotebook analysis container directly against a subset of
+        # mergedCounts.tsv.
+        if not morphic_sample_ids:
             form.workflow.errors.append("No samples or SRR IDs were provided.")
             return render_template("dash.html", form=form, status=-1)
 
-        output_dir = os.path.join(upload_root, "processing", "Tables")
-        os.makedirs(output_dir, exist_ok=True)
-        counts_path = os.path.join(output_dir, "genesCounts.csv")
-
-        merged_counts_path = os.path.join(BWB_SCHED_DIR, STORAGE_ID, "mergedCounts.tsv")
         try:
-            utils.subset_counts_file(merged_counts_path, srr_ids, counts_path)
+            os.makedirs(final_output_dir, exist_ok=True)
+            utils.subset_counts_file(merged_counts_path, morphic_sample_ids, final_counts_path)
         except ValueError as e:
             form.workflow.errors.append(str(e))
             return render_template("dash.html", form=form, status=-1)
 
-        cmd = (
-            f"docker run "
-            f"-v {output_dir}:{output_dir} "
-            f"-v {metadata_path}:{metadata_path} "
-            f"-e counts_dir={output_dir} "
-            f"-e metadata_json={metadata_path} "
-            f"patrickmckeever/rnotebook:0.3 Rscript /app/pca.R"
-        )
+        pca_cmd = _build_pca_cmd(final_output_dir, metadata_path)
+        steps = [{"type": "cmd", "cmd": pca_cmd}]
 
-    print(cmd)
-    job_id = JOB_MANAGER.submit(cmd, output_dir=output_dir)
+    job_id = JOB_MANAGER.submit(steps, output_dir=final_output_dir)
     return render_template("dash.html", form=form, status=1, job_id=job_id)
 
 @app.route("/heatmap/<job_id>")

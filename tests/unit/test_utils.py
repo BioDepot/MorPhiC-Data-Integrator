@@ -39,6 +39,61 @@ def test_subset_counts_file_missing_sample_raises(tmp_path):
     with pytest.raises(ValueError, match="ERR9"):
         utils.subset_counts_file(str(merged), ["ERR1", "ERR9"], str(out))
 
+def test_merge_counts_tables_with_morphic_samples(tmp_path):
+    new_counts = tmp_path / "genesCounts.csv"
+    new_counts.write_text(
+        "Name\tSAMPLE1\tSAMPLE2\n"
+        "ENSG1\t10\t20\n"
+        "ENSG2\t1\t2\n"
+        "ENSG3\t5\t6\n"
+    )
+    merged_counts = tmp_path / "mergedCounts.tsv"
+    merged_counts.write_text(
+        "Name\tERR1\tERR2\n"
+        "ENSG1\t100\t200\n"
+        "ENSG2\t11\t22\n"
+        "ENSG4\t99\t88\n"
+    )
+    out = tmp_path / "merged.tsv"
+
+    utils.merge_counts_tables(str(new_counts), str(merged_counts), ["ERR1", "ERR2"], str(out))
+
+    result = out.read_text()
+    assert result == (
+        "Name\tSAMPLE1\tSAMPLE2\tERR1\tERR2\n"
+        "ENSG1\t10\t20\t100\t200\n"
+        "ENSG2\t1\t2\t11\t22\n"
+    )
+    # No leftover temp file
+    assert not (tmp_path / "merged.tsv.morphic_subset.tmp").exists()
+
+def test_merge_counts_tables_no_morphic_samples_copies_new_counts(tmp_path):
+    new_counts = tmp_path / "genesCounts.csv"
+    new_counts.write_text(
+        "Name\tSAMPLE1\n"
+        "ENSG1\t10\n"
+    )
+    merged_counts = tmp_path / "mergedCounts.tsv"
+    merged_counts.write_text(
+        "Name\tERR1\n"
+        "ENSG1\t100\n"
+    )
+    out = tmp_path / "merged.tsv"
+
+    utils.merge_counts_tables(str(new_counts), str(merged_counts), [], str(out))
+
+    assert out.read_text() == "Name\tSAMPLE1\n" "ENSG1\t10\n"
+
+def test_merge_counts_tables_missing_morphic_sample_raises(tmp_path):
+    new_counts = tmp_path / "genesCounts.csv"
+    new_counts.write_text("Name\tSAMPLE1\nENSG1\t10\n")
+    merged_counts = tmp_path / "mergedCounts.tsv"
+    merged_counts.write_text("Name\tERR1\nENSG1\t100\n")
+    out = tmp_path / "merged.tsv"
+
+    with pytest.raises(ValueError, match="ERR9"):
+        utils.merge_counts_tables(str(new_counts), str(merged_counts), ["ERR9"], str(out))
+
 # SAMPLE EXPLORER UTILS
 
 @pytest.fixture
