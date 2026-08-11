@@ -352,6 +352,18 @@ def api_morphic_studies():
     if morphic_full_data is None:
         return jsonify({"error": "Error loading data"}), 500
 
+    # Not every study in morphic_data.json has a corresponding entry in
+    # perSampleMetadata.tsv (e.g. it hasn't been processed into per-sample
+    # metadata yet); selecting one of those on the MorPhiC Data screen would
+    # fail later at the metadata-fetch step, so only surface studies that do.
+    # If the metadata file can't be read, fail open (show everything
+    # unfiltered) rather than hiding the whole catalog.
+    try:
+        available_study_ids = utils.get_available_morphic_study_ids()
+    except (FileNotFoundError, OSError, KeyError) as e:
+        print(f"Warning: could not load perSampleMetadata.tsv, showing all bulk RNA-seq studies unfiltered: {e}")
+        available_study_ids = None
+
     # Assays compatible with workflow
     def is_bulk_rnaseq(readout_assay: str) -> bool:
         assay = readout_assay.lower().strip()
@@ -412,6 +424,15 @@ def api_morphic_studies():
             "readout_assay": study_readout_assay
         }
         new_study.update(extract_accessions(study_accessions))
+
+        if available_study_ids is not None:
+            has_linked_entry = (
+                new_study["erp_accession"] in available_study_ids
+                or new_study["geo_accession"] in available_study_ids
+            )
+            if not has_linked_entry:
+                continue
+
         data.append(new_study)
     return jsonify(data)
 
@@ -508,6 +529,21 @@ def morphic_refresh_data():
     if fresh:
         utils.save_json_file(fresh, data_file_name)
     return redirect("/morphic")
+
+@app.route("/download-merged-counts", methods=["GET"])
+def download_merged_counts():
+    """Download the full, unfiltered mergedCounts.tsv (every preprocessed MorPhiC sample)."""
+    # send_file resolves relative paths against app.root_path (web/), not the
+    # process cwd, so this must be absolute to reach the repo-root file.
+    merged_counts_path = os.path.abspath("mergedCounts.tsv")
+    if not os.path.exists(merged_counts_path):
+        abort(404)
+    return send_file(
+        merged_counts_path,
+        mimetype="text/tab-separated-values",
+        as_attachment=True,
+        download_name="mergedCounts.tsv",
+    )
 
 @app.route("/metadata", methods=["GET"])
 def metadata():

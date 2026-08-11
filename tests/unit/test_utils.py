@@ -94,6 +94,45 @@ def test_merge_counts_tables_missing_morphic_sample_raises(tmp_path):
     with pytest.raises(ValueError, match="ERR9"):
         utils.merge_counts_tables(str(new_counts), str(merged_counts), ["ERR9"], str(out))
 
+def test_get_morphic_metadata_for_gse_ids_reads_comma_delimited_file(tmp_path):
+    # perSampleMetadata.tsv is comma-delimited despite its extension -- this
+    # is a regression test for a bug where it was read with sep="\t", which
+    # silently collapsed every row into a single unparsed column.
+    per_sample = tmp_path / "perSampleMetadata.tsv"
+    per_sample.write_text(
+        "errId,erpAccession,gseAccession,sampleName,cellLine,modelSystems,knockoutGene,genotypeStatus,timepoint\n"
+        "ERR1,ERP1,GSE1,sample-one,KOLF2.2J,foo,GENE1,KO,Day6\n"
+        "ERR2,ERP1,GSE1,sample-two,KOLF2.2J,foo,GENE1,KO,Day6\n"
+    )
+
+    result = utils.get_morphic_metadata_for_gse_ids(["ERP1"], file_name=str(per_sample))
+
+    assert list(result["run_accession"]) == ["ERR1", "ERR2"]
+    assert list(result["study_accession"]) == ["ERP1", "ERP1"]
+    assert list(result["sampleName"]) == ["sample-one", "sample-two"]
+
+def test_get_morphic_metadata_for_gse_ids_missing_study_raises(tmp_path):
+    per_sample = tmp_path / "perSampleMetadata.tsv"
+    per_sample.write_text(
+        "errId,erpAccession,gseAccession,sampleName,cellLine,modelSystems,knockoutGene,genotypeStatus,timepoint\n"
+        "ERR1,ERP1,GSE1,sample-one,KOLF2.2J,foo,GENE1,KO,Day6\n"
+    )
+
+    with pytest.raises(ValueError, match="ERP404"):
+        utils.get_morphic_metadata_for_gse_ids(["ERP404"], file_name=str(per_sample))
+
+def test_get_available_morphic_study_ids(tmp_path):
+    per_sample = tmp_path / "perSampleMetadata.tsv"
+    per_sample.write_text(
+        "errId,erpAccession,gseAccession,sampleName,cellLine,modelSystems,knockoutGene,genotypeStatus,timepoint\n"
+        "ERR1,ERP1,GSE1,sample-one,KOLF2.2J,foo,GENE1,KO,Day6\n"
+        "ERR2,ERP2,GSE2,sample-two,KOLF2.2J,foo,GENE1,KO,Day6\n"
+    )
+
+    result = utils.get_available_morphic_study_ids(file_name=str(per_sample))
+
+    assert result == {"ERP1", "ERP2", "GSE1", "GSE2"}
+
 # SAMPLE EXPLORER UTILS
 
 @pytest.fixture

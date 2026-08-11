@@ -149,6 +149,24 @@ def merge_counts_tables(new_counts_path, merged_counts_path, morphic_sample_ids,
         if os.path.exists(morphic_subset_path):
             os.remove(morphic_subset_path)
 
+def get_available_morphic_study_ids(file_name="perSampleMetadata.tsv"):
+    """
+    Return the set of ERP/GSE study ids that have at least one row in
+    perSampleMetadata.tsv, i.e. studies with sample-level metadata actually
+    available. Studies missing from this set would fail if selected on the
+    MorPhiC Data screen, since get_morphic_metadata_for_gse_ids would have
+    nothing to return for them.
+
+    Args:
+        file_name (str): Path to perSampleMetadata.tsv.
+
+    Returns:
+        set: erpAccession and gseAccession values present in the file.
+    """
+    per_sample_df = pd.read_csv(file_name)
+    return set(per_sample_df['erpAccession'].dropna().unique()) | \
+        set(per_sample_df['gseAccession'].dropna().unique())
+
 def get_morphic_metadata_for_gse_ids(study_ids, file_name="perSampleMetadata.tsv"):
     """
     Look up per-sample metadata (cell line / knockout gene / time point) for a
@@ -173,10 +191,9 @@ def get_morphic_metadata_for_gse_ids(study_ids, file_name="perSampleMetadata.tsv
             cellLine, modelSystems, knockoutGene, genotypeStatus, timepoint for
             every sample belonging to the requested studies.
     """
-    per_sample_df = pd.read_csv(file_name, sep="\t")
+    per_sample_df = pd.read_csv(file_name)
 
-    studies_available = set(per_sample_df['erpAccession'].dropna().unique()) | \
-        set(per_sample_df['gseAccession'].dropna().unique())
+    studies_available = get_available_morphic_study_ids(file_name)
     missing_studies = [study_id for study_id in study_ids if study_id not in studies_available]
     if missing_studies:
         raise ValueError(
