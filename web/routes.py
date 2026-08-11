@@ -574,6 +574,36 @@ def write_metadata_json(samples, srr_groups, srr_entries, output_path):
     with open(output_path, "w") as fh:
         json.dump(metadata, fh, indent=2)
 
+@functools.lru_cache(maxsize=1)
+def _detect_host_docker_api_version():
+    """
+    Query the API version the host's docker daemon actually supports -- the
+    same daemon bwb_scheduler's container reaches through the mounted
+    /var/run/docker.sock. bwb_scheduler's image bundles its own (often
+    newer) docker client, which by default speaks its own max API version;
+    if that's newer than the host daemon supports, docker commands run
+    inside bwb_scheduler fail with "client version X is too new. Maximum
+    supported API version is Y". Passing DOCKER_API_VERSION into the
+    container tells its docker client to negotiate down to the host's
+    version instead.
+
+    Cached for the life of the process: the host daemon's version doesn't
+    change while this app is running.
+
+    Returns:
+        str or None: the daemon's API version (e.g. "1.42"), or None if it
+        couldn't be determined (e.g. no docker CLI on PATH here).
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.APIVersion}}"],
+            capture_output=True, text=True, timeout=10, check=True,
+        )
+        return result.stdout.strip() or None
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        print(f"[JobManager] could not determine host docker API version: {e}")
+        return None
+
 def _download_manual_srr_fastqs(srr_entries, paired_dir, unpaired_dir, cache_dir=None):
     for entry in srr_entries:
         fastq_staging.download_srr_fastq(entry["id"], paired_dir, unpaired_dir, cache_dir=cache_dir)
@@ -728,11 +758,17 @@ def run_bwb():
                 paired_dir, unpaired_dir,
             )
 
+        host_docker_api_version = _detect_host_docker_api_version()
+        docker_api_version_flag = (
+            f"-e DOCKER_API_VERSION={host_docker_api_version} " if host_docker_api_version else ""
+        )
+
         alignment_cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
             f"-v \"$(pwd)\":/wfs "
             f"-v {BWB_SCHED_DIR}:{BWB_SCHED_DIR} "
             f"-e BWB_SCHED_DIR={BWB_SCHED_DIR} "
+            f"{docker_api_version_flag}"
             f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
             f"-p Start.output_dir=/data/{randStr}/output "
