@@ -1,9 +1,10 @@
 """
-Verifies /run-bwb passes -e DOCKER_API_VERSION=<host version> into the
-bwb_scheduler container, so its bundled (often newer) docker client
-negotiates down to whatever the host docker daemon actually supports instead
-of failing with "client version X is too new. Maximum supported API version
-is Y".
+Verifies /run-bwb passes the host docker daemon's API version into both the
+bwb_scheduler container itself (-e DOCKER_API_VERSION=<host version>) and to
+bwbSched (--dockerVersion <host version>), since bwbSched also spawns
+sibling docker containers of its own. Without this, a bundled docker client
+newer than the host daemon fails with "client version X is too new. Maximum
+supported API version is Y".
 """
 import io
 
@@ -47,14 +48,21 @@ def test_alignment_cmd_includes_detected_host_api_version(client, monkeypatch):
     alignment_cmd = _capture_alignment_cmd(client, monkeypatch)
 
     assert "-e DOCKER_API_VERSION=1.42" in alignment_cmd
-    # The flag must land before the image name, i.e. as a `docker run` option,
-    # not as an argument passed to bwbSched itself.
-    assert alignment_cmd.index("-e DOCKER_API_VERSION=1.42") < alignment_cmd.index("patrickmckeever/bwb_scheduler")
+    # The -e flag must land before the image name, i.e. as a `docker run`
+    # option, not as an argument passed to bwbSched itself.
+    image_index = alignment_cmd.index("patrickmckeever/bwb_scheduler")
+    assert alignment_cmd.index("-e DOCKER_API_VERSION=1.42") < image_index
+
+    assert "--dockerVersion 1.42" in alignment_cmd
+    # --dockerVersion is a bwbSched CLI arg, so it must land after the image
+    # name/command, not be mistaken for a `docker run` option.
+    assert alignment_cmd.index("--dockerVersion 1.42") > image_index
 
 
-def test_alignment_cmd_omits_flag_when_version_undetectable(client, monkeypatch):
+def test_alignment_cmd_omits_flags_when_version_undetectable(client, monkeypatch):
     monkeypatch.setattr(routes, "_detect_host_docker_api_version", lambda: None)
 
     alignment_cmd = _capture_alignment_cmd(client, monkeypatch)
 
     assert "DOCKER_API_VERSION" not in alignment_cmd
+    assert "--dockerVersion" not in alignment_cmd

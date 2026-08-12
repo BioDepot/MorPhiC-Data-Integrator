@@ -798,6 +798,12 @@ def run_bwb():
         docker_api_version_flag = (
             f"-e DOCKER_API_VERSION={host_docker_api_version} " if host_docker_api_version else ""
         )
+        # bwbSched itself also spawns sibling docker containers, so tell it
+        # (via its own --dockerVersion flag) to match the host daemon's API
+        # version too, for the same reason as DOCKER_API_VERSION above.
+        docker_version_arg = (
+            f"--dockerVersion {host_docker_api_version} " if host_docker_api_version else ""
+        )
 
         alignment_cmd = (
             f"docker run -v /var/run/docker.sock:/var/run/docker.sock "
@@ -807,6 +813,7 @@ def run_bwb():
             f"{docker_api_version_flag}"
             f"patrickmckeever/bwb_scheduler:latest bwbSched run "
             f"--docker --noTemporal -v --storageId {STORAGE_ID} "
+            f"{docker_version_arg}"
             f"-p Start.output_dir=/data/{randStr}/output "
             f"-p Start.paired_fastq_dir=/data/{randStr}/paired "
             f"-p Start.unpaired_fastq_dir=/data/{randStr}/unpaired "
