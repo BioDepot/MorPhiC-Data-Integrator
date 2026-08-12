@@ -17,6 +17,30 @@ Interactive Data Integrator facilates uniform data processing and integration wi
 - [Troubleshooting](#troubleshoting)
 - [Technologies Used](#technologies-used)
 
+## Installation and Running
+
+### Linux/AMD64
+The following section deals with setup for Linux/Amd64. It assumes that docker has been installated. The integrator may be run like so.
+```
+git clone https://github.com/BioDepot/MorPhiC-Data-Integrator.git && cd MorPhiC-Data-Integrator
+docker build -t data_integrator .
+SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
+```
+
+### Mac
+For Macs, it will be required to use multipass or a similar system in order to run the linux/arm64 docker images. Multipass may be installated from [this link](https://canonical.com/multipass/install).
+```
+multipass launch 24.04 --name docker-vm
+multipass shell docker-vm
+sudo snap install docker
+sudo addgroup --system docker
+sudo adduser $USER docker
+newgrp docker
+git clone https://github.com/BioDepot/MorPhiC-Data-Integrator.git && cd MorPhiC-Data-Integrator
+docker build -t data_integrator .
+SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
+```
+
 ## Project Setup
 
 This project provides option to setup using either **Docker** (recommended for quick setup) or as a **Local Installation** (recommended for active development)
@@ -44,8 +68,6 @@ Before you begin, ensure you have the following installed on your local machine:
     ```
 - **pip** (Python package manager)
 - **Docker**
-- **Git**
-- Terminal or Command Prompt access
 
 
 
