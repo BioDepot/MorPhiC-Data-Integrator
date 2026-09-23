@@ -39,7 +39,7 @@ SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED
 #### Mac
 For Macs, it will be required to use multipass or a similar system in order to run the linux/arm64 docker images. Multipass may be installated from [this link](https://canonical.com/multipass/install).
 ```
-multipass launch 24.04 --name docker-vm
+multipass launch 24.04 --name docker-vm --disk 50G
 multipass shell docker-vm
 sudo snap install docker
 sudo addgroup --system docker
