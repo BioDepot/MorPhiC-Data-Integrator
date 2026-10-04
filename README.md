@@ -35,20 +35,43 @@ git clone https://github.com/BioDepot/MorPhiC-Data-Integrator.git && cd MorPhiC-
 docker build -t data_integrator .
 SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
 ```
+Open your web browser and navigate to http://127.0.0.1:5000/
 
 #### Mac
 For Macs, it will be required to use multipass or a similar system in order to run the linux/arm64 docker images. Multipass may be installated from [this link](https://canonical.com/multipass/install).
+After installing multipass, launch a big VM instance.
 ```
 multipass launch 24.04 --name docker-vm --disk 50G
 multipass shell docker-vm
+```
+
+Install Docker and clone the repository.
+```
 sudo snap install docker
 sudo addgroup --system docker
 sudo adduser $USER docker
 newgrp docker
 git clone https://github.com/BioDepot/MorPhiC-Data-Integrator.git && cd MorPhiC-Data-Integrator
+```
+
+Start Docker and build the container.
+```
+sudo snap start docker
 docker build -t data_integrator .
+```
+
+Since the app is deployed from the VM, you need to check the VM's IP address.
+```
+hostname -I | awk '{print $1}'
+```
+
+Launch the app
+```
 SRC=$(pwd) && SCHED_DIR=/data && sudo docker run --rm -it -p 5000:5000 -v $SCHED_DIR:$SCHED_DIR -v $SRC:$SRC -v /var/run/docker.sock:/var/run/docker.sock -e BWB_SCHED_DIR=$SCHED_DIR  docker.io/library/data_integrator sh -c "cd $SRC && flask run"
 ```
+Open your web browser and navigate to http://Your_IP_address:5000/.  
+The localhost doesn't work because the app is deployed through the VM.
+
 
 ### Option 2: Local Development
 
@@ -141,13 +164,24 @@ After selecting samples, navigate to "Next Run Workflow". Select "Run" when read
 The status of the workflow will show at the top of screen. When complete, the page will refresh to show results. Option to download counts is available.
 
 ## Troubleshoting
-- When uisng local setup of the project, some packages will require Python version 3.12. Please ensure that your setup uses Python 3.12. Alternatives versions such as 3.9 to 3.12 may work. Afer installing a different python version, run previous setup instructions by replacing `python3.12`.
+- When using local setup of the project, some packages will require Python version 3.12. Please ensure that your setup uses Python 3.12. Alternatives versions such as 3.9 to 3.12 may work. Afer installing a different python version, run previous setup instructions by replacing `python3.12`.
 
     For example, create a virtual environment with `python3.10`.
     - macOS/Linux/Windows
         ```
         python3.10 -m venv .venv
         ```
+
+- When installing on the Mac using Docker, make sure that Docker is running. It may be necessary to toggle Docker and reset permissions after starting Docker:
+    ```
+    sudo snap services docker
+    sudo snap disable docker
+    sudo snap enable docker
+    sudo snap connect docker:home
+    sudo chown root:docker /var/run/docker.sock
+    sudo snap set docker daemon.group=docker
+    sudo snap restart docker
+    ```
 
 ## Technologies Used
 
