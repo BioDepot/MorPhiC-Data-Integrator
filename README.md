@@ -6,6 +6,11 @@ Interactive Data Integrator facilitates uniform data processing and integration 
 
 [![Quick (1-minute) demo video of the Data Integrator](https://youtu.be/upFXmBV4HSY)](https://youtu.be/upFXmBV4HSY)
 
+Pre-print: bioRxiv 2026.10.16.759756; [DOI](https://doi.org/10.64898/2026.10.16.759756)
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23777069.svg)](https://doi.org/10.5281/zenodo.23777069)
+
+
 ## Table of Contents
 
 - [Installation](#installation)
